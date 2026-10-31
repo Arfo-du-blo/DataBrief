@@ -1,0 +1,31 @@
+/* DataBrief - settings page additions */
+main.sd { max-width: 860px; }
+.sd h2 { margin: 0 0 6px; font-size: 18px; }
+.sd h3 { margin: 18px 0 8px; font-size: 14px; }
+.sd .muted { color: var(--muted); font-size: 14px; }
+.sd .muted.small { font-size: 12px; margin-bottom: 0; }
+.sd code { font-family: var(--mono); font-size: .9em; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
+.sd-tag { font-size: 13px; font-weight: 600; color: var(--accent); background: var(--accent-soft); padding: 3px 10px; border-radius: 999px; letter-spacing: 0; }
+.sd-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: space-between; }
+.sd-msg { margin: 10px 0 0; font-size: 14px; }
+.sd-msg.ok { color: var(--ok); }
+.sd-msg.err { color: var(--err-text); }
+.sd-grid { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(200px, 1.4fr) auto; gap: 10px 14px; align-items: center; margin-top: 14px; }
+.sd-grid > label:first-child, .sd-grid > label[for] { font-size: 14px; }
+.sd-grid .select { width: 100%; }
+.sd-lock { font-size: 13px; color: var(--text-2); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.sd-checks { display: grid; gap: 8px; font-size: 14px; }
+.sd-checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.sd input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); }
+.sd-text { margin-top: 14px; }
+.sd-text-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 6px; font-size: 14px; font-weight: 500; }
+.sd textarea {
+  width: 100%; resize: vertical; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-strong);
+  background: var(--surface); color: var(--text); font-family: var(--mono); font-size: 13px; line-height: 1.55;
+}
+.sd textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+.sd-details { margin-top: 16px; font-size: 14px; }
+.sd-details summary { cursor: pointer; color: var(--text-2); }
+.sd-details pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: var(--mono); font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+footer a { color: inherit; }
+@media (max-width: 640px) { .sd-grid { grid-template-columns: 1fr auto; } .sd-grid > label[for] { grid-column: 1 / -1; margin-bottom: -6px; } }

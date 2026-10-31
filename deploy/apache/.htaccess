@@ -1,0 +1,30 @@
+# DataBrief - .htaccess for shared hosting / a folder of an existing Apache site.
+# Put it next to databrief.html (your settings: make the file with databrief_set_default.html).
+DirectoryIndex databrief.html
+Options -Indexes
+
+<IfModule mod_headers.c>
+    Header always set Content-Security-Policy "frame-ancestors 'self'"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "no-referrer"
+    <Files "databrief.html">
+        Header set Cache-Control "no-cache"
+    </Files>
+</IfModule>
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html
+</IfModule>
+
+# Only databrief.html is served from this folder.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} !(/|/databrief\.html)$
+    RewriteRule ^ - [R=404,L]
+</IfModule>
+
+# Optional password: create the file with  htpasswd -c /home/you/.databrief.htpasswd alice
+# AuthType Basic
+# AuthName "DataBrief"
+# AuthUserFile /home/you/.databrief.htpasswd
+# Require valid-user

@@ -1,0 +1,294 @@
+/* DataBrief - builds the Markdown prompt. GPL-3.0-or-later.
+ * The prompt is produced as a list of parts:
+ *   { s }            locked text (values, names, data, Markdown structure)
+ *   { k, s, orig }   editable text written by DataBrief (k = stable id, orig = generated text)
+ * User edits are stored as { id: text } overrides and re-applied on every rebuild. */
+'use strict';
+(function () {
+  const DB = window.DB;
+  const LOCALES = { zh: 'zh-CN', ar: 'ar-u-nu-latn' };
+
+  DB.locale = (lang) => LOCALES[lang] || lang;
+
+  /* Translate a prompt string. */
+  DB.tp = function (lang, key, vars) {
+    const P = window.DB_I18N.prompt;
+    let s = (P[lang] && P[lang][key]) || P.en[key] || key;
+    if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? vars[k] : m));
+    return s;
+  };
+  const rawTp = (lang, key) => {
+    const P = window.DB_I18N.prompt;
+    return (P[lang] && P[lang][key]) || P.en[key] || key;
+  };
+
+  const cellMd = (v) => String(v).replace(/\|/g, '\\|').replace(/\r\n|\r|\n/g, '<br>');
+  const csvCell = (v) => (/[",\r\n]/.test(v) || /^\s|\s$/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v);
+  const code = (s) => (String(s).includes('`') ? String(s) : '`' + s + '`');
+
+  function fenceFor(text) {
+    let f = '```';
+    while (text.includes(f)) f += '`';
+    return f;
+  }
+
+  DB.toCsv = function (sec, limit) {
+    const n = limit == null ? sec.rows.length : Math.min(limit, sec.rows.length);
+    const lines = new Array(n + 1);
+    lines[0] = sec.columns.map((c) => csvCell(c.name)).join(',');
+    for (let r = 0; r < n; r++) lines[r + 1] = sec.rows[r].map(csvCell).join(',');
+    return lines.join('\n');
+  };
+
+  function toTable(sec, n) {
+    const lines = new Array(n + 2);
+    lines[0] = '| ' + sec.columns.map((c) => cellMd(c.name)).join(' | ') + ' |';
+    lines[1] = '|' + sec.columns.map(() => '---').join('|') + '|';
+    for (let r = 0; r < n; r++) lines[r + 2] = '| ' + sec.rows[r].map(cellMd).join(' | ') + ' |';
+    return lines.join('\n');
+  }
+
+  function renderData(sec, layout, n) {
+    if (layout === 'table') return toTable(sec, n);
+    const csv = DB.toCsv(sec, n);
+    const f = fenceFor(csv);
+    return f + 'csv\n' + csv + '\n' + f;
+  }
+
+  /* In 'files' mode the data goes in separate CSV files: the prompt only shows a short sample. */
+  function sectionView(sec, opts) {
+    const total = sec.rows.length;
+    const files = opts.mode === 'files';
+    const shown = files ? Math.min(opts.sample || 5, total) : opts.limit && total > opts.limit ? opts.limit : total;
+    let layout = opts.layout;
+    if (layout === 'auto') layout = shown <= 100 && sec.columns.length <= 12 ? 'table' : 'csv';
+    return { sec, shown, total, layout, partial: !files && shown < total };
+  }
+
+  DB.safeName = (s) => String(s).replace(/[\\/:*?"<>|\u0000-\u001f]+/g, '_').replace(/^\.+/, '').slice(0, 80) || 'data';
+  /* Names of the CSV files: <file>.csv for one section, NN_<section>.csv for several. */
+  DB.dataFileNames = function (doc) {
+    const base = DB.safeName((doc.fileName || 'data').replace(/\.[^.]+$/, ''));
+    if (doc.sections.length === 1) return [base + '.csv'];
+    const used = new Set();
+    return doc.sections.map((s, i) => {
+      let n = String(i + 1).padStart(2, '0') + '_' + DB.safeName(s.name) + '.csv';
+      while (used.has(n)) n = n.replace(/\.csv$/, '_.csv');
+      used.add(n);
+      return n;
+    });
+  };
+
+  const META_COLS = [
+    ['label', 'cLabel'], ['values', 'cValues'], ['measure', 'cMeasure'], ['format', 'cFormat'], ['missing', 'cMissing'],
+    ['sqlType', 'cSql'], ['key', 'cKey'], ['notNull', 'cNotNull'], ['parquetType', 'cParquet'],
+  ];
+  const TYPE_KEYS = {
+    integer: 'tInteger', decimal: 'tDecimal', date: 'tDate', datetime: 'tDatetime', time: 'tTime',
+    boolean: 'tBoolean', text: 'tText', empty: 'tEmpty', mixed: 'tMixed',
+  };
+
+  function metaText(v, t) {
+    if (v == null || v === '') return '';
+    if (Array.isArray(v)) return v.map((x) => metaText(x, t)).filter(Boolean).join(', ');
+    if (typeof v === 'object' && v.key) return t(v.key);
+    return String(v);
+  }
+  const isEmptyMeta = (v) => v == null || v === '' || (Array.isArray(v) && !v.length);
+
+  /* The per-section column table is locked: it describes the data exactly. */
+  function columnsTable(sec, t) {
+    const extra = META_COLS.filter(([k]) => sec.columns.some((c) => !isEmptyMeta(c.meta && c.meta[k])));
+    const head = [t('cName'), t('cType')].concat(extra.map(([, label]) => t(label)));
+    const lines = ['| ' + head.join(' | ') + ' |', '|' + head.map(() => '---').join('|') + '|'];
+    for (const c of sec.columns) {
+      const cells = [cellMd(code(c.name)), t(TYPE_KEYS[c.type] || 'tText')];
+      for (const [k] of extra) cells.push(cellMd(metaText(c.meta && c.meta[k], t)));
+      lines.push('| ' + cells.join(' | ') + ' |');
+    }
+    return lines.join('\n');
+  }
+
+  /* Collects locked and editable parts. */
+  /*
+   * Collects the prompt. Everything is locked, except free regions: each region becomes one editable
+   * block ({ k, s, orig }) that the user can rewrite entirely. Overrides replace a whole region.
+   */
+  function Builder(lang, overrides) {
+    const parts = [];
+    const ov = overrides || {};
+    return {
+      parts,
+      lock(s) {
+        if (!s) return;
+        const last = parts[parts.length - 1];
+        if (last && !last.k && !last.mark) last.s += s; else parts.push({ s });
+      },
+      /* Prompt string by key, with its {placeholders} filled in. */
+      say(key, vars) {
+        this.lock(rawTp(lang, key).replace(/\{(\w+)\}/g, (m, k) => (vars && vars[k] !== undefined ? String(vars[k]) : m)));
+      },
+      /* Everything written inside fn becomes one editable block; trailing line breaks stay locked. */
+      /* base: text set by an admin for this region (replaces the generated text, still editable by the user). */
+      region(id, fn, base) {
+        const start = parts.length;
+        parts.push({ s: '', mark: true });
+        fn();
+        const text = parts.splice(start).map((p) => p.s).join('');
+        const tail = /\n*$/.exec(text)[0];
+        const orig = base ? String(base).replace(/\n+$/, '') : text.slice(0, text.length - tail.length);
+        parts.push({ k: id, s: Object.prototype.hasOwnProperty.call(ov, id) ? ov[id] : orig, orig });
+        this.lock(tail); // same spacing after the region, whether the text is generated or set by an admin
+      },
+    };
+  }
+  /* Ids of the free regions, in prompt order. */
+  DB.REGIONS = ['intro', 'respond', 'fmt'];
+
+  /*
+   * opts: { lang, layout: 'auto'|'table'|'csv', limit: number|null, overrides: { id: text },
+   *         mode: 'inline'|'files', sample: rows shown per section in files mode,
+   *         displayLimit: max rows rendered per section (formatted view only) }
+   * Returns the list of parts.
+   */
+  DB.buildParts = function (doc, opts) {
+    const L = opts.lang;
+    const files = opts.mode === 'files';
+    const fileNames = files ? DB.dataFileNames(doc) : [];
+    const t = (k, v) => DB.tp(L, k, v);
+    const nf = new Intl.NumberFormat(DB.locale(L));
+    const N = (n) => nf.format(n);
+    const views = doc.sections.map((s) => sectionView(s, opts));
+    const multi = views.length > 1;
+    const b = Builder(L, opts.overrides);
+    const say = (key, id, vars) => b.say(key, vars);
+    const line = (prefix, key, id, vars) => { b.lock(prefix); say(key, id, vars); b.lock('\n'); };
+
+    const base = opts.base || {};
+    // Locked: title. Free: introduction (an admin may provide its own text)
+    b.lock('# '); say('title', 'title', { file: doc.fileName }); b.lock('\n\n');
+    b.region('intro', () => { say('intro'); }, base.intro);
+    b.lock('\n\n');
+
+    // Locked: overview (exact facts about the file)
+    line('## ', 'overview');
+    b.lock('- **'); say('file'); b.lock(':** ' + code(doc.fileName) + ' · **');
+    say('format'); b.lock(':** ' + doc.formatName + ' · **');
+    say('size'); b.lock(':** ' + DB.fmtBytes(doc.fileSize) + '\n');
+    const totalRows = views.reduce((a, v) => a + v.total, 0);
+    if (multi) {
+      const sep = doc.sectionKind === 'sheets' ? 'sepSheets' : doc.sectionKind === 'tables' ? 'sepTables' : 'sepRecords';
+      b.lock('- **'); say('sections'); b.lock(':** ' + N(views.length) + '. '); say(sep); b.lock('\n');
+    }
+    b.lock('- **'); say('rows'); b.lock(':** ' + N(totalRows) + '\n');
+    for (const [key, value] of doc.fileMeta || []) {
+      const v = String(value);
+      b.lock('- **'); say(key); b.lock(':**');
+      if (v.includes('\n')) b.lock('\n' + v.split('\n').map((l) => '  > ' + l).join('\n') + '\n');
+      else b.lock(' ' + v + '\n');
+    }
+    b.lock('\n');
+
+    // Free: how to respond (an admin may provide its own text)
+    b.region('respond', () => {
+    line('## ', 'respond');
+    if (files) line('\n', 'filesCheck');
+    line('\n### ', 'first');
+    line('1. ', 'f1');
+    line('2. ', 'f2');
+    line('   - ', 'f2a');
+    line('   - ', 'f2b');
+    line('3. ', 'f3');
+    line('\n### ', 'next');
+    for (const k of ['n1', 'n2', files ? 'n3Files' : 'n3', 'n4']) line('- ', k);
+    }, base.respond);
+    b.lock('\n'); // blank line between the two regions
+
+    // Free: how this file is formatted (generated for each file)
+    b.region('fmt', () => {
+    const anyCsv = views.some((v) => v.layout === 'csv' && v.sec.columns.length);
+    const anyTable = views.some((v) => v.layout === 'table' && v.sec.columns.length);
+    const notes = doc.notes || {};
+    line('## ', 'fmt');
+    if (files) {
+      line('- ', 'fmtFiles');
+      line('- ', 'fmtSample', null, { n: opts.sample || 5 });
+    } else line('- ', 'fmtLoc');
+    if (anyCsv) line('- ', 'fmtCsv');
+    if (anyTable) line('- ', 'fmtTable');
+    line('- ', 'fmtEmpty');
+    if (notes.isoDates) line('- ', 'fmtDates');
+    if (notes.flattened || notes.arrays) line('- ', 'fmtFlat');
+    if (notes.xmlAttr) line('- ', 'fmtXml');
+    if (notes.valueLabels) line('- ', 'fmtLabels');
+    const noHeader = views.map((v, i) => (v.sec.noHeader ? i + 1 : 0)).filter(Boolean);
+    if (noHeader.length) line('- ', 'fmtNoHeader', null, { list: noHeader.join(', ') });
+    if (notes.spans) line('- ', 'fmtSpans');
+    if (views.some((v) => v.partial)) line('- ', 'fmtPartial');
+    if (anyCsv && !files) line('- ', 'fmtCode');
+    });
+    b.lock('\n'); // the region's own final line break is kept (locked) by region()
+
+    // Locked: sections and columns
+    line('## ', 'details'); b.lock('\n');
+    views.forEach((v, i) => {
+      const s = v.sec;
+      b.lock('### ' + (i + 1) + '. ' + code(s.name) + '\n');
+      if (v.partial) say('secPartial', 'secPartial@' + i, { a: N(v.shown), b: N(v.total), c: N(s.columns.length) });
+      else say('secRows', 'secRows@' + i, { n: N(v.total), c: N(s.columns.length) });
+      if (s.hidden) { b.lock(' · '); say('hidden', 'hidden@' + i); }
+      b.lock('\n');
+      if (files) { b.lock('**'); say('file', 'file@' + i); b.lock(':** `' + fileNames[i] + '`\n'); }
+      if (s.caption) { b.lock('\n**'); say('caption', 'caption@' + i); b.lock(':** ' + s.caption + '\n'); }
+      b.lock('\n');
+      if (s.columns.length) b.lock(columnsTable(s, t) + '\n\n');
+      if (s.comments && s.comments.length) {
+        b.lock('**'); say('comments', 'comments@' + i); b.lock(':**\n');
+        const list = s.comments.slice(0, 200).map((c) => '- `' + c.cell + '`: ' + c.text.replace(/\n/g, ' '));
+        if (s.comments.length > 200) list.push('- … (+' + (s.comments.length - 200) + ')');
+        b.lock(list.join('\n') + '\n\n');
+      }
+    });
+
+    // Data
+    line('## ', files ? 'dataSample' : 'data'); b.lock('\n');
+    views.forEach((v, i) => {
+      b.lock('### ' + (i + 1) + '. ' + code(v.sec.name) + '\n\n');
+      if (files) { say('sampleOf', 'sampleOf@' + i, { a: N(v.shown), b: N(v.total), file: fileNames[i] }); b.lock('\n\n'); }
+      if (v.sec.columns.length) {
+        const dn = opts.displayLimit && v.shown > opts.displayLimit ? opts.displayLimit : v.shown;
+        b.lock(renderData(v.sec, v.layout, dn) + '\n\n');
+        if (dn < v.shown) b.lock('_… (+' + N(v.shown - dn) + ')_\n\n');
+      } else { b.lock('_'); say('empty', 'empty@' + i); b.lock('_\n\n'); }
+    });
+    // Locked: closing line
+    b.lock('---\n_'); say('end'); b.lock('_\n');
+    return b.parts;
+  };
+
+  DB.joinParts = (parts) => parts.map((p) => p.s).join('');
+
+  /* Generated text of a free region that does not depend on the file (intro, respond). Used by the settings page. */
+  DB.generatedText = function (lang, mode, id) {
+    const doc = { fileName: 'data.csv', fileSize: 0, formatName: 'CSV', sections: [], fileMeta: [], notes: {}, sectionKind: 'records' };
+    const p = DB.buildParts(doc, { lang, mode, layout: 'auto', sample: 5 }).find((x) => x.k === id);
+    return p ? p.orig : '';
+  };
+  DB.buildMarkdown = (doc, opts) => DB.joinParts(DB.buildParts(doc, opts));
+
+  /* Largest "nice" N rows per section that keeps the estimate under the budget. */
+  DB.suggestLimit = function (doc, opts, budget) {
+    const base = DB.estimateTokens(DB.buildMarkdown(doc, Object.assign({}, opts, { limit: 1 })));
+    const perRow = doc.sections.map((s) => {
+      if (s.rows.length < 2) return 0;
+      const sampleN = Math.min(s.rows.length, 2000);
+      return DB.estimateTokens(DB.toCsv(s, sampleN)) / (sampleN + 1);
+    });
+    const cost = (n) => base + doc.sections.reduce((a, s, i) => a + perRow[i] * Math.max(0, Math.min(n, s.rows.length) - 1), 0);
+    const maxRows = Math.max(1, ...doc.sections.map((s) => s.rows.length));
+    let lo = 1, hi = maxRows;
+    while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (cost(mid) <= budget) lo = mid; else hi = mid - 1; }
+    if (lo >= 100) { const p = Math.pow(10, Math.floor(Math.log10(lo)) - 1); lo = Math.floor(lo / p) * p; }
+    return Math.max(1, lo);
+  };
+})();

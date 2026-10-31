@@ -1,0 +1,70 @@
+# On a version tag (git tag v1.0.0 && git push origin v1.0.0):
+#   1. a GitHub release with databrief.html and databrief_set_default.html attached
+#   2. Docker images on GitHub Container Registry:
+#        ghcr.io/<owner>/databrief:latest, :nginx, :<version>, :<version>-nginx   (nginx variant)
+#        ghcr.io/<owner>/databrief:python, :<version>-python                      (Python variant)
+# After the first release: GitHub profile > Packages > databrief > Package settings > Change visibility > Public
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the HTML files from the sources
+        shell: pwsh
+        run: ./build.ps1
+
+      - name: Create (or update) the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            # the tag was pushed again: replace the files of the existing release
+            gh release upload "$GITHUB_REF_NAME" databrief.html databrief_set_default.html --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" databrief.html databrief_set_default.html \
+              --title "DataBrief $GITHUB_REF_NAME" --generate-notes
+          fi
+
+      - name: Image name (registry names must be lowercase)
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/databrief" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: nginx image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:nginx
+            ${{ env.IMAGE }}:${{ github.ref_name }}
+            ${{ env.IMAGE }}:${{ github.ref_name }}-nginx
+
+      - name: Python image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deploy/docker/Dockerfile.python
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:python
+            ${{ env.IMAGE }}:${{ github.ref_name }}-python

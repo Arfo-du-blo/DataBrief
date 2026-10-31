@@ -1,0 +1,133 @@
+<!doctype html>
+<!--
+  DataBrief - settings page: produces a databrief.html with team defaults, locks and custom prompt text.
+  Copyright (C) 2026 L'Arfo - GNU General Public License v3.0 or later. See https://www.gnu.org/licenses/gpl-3.0.html
+  It contains a compressed copy of databrief.html. Bundled libraries keep their own licenses (THIRD-PARTY-NOTICES.md).
+-->
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'; font-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>DataBrief - team settings</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f5bd5'/%3E%3Cpath d='M9 10h14M9 16h14M9 22h9' stroke='white' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+/*@inline src/styles.css*/
+</style>
+<style>
+/*@inline src/setdefault.css*/
+</style>
+</head>
+<body>
+<div class="topbar">
+  <button class="control icon-btn" id="themeBtn" type="button" aria-label="Switch between light and dark theme">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+  </button>
+</div>
+<main class="sd">
+  <header class="hero">
+    <h1 class="brand">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 7h12M6 12h12M6 17h7"/></svg></span>
+      DataBrief <span class="sd-tag">team settings</span>
+    </h1>
+    <p class="purpose">Choose the defaults for your team, lock what people should not change, write your own instructions,
+      then download a ready-to-share <code>databrief.html</code>. Everything happens in this page, offline.</p>
+  </header>
+
+  <section class="card"><div class="card-body">
+    <div class="sd-row sd-load">
+      <div><strong>Start from an existing file</strong> <span class="muted">(optional): load the settings of a databrief.html you made before.</span></div>
+      <label class="btn btn-outline btn-sm" for="loadInput">Load databrief.html…</label>
+      <input type="file" id="loadInput" accept=".html,.htm" class="sr-only">
+    </div>
+    <p class="sd-msg hidden" id="loadMsg"></p>
+  </div></section>
+
+  <section class="card"><div class="card-body">
+    <h2>Defaults and locks</h2>
+    <p class="muted">A <b>locked</b> setting uses your value and is hidden from users. An unlocked setting is only a default: users (and links such as <code>?lang=fr</code>) can still change it.</p>
+    <div class="sd-grid">
+      <label for="f_lang">Interface language</label>
+      <select id="f_lang" class="select"><option value="">Visitor's choice (English by default)</option></select>
+      <label class="sd-lock"><input type="checkbox" data-lock="lang"> Lock</label>
+
+      <label for="f_promptLang">Prompt language</label>
+      <select id="f_promptLang" class="select"><option value="">Same as the interface</option></select>
+      <label class="sd-lock"><input type="checkbox" data-lock="promptLang"> Lock</label>
+
+      <label for="f_mode">How the data is given to the AI</label>
+      <select id="f_mode" class="select"><option value="">Inside the prompt (default)</option><option value="files">As separate CSV files</option></select>
+      <label class="sd-lock"><input type="checkbox" data-lock="mode"> Lock</label>
+
+      <label for="f_layout">Data layout</label>
+      <select id="f_layout" class="select"><option value="">Auto (default)</option><option value="table">Markdown table</option><option value="csv">CSV</option></select>
+      <label class="sd-lock"><input type="checkbox" data-lock="layout"> Lock</label>
+
+      <label for="f_theme">Theme</label>
+      <select id="f_theme" class="select"><option value="">Follow the system (default)</option><option value="light">Light</option><option value="dark">Dark</option></select>
+      <label class="sd-lock"><input type="checkbox" data-lock="theme"> Lock</label>
+
+      <label for="f_sampleRows">Sample rows in CSV-files mode</label>
+      <input id="f_sampleRows" class="select" type="number" min="1" max="100" placeholder="5">
+      <span></span>
+
+      <label for="f_warnTokens">Large-file warning above (tokens)</label>
+      <input id="f_warnTokens" class="select" type="number" min="1000" step="1000" placeholder="150000">
+      <span></span>
+    </div>
+    <h3>Hide features</h3>
+    <div class="sd-checks">
+      <label><input type="checkbox" data-lock="limit"> Row limit (the "keep only the first rows" control)</label>
+      <label><input type="checkbox" data-lock="edit"> Edit button (users cannot change the prompt text)</label>
+      <label><input type="checkbox" data-lock="view"> View formatted button</label>
+    </div>
+  </div></section>
+
+  <section class="card"><div class="card-body">
+    <h2>Your team's prompt text</h2>
+    <p class="muted">Leave a box empty to keep DataBrief's text (translated automatically). Text you write here is used as is, in every language.
+      The overview, the column details, the data and the "how this file is formatted" notes are always generated for each file.</p>
+    <div class="sd-text">
+      <div class="sd-text-head"><label for="t_intro">Introduction</label><button class="link-btn small" type="button" data-fill="intro">Start from DataBrief's text</button></div>
+      <textarea id="t_intro" rows="3" spellcheck="true"></textarea>
+    </div>
+    <div class="sd-text">
+      <div class="sd-text-head"><label for="t_respond">How to respond: data inside the prompt</label><button class="link-btn small" type="button" data-fill="respond">Start from DataBrief's text</button></div>
+      <textarea id="t_respond" rows="10" spellcheck="true"></textarea>
+    </div>
+    <div class="sd-text">
+      <div class="sd-text-head"><label for="t_respondFiles">How to respond: CSV-files mode</label><button class="link-btn small" type="button" data-fill="respondFiles">Start from DataBrief's text</button></div>
+      <textarea id="t_respondFiles" rows="10" spellcheck="true"></textarea>
+    </div>
+    <p class="muted small">"Start from DataBrief's text" uses the prompt language chosen above (English if none).</p>
+  </div></section>
+
+  <section class="card"><div class="card-body">
+    <h2>Get your databrief.html</h2>
+    <div class="actions">
+      <button class="btn btn-primary" type="button" id="downloadBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+        Download databrief.html
+      </button>
+      <button class="btn btn-outline" type="button" id="previewBtn">Try it in a new tab</button>
+      <button class="btn btn-ghost" type="button" id="resetAllBtn">Reset this page</button>
+    </div>
+    <details class="sd-details">
+      <summary>Same settings for a server or Docker (environment variables / databrief.conf)</summary>
+      <pre id="envOut"></pre>
+    </details>
+  </div></section>
+</main>
+<footer><span class="powered">Powered by <a href="https://github.com/Arfo-du-blo/DataBrief" target="_blank" rel="noopener noreferrer">L'Arfo</a></span><span class="sep">·</span>Free software · GNU GPL v3</footer>
+
+<!-- Compressed copy of databrief.html (gzip, base64) -->
+<script>window.DB_APP_GZ = "/*@gzbase64 databrief.html*/";</script>
+<script>/*@inline vendor/fflate.min.js*/</script>
+<script>/*@inline src/i18n.js*/</script>
+<script>/*@inline src/i18n-modes.js*/</script>
+<script>/*@inline src/util.js*/</script>
+<script>/*@inline src/markdown.js*/</script>
+<script>/*@inline src/setdefault.js*/</script>
+</body>
+</html>

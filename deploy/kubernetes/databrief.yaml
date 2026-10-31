@@ -1,0 +1,87 @@
+# DataBrief - Kubernetes (nginx image). Settings: the ConfigMap below (DATABRIEF_* variables).
+#   kubectl apply -f deploy/kubernetes/databrief.yaml
+#   kubectl port-forward svc/databrief 8080:80      # then open http://localhost:8080
+# Expose it with your Ingress / Gateway (example at the end) and your usual TLS setup.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: databrief-settings
+  labels: { app: databrief }
+data:
+  DATABRIEF_LANG: ""
+  DATABRIEF_PROMPT_LANG: ""
+  DATABRIEF_MODE: "inline"
+  DATABRIEF_LAYOUT: "auto"
+  DATABRIEF_THEME: "system"
+  DATABRIEF_SAMPLE_ROWS: "5"
+  DATABRIEF_WARN_TOKENS: "150000"
+  DATABRIEF_LOCK: ""
+  DATABRIEF_PROMPT_INTRO: ""
+  DATABRIEF_PROMPT_RESPOND: ""
+  DATABRIEF_PROMPT_RESPOND_FILES: ""
+  DATABRIEF_BASE_PATH: "/"
+  DATABRIEF_ACCESS_LOG: "true"
+  DATABRIEF_FRAME_ANCESTORS: "'self'"
+  DATABRIEF_MAX_CONNECTIONS: "1024"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: databrief
+  labels: { app: databrief }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: databrief }
+  template:
+    metadata:
+      labels: { app: databrief }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+      containers:
+        - name: databrief
+          image: ghcr.io/arfo-du-blo/databrief:latest
+          ports:
+            - { name: http, containerPort: 8080 }
+          envFrom:
+            - configMapRef: { name: databrief-settings }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { cpu: 500m, memory: 128Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: databrief
+  labels: { app: databrief }
+spec:
+  selector: { app: databrief }
+  ports:
+    - { name: http, port: 80, targetPort: http }
+# ---
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: databrief
+# spec:
+#   rules:
+#     - host: databrief.example.com
+#       http:
+#         paths:
+#           - path: /
+#             pathType: Prefix
+#             backend: { service: { name: databrief, port: { name: http } } }
+#   tls:
+#     - hosts: [databrief.example.com]
+#       secretName: databrief-tls

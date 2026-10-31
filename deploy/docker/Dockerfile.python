@@ -1,0 +1,26 @@
+# DataBrief - lightweight Docker image based on Python (standard library only), with an interactive setup.
+# Published as ghcr.io/arfo-du-blo/databrief:python
+#
+# Build (from the repository root):
+#   docker build -f deploy/docker/Dockerfile.python -t databrief:python .
+# Run with questions (answers can be saved in the mounted folder for the next start):
+#   docker run -it -p 8080:8080 -v "$PWD/config:/config" databrief:python setup
+# Run without questions:
+#   docker run -d -p 8080:8080 -e DATABRIEF_LANG=fr databrief:python
+FROM python:3.12-alpine
+
+RUN adduser -D -H -u 10001 databrief && mkdir -p /app /config && chown databrief /config
+WORKDIR /app
+COPY databrief.html /app/databrief.html
+COPY deploy/python/serve.py /app/serve.py
+COPY deploy/databrief.conf /app/databrief.conf.example
+ENV DATABRIEF_IN_DOCKER=1 PYTHONUNBUFFERED=1
+USER databrief
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=3s CMD python -c "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/healthz' % os.environ.get('DATABRIEF_PORT', '8080'), timeout=2)" || exit 1
+ENTRYPOINT ["python", "/app/serve.py", "--html", "/app/databrief.html"]
+
+LABEL org.opencontainers.image.title="DataBrief (Python)" \
+      org.opencontainers.image.description="Turn any data file into an AI-ready prompt. 100% offline, in the browser." \
+      org.opencontainers.image.source="https://github.com/Arfo-du-blo/DataBrief" \
+      org.opencontainers.image.licenses="GPL-3.0-or-later"

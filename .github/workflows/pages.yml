@@ -1,0 +1,48 @@
+# Publishes DataBrief to GitHub Pages on every push to main:
+#   https://<owner>.github.io/DataBrief/                          the tool
+#   https://<owner>.github.io/DataBrief/databrief_set_default.html the team settings page
+# One-time setup: repository Settings > Pages > Build and deployment > Source: "GitHub Actions".
+name: GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the HTML files from the sources
+        shell: pwsh
+        run: ./build.ps1
+
+      - name: Prepare the site
+        run: |
+          mkdir -p _site
+          cp databrief.html _site/index.html
+          cp databrief.html databrief_set_default.html _site/
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v5

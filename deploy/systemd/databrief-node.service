@@ -1,0 +1,29 @@
+# DataBrief - systemd service (Node.js server), starts at boot and restarts if it stops.
+#   sudo useradd --system --no-create-home databrief
+#   sudo mkdir -p /opt/databrief /etc/databrief
+#   sudo cp databrief.html deploy/node/server.js /opt/databrief/
+#   sudo cp deploy/databrief.conf /etc/databrief/databrief.conf      # then edit it
+#   sudo cp deploy/systemd/databrief-node.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now databrief-node
+#   journalctl -u databrief-node -f                                   # logs
+[Unit]
+Description=DataBrief (Node.js server)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=databrief
+ExecStart=/usr/bin/node /opt/databrief/server.js --config /etc/databrief/databrief.conf --html /opt/databrief/databrief.html
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

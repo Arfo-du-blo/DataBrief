@@ -1,0 +1,8 @@
+.git
+.github
+tests
+src
+vendor
+build.ps1
+*.md
+!README.md

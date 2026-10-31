@@ -1,0 +1,4 @@
+# Test environment and outputs live outside the repo (see tests/README section in README.md)
+node_modules/
+__pycache__/
+*.pyc

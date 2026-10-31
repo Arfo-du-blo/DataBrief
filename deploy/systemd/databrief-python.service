@@ -1,0 +1,30 @@
+# DataBrief - systemd service (Python server), starts at boot and restarts if it stops.
+#   sudo useradd --system --no-create-home databrief
+#   sudo mkdir -p /opt/databrief /etc/databrief
+#   sudo cp databrief.html deploy/python/serve.py /opt/databrief/
+#   sudo cp deploy/databrief.conf /etc/databrief/databrief.conf      # then edit it
+#   sudo cp deploy/systemd/databrief-python.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now databrief-python
+#   journalctl -u databrief-python -f                                 # logs
+[Unit]
+Description=DataBrief (Python server)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=databrief
+ExecStart=/usr/bin/python3 /opt/databrief/serve.py --config /etc/databrief/databrief.conf --html /opt/databrief/databrief.html
+Restart=on-failure
+RestartSec=3
+# Hardening: the server only reads two files and listens on a port.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

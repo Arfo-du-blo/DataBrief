@@ -1,0 +1,27 @@
+# DataBrief - Caddy (https://caddyserver.com): automatic HTTPS in a few lines.
+#   caddy run --config Caddyfile            (or put it in /etc/caddy/Caddyfile and: sudo systemctl reload caddy)
+#
+# Replace ":8080" with your host name (e.g. databrief.example.com) to get a free HTTPS certificate automatically.
+:8080 {
+	encode gzip
+	header {
+		Content-Security-Policy "frame-ancestors 'self'"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	# A. Caddy serves databrief.html itself (settings: make the file with databrief_set_default.html)
+	root * /srv/databrief
+	rewrite / /databrief.html
+	header /databrief.html Cache-Control "no-cache"
+	file_server
+
+	# B. reverse proxy in front of a DataBrief server or Docker container (remove block A, uncomment):
+	# reverse_proxy 127.0.0.1:8080
+
+	# Optional password: generate the hash with  caddy hash-password
+	# basic_auth {
+	# 	alice $2a$14$REPLACE_WITH_THE_HASH
+	# }
+}

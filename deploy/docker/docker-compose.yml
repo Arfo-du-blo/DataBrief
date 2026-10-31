@@ -1,0 +1,68 @@
+# DataBrief - Docker Compose
+#
+#   docker compose -f deploy/docker/docker-compose.yml up -d                       nginx variant (default)
+#   docker compose -f deploy/docker/docker-compose.yml --profile python up -d      also the Python variant (port 8081)
+#   docker compose -f deploy/docker/docker-compose.yml down                        stop
+#
+# Every DATABRIEF_* setting is listed below with its default. An empty value = built-in default.
+# Multi-line prompt text: use a YAML block, for example
+#   DATABRIEF_PROMPT_RESPOND: |
+#     ## How to respond
+#     - Answer in French, in short bullet points.
+
+x-databrief-settings: &settings
+  # ---------- page ----------
+  DATABRIEF_LANG: ""              # interface language: en fr es de it pt nl pl ru tr zh ja ko hi ar ("" = visitor's choice)
+  DATABRIEF_PROMPT_LANG: ""       # prompt language ("" = same as the interface)
+  DATABRIEF_MODE: "inline"        # inline (data inside the prompt) | files (separate CSV files)
+  DATABRIEF_LAYOUT: "auto"        # auto | table | csv
+  DATABRIEF_THEME: "system"       # system | light | dark
+  DATABRIEF_SAMPLE_ROWS: "5"      # sample rows per section in CSV-files mode (1-100)
+  DATABRIEF_WARN_TOKENS: "150000" # large-file warning threshold (tokens)
+  DATABRIEF_LOCK: ""              # locked + hidden: lang,promptLang,mode,layout,theme,limit,edit,view
+  DATABRIEF_PROMPT_INTRO: ""      # your team's introduction ("" = DataBrief's text)
+  DATABRIEF_PROMPT_RESPOND: ""    # your team's "How to respond" text, data inside the prompt
+  DATABRIEF_PROMPT_RESPOND_FILES: ""  # same, CSV-files mode
+  # ---------- server ----------
+  DATABRIEF_BASE_PATH: "/"        # URL path, e.g. /databrief/
+  DATABRIEF_ACCESS_LOG: "true"    # log every request
+  DATABRIEF_FRAME_ANCESTORS: "'self'"  # sites allowed to embed DataBrief (SharePoint/Teams: add their URLs)
+
+services:
+  databrief:
+    image: ghcr.io/arfo-du-blo/databrief:latest    # nginx variant
+    # To build from the source instead of downloading the image:
+    # build: { context: ../.., dockerfile: deploy/docker/Dockerfile }
+    container_name: databrief
+    ports:
+      - "8080:8080"                 # host port : container port
+    environment:
+      <<: *settings
+      DATABRIEF_PORT: "8080"
+      DATABRIEF_MAX_CONNECTIONS: "1024"   # nginx worker_connections
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 128M
+
+  databrief-python:
+    profiles: ["python"]            # started only with --profile python
+    image: ghcr.io/arfo-du-blo/databrief:python
+    # build: { context: ../.., dockerfile: deploy/docker/Dockerfile.python }
+    container_name: databrief-python
+    ports:
+      - "8081:8080"
+    environment:
+      <<: *settings
+      DATABRIEF_PORT: "8080"
+      DATABRIEF_THREADS: "8"        # requests served at the same time
+    volumes:
+      - ./config:/config            # optional: databrief.conf written by "setup" (docker compose run databrief-python setup)
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 128M
