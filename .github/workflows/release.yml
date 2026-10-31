@@ -1,6 +1,8 @@
-# On a version tag (git tag v1.0.0 && git push origin v1.0.0):
-#   1. a GitHub release with databrief.html and databrief_set_default.html attached
-#   2. Docker images on GitHub Container Registry:
+# On a version tag (git tag v1.1.0 && git push origin v1.1.0):
+#   1. a GitHub release with databrief.html, databrief_set_default.html and SHA256SUMS.txt (their fingerprints,
+#      see docs/verify-privacy.md) attached
+#   2. Docker images on GitHub Container Registry, for PCs (linux/amd64) and ARM boards such as the Raspberry Pi
+#      (linux/arm64); Docker picks the right one automatically:
 #        ghcr.io/<owner>/databrief:latest, :nginx, :<version>, :<version>-nginx   (nginx variant)
 #        ghcr.io/<owner>/databrief:python, :<version>-python                      (Python variant)
 # After the first release: GitHub profile > Packages > databrief > Package settings > Change visibility > Public
@@ -24,20 +26,26 @@ jobs:
         shell: pwsh
         run: ./build.ps1
 
+      - name: Fingerprints (SHA-256) of the released files
+        run: sha256sum databrief.html databrief_set_default.html | tee SHA256SUMS.txt
+
       - name: Create (or update) the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             # the tag was pushed again: replace the files of the existing release
-            gh release upload "$GITHUB_REF_NAME" databrief.html databrief_set_default.html --clobber
+            gh release upload "$GITHUB_REF_NAME" databrief.html databrief_set_default.html SHA256SUMS.txt --clobber
           else
-            gh release create "$GITHUB_REF_NAME" databrief.html databrief_set_default.html \
+            gh release create "$GITHUB_REF_NAME" databrief.html databrief_set_default.html SHA256SUMS.txt \
               --title "DataBrief $GITHUB_REF_NAME" --generate-notes
           fi
 
       - name: Image name (registry names must be lowercase)
         run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/databrief" >> "$GITHUB_ENV"
+
+      # QEMU lets this PC-based runner build the ARM (Raspberry Pi) images too.
+      - uses: docker/setup-qemu-action@v4
 
       - uses: docker/setup-buildx-action@v4
 
@@ -52,6 +60,7 @@ jobs:
         with:
           context: .
           file: deploy/docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             ${{ env.IMAGE }}:latest
@@ -64,6 +73,7 @@ jobs:
         with:
           context: .
           file: deploy/docker/Dockerfile.python
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             ${{ env.IMAGE }}:python

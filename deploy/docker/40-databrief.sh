@@ -12,7 +12,9 @@ MAXCONN="${DATABRIEF_MAX_CONNECTIONS:-1024}"
 case "$PORT$MAXCONN" in *[!0-9]*) echo "DataBrief: DATABRIEF_PORT and DATABRIEF_MAX_CONNECTIONS must be numbers" >&2; exit 1 ;; esac
 
 # ---- page settings -> JSON config block (only values that differ from the built-in defaults)
-LOCK_JSON=$(printf '%s' "${DATABRIEF_LOCK:-}" | jq -R -c 'split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length > 0))')
+# -s: read the whole value as one string, so an empty DATABRIEF_LOCK gives [] (without -s, jq outputs nothing).
+LOCK_JSON=$(printf '%s' "${DATABRIEF_LOCK:-}" | jq -R -s -c 'split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length > 0))')
+# jq writes to a file first: in a pipe, a jq error would go unnoticed (set -e only sees the last command).
 jq -n \
   --arg lang "${DATABRIEF_LANG:-}" \
   --arg promptLang "${DATABRIEF_PROMPT_LANG:-}" \
@@ -32,7 +34,8 @@ jq -n \
   + (if $warn != "" and $warn != "150000" then {warnTokens: ($warn | tonumber)} else {} end)
   + (if ($lock | length) > 0 then {lock: $lock} else {} end)
   + set("promptIntro"; $intro; "") + set("promptRespond"; $respond; "") + set("promptRespondFiles"; $respondFiles; "")
-' | sed 's/</\\u003c/g' > /tmp/databrief-config.json
+' > /tmp/databrief-config.raw.json
+sed 's/</\\u003c/g' /tmp/databrief-config.raw.json > /tmp/databrief-config.json
 
 awk -v cfg=/tmp/databrief-config.json '
   /<script id="databrief-config" type="application\/json">/ { print; while ((getline line < cfg) > 0) print line; skip = 1; next }

@@ -1,6 +1,24 @@
 # DataBrief
 
-**Turn any data file into an AI-ready prompt.**
+**Turn any data file into an AI-ready prompt. 100% offline, in your browser.**
+
+This repository is two things at once:
+
+- 📊 **A tool you can use today.** One private, self-contained page that turns your data into a prompt any AI
+  assistant understands. It works everywhere, on any computer, with no installation, and is easy to share with your
+  whole team. Your files never leave your browser.
+- 🎓 **A complete deployment tutorial built on that tool.** Because DataBrief is a single file with no backend, it's
+  the perfect real-world example for learning how a web app gets from your laptop to the world: GitHub/GitLab Pages,
+  local servers, Docker, reverse proxies and HTTPS, a Raspberry Pi, an ESP32, Kubernetes, and Cloudflare Zero Trust.
+  Along the way, you'll learn to check for yourself that a page really keeps your data private.
+
+Use it, share it, or learn from it, or all three.
+
+**Try it now:** <https://arfo-du-blo.github.io/DataBrief/> · **Start the tutorial:** [docs/learn.md](docs/learn.md)
+
+---
+
+## What DataBrief does
 
 DataBrief is a single, self-contained HTML page. Drop a data file on it, and it produces a Markdown (`.md`) file you can
 paste into, or upload to, any AI assistant (Claude, ChatGPT, Gemini, Mistral, local LLMs…). The file contains:
@@ -9,17 +27,18 @@ paste into, or upload to, any AI assistant (Claude, ChatGPT, Gemini, Mistral, lo
    columns, metadata), and how to behave.
 2. **All of the data**, formatted for the AI to read reliably (or, if you prefer, a short sample plus separate CSV files).
 
-**Try it now:** <https://arfo-du-blo.github.io/DataBrief/>
-
 **100% offline and private:** everything happens in your browser. Your data never leaves your computer, even when the
 page is hosted on a server: the page itself forbids every network connection.
+[Check it yourself →](docs/verify-privacy.md)
 
 ---
 
 ## Contents
 
 - [Choose how to use DataBrief](#choose-how-to-use-databrief)
+- [Learn deployment with DataBrief](#learn-deployment-with-databrief): the tutorial, from a single file to an ESP32
 - [Guides](#guides), one per way of using it
+- [Expose it outside your network](#expose-it-outside-your-network-cloudflare-tunnel) (Cloudflare Tunnel)
 - [Settings](#settings): every setting, for every method
 - [Features](#features) · [Supported formats](#supported-formats) · [The generated prompt](#the-generated-prompt) · [Token estimate](#about-the-token-estimate) · [Privacy](#privacy-and-security) · [Limits](#limits)
 - [For developers](#for-developers): project structure, building, tests
@@ -51,10 +70,35 @@ Start at the top: the first rows need nothing at all; the last ones are for IT t
 | 16 | **Caddy** (automatic HTTPS) | Team | Server admins | Caddy | [Open](#caddy) |
 | 17 | **systemd service** | Team | Linux admins | Linux + Python or Node | [Open](#systemd-linux-service) |
 | 18 | **Kubernetes** | Team | Cluster admins | Kubernetes | [Open](#kubernetes) |
+| 19 | **Raspberry Pi** (Ubuntu Server 26.04 LTS) | Team (local network) | Home, classroom, small teams | A Raspberry Pi 4 or 5 | [Open](#raspberry-pi) |
+| 20 | **ESP32 / Arduino Nano ESP32** (pocket server, own Wi-Fi) | Team (local network) | Makers, offline sites | An ESP32 board (4 MB+) | [Open](#esp32-and-arduino) |
 
 **What is the difference?** The page always does all the work in the user's browser. The methods only change *where the
 page comes from* and *which defaults it has* (language, mode, locked settings, your team's instructions…). See
-[Settings](#settings).
+[Settings](#settings). To reach a server from outside your network, see
+[Cloudflare Tunnel](#expose-it-outside-your-network-cloudflare-tunnel).
+
+---
+
+## Learn deployment with DataBrief
+
+DataBrief doubles as a hands-on deployment course. Each level adds **one new idea**, gives you a working DataBrief,
+and points to its guide. Stop wherever you like.
+
+| Level | Deploy it… | What you learn |
+|---|---|---|
+| **0** | [as a file](#html-file-alone) | A web page is just a file; the browser is the runtime |
+| **1** | on [GitHub](#your-own-github-pages) / [GitLab Pages](#your-own-gitlab-pages) | Git, CI/CD, static hosting, HTTPS, releases |
+| **2** | with a server on your PC ([PowerShell](#powershell-server-windows), [Python](#python-server), [Node.js](#nodejs-server)) | Ports, `localhost` vs network, HTTP headers, configuration |
+| **3** | in a container ([Docker](#docker-nginx-image), [Compose](#docker-compose)) | Images, registries, environment variables, multi-architecture |
+| **4** | behind a reverse proxy ([nginx](#nginx-https-passwords-reverse-proxy), [Apache](#apache), [Caddy](#caddy), [IIS](#iis-windows-server)) | TLS certificates, passwords, sub-paths |
+| **4b** | through a [Cloudflare Tunnel](#expose-it-outside-your-network-cloudflare-tunnel) | Outbound tunnels, Zero Trust access |
+| **5** | on a [Raspberry Pi](docs/raspberry-pi.md) | Linux server basics: SSH, systemd, mDNS, firewall, ARM |
+| **6** | on an [ESP32 microcontroller](docs/esp32-arduino.md) | Embedded constraints, compression, Wi-Fi modes, firmware |
+| **7** | on [Kubernetes](#kubernetes) | Declarative deployment, probes, Services, Ingress |
+| **★** | [Check it yourself](docs/verify-privacy.md) | Prove the page sends nothing, and catch a tampered copy |
+
+**→ The full tutorial, with the concepts behind each level: [docs/learn.md](docs/learn.md)**
 
 ---
 
@@ -231,7 +275,9 @@ docker run -d --name databrief -p 8080:8080 \
   ghcr.io/arfo-du-blo/databrief:latest
 ```
 
-- Tags: `latest` and `nginx` (same image), and one per version (`v1.0.0`, `v1.0.0-nginx`).
+- Tags: `latest` and `nginx` (same image), and one per version (`v1.1.0`, `v1.1.0-nginx`).
+- Multi-architecture: every tag works on PCs and servers (`amd64`) and on ARM boards such as the Raspberry Pi
+  (`arm64`); Docker picks the right one.
 - Every setting is a `DATABRIEF_*` variable ([Settings](#settings)); they are applied at each container start.
 - Health check: `GET /healthz` (used by Docker's `HEALTHCHECK`).
 - Build it yourself: `docker build -f deploy/docker/Dockerfile -t databrief .` (from the repository root).
@@ -372,6 +418,62 @@ kubectl port-forward svc/databrief 8080:80
 
 [↑ Back to the table](#choose-how-to-use-databrief)
 
+### Raspberry Pi
+
+An always-on, silent DataBrief server for a home, a classroom or a small team, at `http://databrief.local`.
+Ubuntu Server 26.04 LTS on a Raspberry Pi 4 or 5, then one command on the Pi:
+
+```bash
+git clone https://github.com/Arfo-du-blo/DataBrief.git && cd DataBrief
+sudo bash deploy/raspberry-pi/setup.sh             # Python server + systemd (recommended)
+sudo bash deploy/raspberry-pi/setup.sh --docker    # or Docker (the images exist for ARM)
+```
+
+The script installs the service, sets up `databrief.local` (mDNS) and a firewall, and explains every step it takes.
+
+**→ Step-by-step guide, from flashing the card to HTTPS: [docs/raspberry-pi.md](docs/raspberry-pi.md)**
+
+[↑ Back to the table](#choose-how-to-use-databrief)
+
+### ESP32 and Arduino
+
+A €5–15 ESP32 board serves DataBrief over Wi-Fi: it joins your network (`http://databrief.local`), or creates its own,
+with no router and no internet. The page is stored compressed (about 0.9 MB) inside the firmware.
+
+- **Boards:** any ESP32 with 4 MB of flash or more, the ESP32-S3, and the **Arduino Nano ESP32**. Classic Arduinos
+  (Uno, Nano, Mega) are far too small; the guide explains why.
+- **Toolchains:** PlatformIO (`deploy/esp32/platformio.ini`) or the Arduino IDE 2 (`deploy/esp32/DataBrief/DataBrief.ino`),
+  with the same code.
+
+```bash
+cd deploy/esp32 && pio run -e esp32dev -t upload     # PlatformIO; Arduino IDE: see the guide
+```
+
+**→ Step-by-step guide, specs, Wi-Fi modes and troubleshooting: [docs/esp32-arduino.md](docs/esp32-arduino.md)**
+
+[↑ Back to the table](#choose-how-to-use-databrief)
+
+---
+
+## Expose it outside your network (Cloudflare Tunnel)
+
+To reach a DataBrief server (PowerShell, Python, Node.js, Docker, Raspberry Pi…) from outside your network, a
+**Cloudflare Tunnel** avoids opening any port on your router. A small program, `cloudflared`, runs next to DataBrief
+and opens an *outgoing* connection to Cloudflare. Visitors use `https://databrief.yourdomain.com` (HTTPS is
+automatic), and with **Cloudflare Access** (Zero Trust) they must first prove who they are, for example with an e-mail
+code or your company login. Since files are processed in the browser, **Cloudflare carries the page, never your
+data.** For an ESP32, run `cloudflared` on another machine on the same network. GitHub and GitLab Pages don't need it.
+
+> ⚠️ **Be extra careful: this puts a service on the internet.** Always put an Access policy in front, never a public
+> tunnel without one. Protect your Cloudflare account with two-factor authentication, keep `cloudflared` updated,
+> and turn off features that rewrite pages (Rocket Loader, minification) for the DataBrief address. Read Cloudflare's
+> documentation before you start.
+
+More: [the principle, explained](docs/learn.md#level-4b-cloudflare-tunnel-and-zero-trust) ·
+[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/) ·
+[Self-hosted application with Access](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/self-hosted-public-app/) ·
+[Access policies](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/)
+
 ---
 
 ## Settings
@@ -507,15 +609,24 @@ from about 128k to 200k+ tokens, depending on the model.
   `X-Content-Type-Options` and `Referrer-Policy` headers.
 - In **View formatted**, HTML found in the data is shown as text, never executed, and images are never loaded.
 
+**Wherever it's hosted, an unmodified page keeps your data private**: on your computer, GitHub or GitLab Pages,
+Cloudflare, your own server, a Raspberry Pi or an ESP32. Whoever controls the hosting *could* modify the page, as with
+any website, which is why you can check it yourself: the browser's Network tab shows every request a page makes, and
+each release publishes `SHA256SUMS.txt` so you can verify you have the official file. The guide walks you through
+both, and lets you catch a deliberately tampered copy in the act:
+**[Check it yourself →](docs/verify-privacy.md)**
+
 ## Limits
 
 - Encrypted or password-protected files (Excel, SQLite) cannot be read: save a copy without the password first.
 - Parquet: Snappy, Gzip, Zstd and LZ4 (raw) compression are supported; Brotli and Hadoop-LZ4 are not.
 - Everything happens in the browser's memory: files of a few hundred MB may be slow, depending on the computer.
 - The settings page and the interactive setups are in English (the tool itself has 15 languages).
-- Tested automatically: the page (Chrome), the Python, Node.js and PowerShell servers, both Docker images, and the
-  nginx, Apache and Caddy files (syntax). Checked for syntax only: IIS `web.config`, Kubernetes manifest, systemd units, `.gitlab-ci.yml`,
-  GitHub workflows. SharePoint and Teams depend on your tenant's policies.
+- Tested automatically: the page (Chrome), the privacy demo, the Python, Node.js and PowerShell servers, both Docker
+  images (`amd64`, and `arm64` under emulation), the Raspberry Pi setup script (ShellCheck and a dry run on Ubuntu
+  26.04), the ESP32 firmware (compiled for three boards), and the nginx, Apache and Caddy files (syntax). Checked for
+  syntax only: IIS `web.config`, Kubernetes manifest, systemd units, `.gitlab-ci.yml`, GitHub workflows. Not tested on
+  real hardware: a physical Raspberry Pi or ESP32 board. SharePoint and Teams depend on your tenant's policies.
 
 ---
 
@@ -526,7 +637,7 @@ from about 128k to 200k+ tokens, depending on the model.
 ```
 databrief.html                the tool (built, self-contained)
 databrief_set_default.html    the team settings page (built, contains a compressed copy of databrief.html)
-build.ps1                     builds both HTML files from src/ and vendor/
+build.ps1                     builds both HTML files from src/ and vendor/ (+ the demo pages and the ESP32 header)
 src/
   template.html               page markup and build directives
   setdefault.html/.css/.js    the settings page
@@ -545,6 +656,10 @@ deploy/
   powershell/serve.ps1        PowerShell server (-Setup)
   docker/                     Dockerfile (nginx), Dockerfile.python, 40-databrief.sh, docker-compose.yml
   nginx/ apache/ iis/ caddy/ systemd/ kubernetes/
+  raspberry-pi/               setup.sh (one-command setup), low-port.conf, docker-compose.yml
+  esp32/                      DataBrief/DataBrief.ino (firmware), platformio.ini, make_header.ps1/.py
+docs/                         learn.md (tutorial), raspberry-pi.md, esp32-arduino.md, verify-privacy.md
+examples/tampered/            the privacy demo: tampered copies + receiver.py (never published)
 .github/workflows/            pages.yml (GitHub Pages), release.yml (release + Docker images)
 .gitlab-ci.yml                the same for GitLab: Pages, release, Docker images (Container Registry)
 vendor/                       third-party libraries and their licenses
@@ -563,15 +678,16 @@ pwsh ./build.ps1                                          # PowerShell 7 (Window
 ### Releasing
 
 ```bash
-git tag v1.0.0 && git push origin v1.0.0
+git tag v1.1.0 && git push origin v1.1.0
 ```
 
-`.github/workflows/release.yml` creates the GitHub release (with both HTML files) and publishes the Docker images to
-`ghcr.io/<owner>/databrief`. After the first release, make the package public: **your GitHub profile → Packages →
-databrief → Package settings → Change visibility → Public**.
+`.github/workflows/release.yml` creates the GitHub release (with both HTML files and `SHA256SUMS.txt`, their
+fingerprints) and publishes the Docker images, for `amd64` and `arm64`, to `ghcr.io/<owner>/databrief`. After the
+first release, make the package public: **your GitHub profile → Packages → databrief → Package settings → Change
+visibility → Public**.
 
-On GitLab, the same tag runs `.gitlab-ci.yml`: GitLab release, HTML files in the Package Registry, Docker images in
-the Container Registry ([guide](#your-own-gitlab-pages)).
+On GitLab, the same tag runs `.gitlab-ci.yml`: GitLab release, HTML files and `SHA256SUMS.txt` in the Package
+Registry, multi-architecture Docker images in the Container Registry ([guide](#your-own-gitlab-pages)).
 
 Versions follow [semantic versioning](https://semver.org/): `vMAJOR.MINOR.PATCH`. New features or deployment options
 → minor (`v1.1.0`); fixes only → patch (`v1.0.1`); changes that break existing settings or URLs → major (`v2.0.0`).
@@ -592,11 +708,17 @@ powershell -ExecutionPolicy Bypass -File tests\test_powershell.ps1   # PowerShel
 
 - **Browser** (`run.sh`): every format (three SPSS compression modes, five Parquet codecs), errors, the 15 languages,
   large files, layouts, downloads, CSV-files mode, formatted view (HTML/script/image injection), prompt editing,
-  team settings and locks, the settings page, mobile layout, and **zero network requests**.
+  team settings and locks, the settings page, mobile layout, and **zero network requests**. Also the privacy demo
+  (`test_privacy_demo.cjs`): the tampered copy leaks only the file name, the blocked copy triggers a CSP violation.
 - **Servers** (`test_servers.sh`, `test_powershell.ps1`): settings priority, page settings, gzip, headers, health
   check, base path, 404, parallel requests, invalid values, interactive setup.
 - **Docker** (`test_docker.sh`): both images (settings, non-root, health check, interactive setup saved to `/config`),
-  Compose, and `nginx -t`, `httpd -t`, `caddy validate` on the configuration files. It removes every image it pulled.
+  the `arm64` images under emulation, Compose files, the Raspberry Pi script (ShellCheck, dry run on Ubuntu 26.04),
+  that the demo pages are never published, and `nginx -t`, `httpd -t`, `caddy validate` on the configuration files.
+  It removes every image it pulled.
+- **ESP32** (`test_esp32.sh`): both header generators give back `databrief.html` exactly; the firmware compiles for
+  three boards if PlatformIO is installed in `~/databrief-esp-testenv`
+  (`python3 -m venv ~/databrief-esp-testenv/venv && ~/databrief-esp-testenv/venv/bin/pip install platformio`).
 
 ## License
 
