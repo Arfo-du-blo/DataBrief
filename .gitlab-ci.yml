@@ -1,0 +1,105 @@
+# DataBrief - GitLab CI/CD (the GitLab equivalent of .github/workflows/).
+#
+#   Push to the default branch  -> GitLab Pages: https://<group>.gitlab.io/<project>/
+#   Push a tag v*  (git tag v1.1.0 && git push origin v1.1.0)
+#                               -> both HTML files in the Generic Package Registry
+#                               -> Docker images in the Container Registry:
+#                                    $CI_REGISTRY_IMAGE:latest, :nginx, :<tag>, :<tag>-nginx   (nginx variant)
+#                                    $CI_REGISTRY_IMAGE:python, :<tag>-python                  (Python variant)
+#                               -> a GitLab release linking the HTML files
+#
+# GitHub ignores this file; GitLab ignores .github/. Both can live in the same repository.
+# Self-managed GitLab: an administrator must enable GitLab Pages and the Container Registry.
+
+stages: [build, publish, release]
+
+variables:
+  PACKAGE_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/databrief/${CI_COMMIT_TAG}"
+
+# Builds databrief.html and databrief_set_default.html from the sources (same script as on Windows).
+build:
+  stage: build
+  image: mcr.microsoft.com/powershell:lts-ubuntu-22.04
+  script:
+    - pwsh ./build.ps1
+  artifacts:
+    paths: [databrief.html, databrief_set_default.html]
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG =~ /^v/
+
+# GitLab Pages: the job must be called "pages" and publish the "public" folder.
+pages:
+  stage: publish
+  image: alpine:3.20
+  needs: [build]
+  script:
+    - mkdir -p public
+    - cp databrief.html public/index.html
+    - cp databrief.html databrief_set_default.html public/
+  artifacts:
+    paths: [public]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# On a version tag: store both HTML files permanently in the Generic Package Registry.
+upload:
+  stage: publish
+  image:
+    name: curlimages/curl:8.10.1
+    entrypoint: [""]
+  needs: [build]
+  script:
+    - |
+      for f in databrief.html databrief_set_default.html; do
+        curl --fail --silent --show-error --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "$f" "${PACKAGE_URL}/$f"
+        echo "uploaded $f"
+      done
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v/
+
+# On a version tag: build and push both Docker images.
+docker:
+  stage: publish
+  image: docker:27
+  services: [docker:27-dind]
+  needs: [build]
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - >
+      docker build -f deploy/docker/Dockerfile
+      -t "$CI_REGISTRY_IMAGE:latest" -t "$CI_REGISTRY_IMAGE:nginx"
+      -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG" -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG-nginx" .
+    - >
+      docker build -f deploy/docker/Dockerfile.python
+      -t "$CI_REGISTRY_IMAGE:python" -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG-python" .
+    - docker push --all-tags "$CI_REGISTRY_IMAGE"
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v/
+
+# On a version tag: the GitLab release, with links to the uploaded HTML files.
+# GitLab 18+ creates releases with glab (the image below); older self-managed GitLab:
+# use registry.gitlab.com/gitlab-org/release-cli:latest instead.
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/cli:latest
+  needs: [upload, docker]
+  script:
+    - echo "Creating the release $CI_COMMIT_TAG"
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: "DataBrief $CI_COMMIT_TAG"
+    description: "DataBrief $CI_COMMIT_TAG. Docker images: $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG (nginx) and $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG-python."
+    assets:
+      links:
+        - name: databrief.html
+          url: "${PACKAGE_URL}/databrief.html"
+          link_type: package
+        - name: databrief_set_default.html
+          url: "${PACKAGE_URL}/databrief_set_default.html"
+          link_type: package
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v/

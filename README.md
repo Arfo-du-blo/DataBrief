@@ -37,19 +37,20 @@ Start at the top: the first rows need nothing at all; the last ones are for IT t
 | 2 | **HTML file on your computer** | Alone, or share the file | Everyone | A web browser | [Open](#html-file-alone) |
 | 3 | **Team defaults** (settings page) | Team | Anyone preparing it for a team | A web browser | [Open](#team-defaults-settings-page) |
 | 4 | **Your own GitHub Pages** | Team | Anyone with a GitHub account | GitHub account | [Open](#your-own-github-pages) |
-| 5 | **SharePoint / Microsoft Teams** | Team | Microsoft 365 users | A hosted copy (2, 4 or a server) + admin | [Open](#sharepoint-and-teams) |
-| 6 | **PowerShell server** | Team (local network) | Windows users | Windows (built in) | [Open](#powershell-server-windows) |
-| 7 | **Python server** | Team | IT / developers | Python 3.8+ | [Open](#python-server) |
-| 8 | **Node.js server** | Team | IT / developers | Node.js 18+ | [Open](#nodejs-server) |
-| 9 | **Docker (nginx image)** | Team | IT | Docker | [Open](#docker-nginx-image) |
-| 10 | **Docker (Python image, interactive setup)** | Team | IT | Docker | [Open](#docker-python-image-interactive) |
-| 11 | **Docker Compose** | Team | IT | Docker | [Open](#docker-compose) |
-| 12 | **IIS** | Team (intranet) | Windows server admins | IIS | [Open](#iis-windows-server) |
-| 13 | **Apache** | Team | Server admins / shared hosting | Apache 2.4 | [Open](#apache) |
-| 14 | **nginx** (+ HTTPS, passwords, reverse proxy) | Team | Server admins | nginx | [Open](#nginx-https-passwords-reverse-proxy) |
-| 15 | **Caddy** (automatic HTTPS) | Team | Server admins | Caddy | [Open](#caddy) |
-| 16 | **systemd service** | Team | Linux admins | Linux + Python or Node | [Open](#systemd-linux-service) |
-| 17 | **Kubernetes** | Team | Cluster admins | Kubernetes | [Open](#kubernetes) |
+| 5 | **Your own GitLab Pages** (can be private) | Team | GitLab users (gitlab.com or your company's GitLab) | GitLab account | [Open](#your-own-gitlab-pages) |
+| 6 | **SharePoint / Microsoft Teams** | Team | Microsoft 365 users | A hosted copy (2, 4, 5 or a server) + admin | [Open](#sharepoint-and-teams) |
+| 7 | **PowerShell server** | Team (local network) | Windows users | Windows (built in) | [Open](#powershell-server-windows) |
+| 8 | **Python server** | Team | IT / developers | Python 3.8+ | [Open](#python-server) |
+| 9 | **Node.js server** | Team | IT / developers | Node.js 18+ | [Open](#nodejs-server) |
+| 10 | **Docker (nginx image)** | Team | IT | Docker | [Open](#docker-nginx-image) |
+| 11 | **Docker (Python image, interactive setup)** | Team | IT | Docker | [Open](#docker-python-image-interactive) |
+| 12 | **Docker Compose** | Team | IT | Docker | [Open](#docker-compose) |
+| 13 | **IIS** | Team (intranet) | Windows server admins | IIS | [Open](#iis-windows-server) |
+| 14 | **Apache** | Team | Server admins / shared hosting | Apache 2.4 | [Open](#apache) |
+| 15 | **nginx** (+ HTTPS, passwords, reverse proxy) | Team | Server admins | nginx | [Open](#nginx-https-passwords-reverse-proxy) |
+| 16 | **Caddy** (automatic HTTPS) | Team | Server admins | Caddy | [Open](#caddy) |
+| 17 | **systemd service** | Team | Linux admins | Linux + Python or Node | [Open](#systemd-linux-service) |
+| 18 | **Kubernetes** | Team | Cluster admins | Kubernetes | [Open](#kubernetes) |
 
 **What is the difference?** The page always does all the work in the user's browser. The methods only change *where the
 page comes from* and *which defaults it has* (language, mode, locked settings, your team's instructions…). See
@@ -116,10 +117,36 @@ Your own domain: add it in **Settings → Pages → Custom domain** and create t
 
 [↑ Back to the table](#choose-how-to-use-databrief)
 
+### Your own GitLab Pages
+
+The GitLab equivalent of GitHub Pages, on gitlab.com or on your company's own GitLab server. Its main advantage for a
+team: the site can be **private**, visible only to members of the project.
+
+1. Create a GitLab project and push this repository to it (or import it: **New project → Import project → Repository
+   by URL**, with `https://github.com/Arfo-du-blo/DataBrief.git`).
+2. Optional: replace `databrief.html` with your own file from the [settings page](#team-defaults-settings-page)
+   (then remove `pwsh ./build.ps1` from the `build` job in `.gitlab-ci.yml`, so your file is published as it is).
+3. Push to the default branch. The `pages` job in [`.gitlab-ci.yml`](.gitlab-ci.yml) publishes the site; find its
+   address in **Deploy → Pages** (usually `https://<group>.gitlab.io/<project>/`).
+4. **Private site:** **Settings → General → Visibility → Pages: Only Project Members**. Users then sign in to GitLab
+   to open DataBrief.
+5. Own domain: **Deploy → Pages → New Domain**, then create the DNS records GitLab shows you.
+
+On a version tag (`git tag v1.1.0 && git push origin v1.1.0`), the same file also creates a GitLab release with both
+HTML files (stored in the project's **Package Registry**) and pushes the Docker images to the project's
+**Container Registry**: `registry.gitlab.com/<group>/<project>:latest`, `:nginx`, `:python`, `:<tag>`…
+These images work exactly like the [Docker](#docker-nginx-image) ones.
+
+Self-managed GitLab: an administrator must enable GitLab Pages (and the Container Registry for the images). On GitLab
+versions older than 18, change the `release` job image to `registry.gitlab.com/gitlab-org/release-cli:latest`.
+
+[↑ Back to the table](#choose-how-to-use-databrief)
+
 ### SharePoint and Teams
 
 Modern SharePoint does not run HTML files from a document library (it downloads them instead). Host DataBrief
-somewhere first ([GitHub Pages](#your-own-github-pages), [Online](#online), or one of the servers below), then:
+somewhere first ([GitHub Pages](#your-own-github-pages), [GitLab Pages](#your-own-gitlab-pages), [Online](#online),
+or one of the servers below), then:
 
 **SharePoint page (Embed web part)**
 
@@ -487,7 +514,7 @@ from about 128k to 200k+ tokens, depending on the model.
 - Everything happens in the browser's memory: files of a few hundred MB may be slow, depending on the computer.
 - The settings page and the interactive setups are in English (the tool itself has 15 languages).
 - Tested automatically: the page (Chrome), the Python, Node.js and PowerShell servers, both Docker images, and the
-  nginx, Apache and Caddy files (syntax). Checked for syntax only: IIS `web.config`, Kubernetes manifest, systemd units,
+  nginx, Apache and Caddy files (syntax). Checked for syntax only: IIS `web.config`, Kubernetes manifest, systemd units, `.gitlab-ci.yml`,
   GitHub workflows. SharePoint and Teams depend on your tenant's policies.
 
 ---
@@ -519,6 +546,7 @@ deploy/
   docker/                     Dockerfile (nginx), Dockerfile.python, 40-databrief.sh, docker-compose.yml
   nginx/ apache/ iis/ caddy/ systemd/ kubernetes/
 .github/workflows/            pages.yml (GitHub Pages), release.yml (release + Docker images)
+.gitlab-ci.yml                the same for GitLab: Pages, release, Docker images (Container Registry)
 vendor/                       third-party libraries and their licenses
 tests/                        test suites
 ```
@@ -541,6 +569,12 @@ git tag v1.0.0 && git push origin v1.0.0
 `.github/workflows/release.yml` creates the GitHub release (with both HTML files) and publishes the Docker images to
 `ghcr.io/<owner>/databrief`. After the first release, make the package public: **your GitHub profile → Packages →
 databrief → Package settings → Change visibility → Public**.
+
+On GitLab, the same tag runs `.gitlab-ci.yml`: GitLab release, HTML files in the Package Registry, Docker images in
+the Container Registry ([guide](#your-own-gitlab-pages)).
+
+Versions follow [semantic versioning](https://semver.org/): `vMAJOR.MINOR.PATCH`. New features or deployment options
+→ minor (`v1.1.0`); fixes only → patch (`v1.0.1`); changes that break existing settings or URLs → major (`v2.0.0`).
 
 ### Tests
 
