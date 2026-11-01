@@ -390,6 +390,12 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     await page.keyboard.press('Backspace');
     // Clicking locked text (the overview) flashes the hint.
     await page.$eval('#preview', (el) => { el.scrollTop = 0; });
+    // The page scrolls smoothly to the result after a file is read: wait until it stops, or the click lands elsewhere.
+    await page.evaluate(() => new Promise((resolve) => {
+      let last = -1, still = 0;
+      const tick = () => { const y = window.scrollY; if (y === last) { if (++still >= 8) return resolve(); } else { still = 0; last = y; } requestAnimationFrame(tick); };
+      tick();
+    }));
     const pt = await page.evaluate(() => {
       const box = document.getElementById('preview').getBoundingClientRect();
       for (const el of document.querySelectorAll('#preview .lk')) {
