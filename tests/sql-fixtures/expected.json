@@ -23,7 +23,7 @@
   "dialects": {
     "postgres":   { "files": "pg13-*, pg16-*, pg17-*", "foreignKeys": "declared (in ALTER TABLE ... ADD CONSTRAINT for -default, -inserts, -column-inserts and -schema-only)", "dataSyntax": "COPY ... FROM stdin (default and -data-only), INSERT (-inserts, -column-inserts)" },
     "mysql":      { "files": "mysql8-*, mariadb11-*", "foreignKeys": "declared (inline CONSTRAINT in CREATE TABLE)", "dataSyntax": "INSERT, several rows per statement (default, -full), one row (-one-row-per-insert), with column names (-complete-insert)" },
-    "sqlite":     { "files": "sqlite-dump.sql", "foreignKeys": "declared (inline REFERENCES)", "dataSyntax": "INSERT, one row per statement; the newline is char(10) concatenation" },
+    "sqlite":     { "files": "sqlite-shell-dump.sql, sqlite-python-iterdump.sql", "foreignKeys": "declared (inline REFERENCES)", "dataSyntax": "INSERT, one row per statement; the newline is unistr('...\\u000a...') in the shell dump and a raw newline in iterdump" },
     "duckdb":     { "files": "duckdb-export-csv/, duckdb-export-parquet/", "foreignKeys": "declared (inline REFERENCES in schema.sql)", "dataSyntax": "COPY ... FROM 'file' (data is in the CSV/Parquet files, not in the SQL)" },
     "clickhouse": { "files": "clickhouse-show-create.sql, clickhouse-data-sqlinsert.sql", "foreignKeys": "none exist in ClickHouse: relationships can only be inferred", "tables": { "customers": 5, "orders": 3, "order_items": 3 }, "dataSyntax": "INSERT ... VALUES with backslash escapes (O\\'Brien)" }
   },

@@ -16,7 +16,8 @@ on what people really have. They are committed so the tests do not need Docker.
 | `-inserts.sql`, `-column-inserts.sql`, `-schema-only.sql`, `-data-only.sql` | `pg_dump` | the other text modes |
 | `pg*-custom*.dump`, `pg*-tar.tar` | `pg_dump -Fc` / `-Ft` | binary archives (stage 11): gzip, none, and zstd / lz4 (16+) |
 | `mysql8-*`, `mariadb11-*` | `mysqldump`, `mariadb-dump` | inline `CONSTRAINT ... FOREIGN KEY`, backticks, multi-row `INSERT`, `\n` escapes, generated column, `ENUM`, `JSON`; version comments (`/*!40101 ... */`, `/*M!999999\- ... */`) |
-| `sqlite-dump.sql` | `sqlite3` `.dump` text | `BEGIN TRANSACTION`, inline `REFERENCES`, `char(10)` for newlines |
+| `sqlite-shell-dump.sql` | `sqlite3` shell `.dump` | `PRAGMA`, `BEGIN TRANSACTION`, inline `REFERENCES`; newlines written as `unistr('...\u000a...')` (3.53) |
+| `sqlite-python-iterdump.sql` | Python `sqlite3` `iterdump()` | same, but newlines stay raw inside the strings |
 | `duckdb-export-csv/`, `duckdb-export-parquet/` | `EXPORT DATABASE` | `schema.sql` + `load.sql` (`COPY ... FROM 'file'`) + data files |
 | `clickhouse-*` | `SHOW CREATE TABLE`, `FORMAT SQLInsert` | no foreign keys at all; `Nullable`, `Enum8`, `Array` types |
 

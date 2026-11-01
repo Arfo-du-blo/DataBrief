@@ -32,7 +32,7 @@ only() { [ -z "${ONLY:-}" ] || [[ ",$ONLY," == *",$1,"* ]]; }   # ONLY=mysql8,du
 if [ -z "${ONLY:-}" ]; then rm -rf "$OUT"/*.sql "$OUT"/*.dump "$OUT"/*.tar "$OUT"/duckdb-* "$OUT"/VERSIONS.txt; fi
 mkdir -p "$OUT"
 if [ -z "${ONLY:-}" ]; then { echo "Real dumps in this folder were written by these tools (see tests/make_sql_fixtures.sh)."; echo "Generated: $(date -u +%Y-%m-%d)"; echo; } > "$OUT/VERSIONS.txt"; fi
-ver() { echo "$1: $2" >> "$OUT/VERSIONS.txt"; }
+ver() { sed -i "/^$1: /d" "$OUT/VERSIONS.txt"; echo "$1: $2" >> "$OUT/VERSIONS.txt"; }   # replaces its own line (ONLY= runs)
 
 # ---------------------------------------------------------------- PostgreSQL ----------
 pg_one() {   # $1 = major version, $2 = image
@@ -102,16 +102,23 @@ fi
 # ---------------------------------------------------------------- SQLite ----------
 if only sqlite; then
 note "SQLite"
-"$PY" - "$SRC/generic.sql" "$OUT/sqlite-dump.sql" <<'EOF'
+# 1. The sqlite3 shell's ".dump" (what people usually have): run in a small Alpine container
+rm -f "$OUT/sqlite-dump.sql"
+if docker run --rm -i alpine:3 sh -c 'apk add -q sqlite >/dev/null && cat > /tmp/s.sql && sqlite3 /tmp/shop.db < /tmp/s.sql && sqlite3 /tmp/shop.db .dump && sqlite3 --version >&2' \
+     < "$SRC/generic.sql" > "$OUT/sqlite-shell-dump.sql" 2> "$OUT/.sqlite-version"; then
+  ver "SQLite shell" "sqlite3 $(tail -1 "$OUT/.sqlite-version" | cut -d' ' -f1) (.dump, Alpine)"
+else fail "sqlite: shell dump failed: $(cat "$OUT/.sqlite-version")"; fi
+rm -f "$OUT/.sqlite-version"
+# 2. Python's iterdump: NOT the same text as the shell (newlines stay raw inside strings), a second real variant
+"$PY" - "$SRC/generic.sql" "$OUT/sqlite-python-iterdump.sql" <<'EOF'
 import sqlite3, sys
 con = sqlite3.connect(":memory:")
 con.executescript(open(sys.argv[1], encoding="utf-8").read())
 with open(sys.argv[2], "w", encoding="utf-8", newline="\n") as f:
-    for line in con.iterdump():          # the same text as the sqlite3 shell's ".dump"
+    for line in con.iterdump():
         f.write(line + "\n")
-print(sqlite3.sqlite_version)
 EOF
-ver "SQLite" "library $("$PY" -c 'import sqlite3; print(sqlite3.sqlite_version)') (Python iterdump, same text as the shell's .dump)"
+ver "SQLite Python" "library $("$PY" -c 'import sqlite3; print(sqlite3.sqlite_version)') (Python sqlite3 iterdump)"
 fi
 
 # ---------------------------------------------------------------- DuckDB ----------

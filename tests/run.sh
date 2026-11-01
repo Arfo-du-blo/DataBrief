@@ -5,6 +5,9 @@ set -euo pipefail
 E="${DATABRIEF_TESTENV:-$HOME/databrief-testenv}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 export PATH="$E/node/bin:$PATH" PUPPETEER_CACHE_DIR="$E/puppeteer-cache" NODE_PATH="$E/js/node_modules"
+echo "=== SQL dump reader (Node, real dumps in tests/sql-fixtures)"
+node "$HERE/test_sql_parser.cjs" | grep -v '^PASS'   # failures and the summary only; pipefail stops here on a failure
+echo
 "$E/venv/bin/python" "$HERE/make_fixtures.py" "$E/fixtures"
 node "$HERE/run_tests.cjs" "$HERE/../databrief.html" "$E/fixtures" "$E/out"
 echo
