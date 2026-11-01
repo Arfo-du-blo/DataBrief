@@ -33,7 +33,7 @@
     xml: 'XML', yaml: 'YAML', html: 'HTML', sav: 'SPSS Statistics (.sav)', zsav: 'SPSS Statistics (.zsav)',
     parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)',
   };
-  DB.ACCEPT = DB.FORMATS.flatMap((f) => f.exts.map((e) => '.' + e)).join(',');
+  DB.ACCEPT = DB.FORMATS.flatMap((f) => f.exts.map((e) => '.' + e)).concat(['.gz']).join(','); // .gz: a compressed file of any of these
 
   const extOf = (name) => { const m = /\.([^.]+)$/.exec(name || ''); return m ? m[1].toLowerCase() : ''; };
   const baseOf = (name) => (name || 'data').replace(/\.[^.]+$/, '') || 'data';
@@ -46,6 +46,7 @@
     if (u8.length >= 8 && u8[0] === 0xd0 && u8[1] === 0xcf && u8[2] === 0x11 && u8[3] === 0xe0) return 'xls';
     if (u8.length >= 4 && u8[0] === 0x50 && u8[1] === 0x4b && u8[2] === 0x03 && u8[3] === 0x04) return 'zip';
     if (DB.isPgArchive && DB.isPgArchive(u8)) return 'pgdump';
+    if (u8.length >= 3 && u8[0] === 0x1f && u8[1] === 0x8b && u8[2] === 8) return 'gzip';
     return null;
   }
 
@@ -587,11 +588,45 @@
     return { sections: [{ name: baseOf(name), columns, rows: flat.rows }], fileMeta, notes };
   }
 
+  /* ---------- files DataBrief recognises but cannot read: a clear message, with what to do instead ---------- */
+  function knownKind(u8) {
+    const s = (a, b) => String.fromCharCode.apply(null, u8.subarray(a, b));
+    const binary = u8.subarray(0, 512).includes(0);   // a text file that merely starts with the same letters is not one of these
+    if (u8.length >= 12 && s(8, 12) === 'DUCK' && binary) return 'Duckdb';
+    if (u8.length >= 8 && u8[0] === 0x89 && s(1, 4) === 'HDF' && u8[4] === 0x0d && u8[5] === 0x0a && u8[6] === 0x1a && u8[7] === 0x0a) return 'Hdf5';
+    if (u8.length >= 8 && (s(0, 6) === 'ARROW1' || (s(0, 4) === 'FEA1' && binary))) return 'Arrow';
+    if (u8.length >= 8 && s(0, 3) === 'ORC' && binary) return 'Orc';
+    if (u8.length >= 8 && s(0, 3) === 'Obj' && u8[3] === 1) return 'Avro';
+    if (u8.length >= 8 && s(0, 5) === '%PDF-') return 'Pdf';
+    if (u8.length >= 64 && s(0, 4) === 'TAPE' && binary) return 'MssqlBak';
+    if (u8.length >= 64 && /EXPORT:V\d/.test(s(0, 64)) && binary) return 'OracleDmp';
+    return null;
+  }
+
+  /* ---------- gzip: read the file inside (dump.sql.gz, data.csv.gz ...) ---------- */
+  async function parseGzip(u8, fileName, depth) {
+    if (depth) throw new UserError('errCorrupt', { ext: '.gz' });            // a gzip inside a gzip is not followed
+    const n = u8.length;
+    const size = (u8[n - 4] | (u8[n - 3] << 8) | (u8[n - 2] << 16) | (u8[n - 1] << 24)) >>> 0;   // stored size modulo 4 GB
+    if (size > 1024 * 1024 * 1024) throw new UserError('errTooLarge');
+    let inner;
+    try { inner = window.fflate.gunzipSync(u8); } catch (e) { throw new UserError('errCorrupt', { ext: '.gz' }); }
+    const innerName = /\.(gz|gzip)$/i.test(fileName) ? fileName.replace(/\.(gz|gzip)$/i, '') : fileName;
+    const doc = await DB.parseFile(inner, innerName, 1);
+    doc.fileName = fileName;
+    doc.fileSize = n;
+    doc.fileMeta = [['mCompressed', 'gzip · ' + DB.fmtBytes(inner.length)]].concat(doc.fileMeta || []);
+    return doc;
+  }
+
   /* ---------- dispatch ---------- */
-  DB.parseFile = async function (buf, fileName) {
+  DB.parseFile = async function (buf, fileName, depth) {
     const u8 = new Uint8Array(buf);
     let ext = extOf(fileName);
+    const known = knownKind(u8);
+    if (known) throw new UserError('errKind' + known);
     const magic = sniff(u8);
+    if (magic === 'gzip') return parseGzip(u8, fileName, depth || 0);
     let kind;
     if (magic === 'zip') kind = ext === 'ods' ? 'ods' : ext === 'xlsm' ? 'xlsm' : 'xlsx';
     else if (magic) kind = magic;

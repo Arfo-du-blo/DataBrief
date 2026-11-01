@@ -3311,6 +3311,155 @@ window.DB_I18N = {
   for (const [lang, vals] of Object.entries(U)) UK.forEach((k, i) => { window.DB_I18N.ui[lang][k] = vals[i]; });
 })();
 </script>
+<script>/* DataBrief - translations for files DataBrief recognises but cannot read (with what to do instead), and for gzip files.
+ * GPL-3.0-or-later. Prompt order: mCompressed.
+ * UI order: errKindDuckdb, errKindHdf5, errKindArrow, errKindOrc, errKindAvro, errKindPdf, errKindMssqlBak, errKindOracleDmp, errTooLarge */
+'use strict';
+(function () {
+  const UK = ['errKindDuckdb', 'errKindHdf5', 'errKindArrow', 'errKindOrc', 'errKindAvro', 'errKindPdf', 'errKindMssqlBak', 'errKindOracleDmp', 'errTooLarge'];
+  const P = { en: 'Compression', fr: 'Compression', es: 'Compresión', de: 'Komprimierung', it: 'Compressione', pt: 'Compactação', nl: 'Compressie', pl: 'Kompresja',
+    ru: 'Сжатие', tr: 'Sıkıştırma', zh: '压缩', ja: '圧縮', ko: '압축', hi: 'संपीड़न', ar: 'الضغط' };
+  const U = {
+    en: ["This is a DuckDB database file, which only DuckDB can open. Export it first: in DuckDB run EXPORT DATABASE 'folder', then give the folder as a zip file. A Parquet file per table also works.",
+      "This is an HDF5 file (scientific data), a format DataBrief cannot read yet. Export the tables you need to CSV or Parquet.",
+      "This is an Apache Arrow (Feather) file, a format DataBrief cannot read yet. Save the table as Parquet (for example with pandas: df.to_parquet) or as CSV.",
+      "This is an Apache ORC file, a format DataBrief cannot read yet. Save the table as Parquet or CSV.",
+      "This is an Apache Avro file, a format DataBrief cannot read yet. Save the data as Parquet, JSON or CSV.",
+      "This is a PDF document. DataBrief reads data files, not documents: give the table as CSV or Excel instead.",
+      "This is a SQL Server backup (.bak), which only SQL Server can open. Give a SQL script of the schema instead (SQL Server Management Studio: Tasks, Generate Scripts) or a .dacpac file.",
+      "This is an Oracle export file (.dmp), which only Oracle can open. Give a SQL script of the schema instead (for example from SQL Developer), or CSV files of the tables.",
+      "This file is too large to be read in the browser (more than 1 GB once decompressed)."],
+    fr: ["Ceci est une base de données DuckDB, que seul DuckDB peut ouvrir. Exportez-la d'abord : dans DuckDB, lancez EXPORT DATABASE 'dossier', puis déposez le dossier compressé en zip. Un fichier Parquet par table convient aussi.",
+      "Ceci est un fichier HDF5 (données scientifiques), un format que DataBrief ne sait pas encore lire. Exportez les tables utiles en CSV ou Parquet.",
+      "Ceci est un fichier Apache Arrow (Feather), un format que DataBrief ne sait pas encore lire. Enregistrez la table en Parquet (par exemple avec pandas : df.to_parquet) ou en CSV.",
+      "Ceci est un fichier Apache ORC, un format que DataBrief ne sait pas encore lire. Enregistrez la table en Parquet ou en CSV.",
+      "Ceci est un fichier Apache Avro, un format que DataBrief ne sait pas encore lire. Enregistrez les données en Parquet, JSON ou CSV.",
+      "Ceci est un document PDF. DataBrief lit des fichiers de données, pas des documents : fournissez plutôt le tableau en CSV ou Excel.",
+      "Ceci est une sauvegarde SQL Server (.bak), que seul SQL Server peut ouvrir. Fournissez plutôt un script SQL du schéma (SQL Server Management Studio : Tâches, Générer des scripts) ou un fichier .dacpac.",
+      "Ceci est un fichier d'export Oracle (.dmp), que seul Oracle peut ouvrir. Fournissez plutôt un script SQL du schéma (par exemple depuis SQL Developer) ou des fichiers CSV des tables.",
+      "Ce fichier est trop volumineux pour être lu dans le navigateur (plus de 1 Go une fois décompressé)."],
+    es: ["Este es un archivo de base de datos DuckDB, que solo DuckDB puede abrir. Expórtalo primero: en DuckDB ejecuta EXPORT DATABASE 'carpeta' y suelta la carpeta comprimida en un zip. También sirve un archivo Parquet por tabla.",
+      "Este es un archivo HDF5 (datos científicos), un formato que DataBrief aún no sabe leer. Exporta las tablas que necesites a CSV o Parquet.",
+      "Este es un archivo Apache Arrow (Feather), un formato que DataBrief aún no sabe leer. Guarda la tabla como Parquet (por ejemplo con pandas: df.to_parquet) o como CSV.",
+      "Este es un archivo Apache ORC, un formato que DataBrief aún no sabe leer. Guarda la tabla como Parquet o CSV.",
+      "Este es un archivo Apache Avro, un formato que DataBrief aún no sabe leer. Guarda los datos como Parquet, JSON o CSV.",
+      "Este es un documento PDF. DataBrief lee archivos de datos, no documentos: entrega mejor la tabla como CSV o Excel.",
+      "Esta es una copia de seguridad de SQL Server (.bak), que solo SQL Server puede abrir. Entrega mejor un script SQL del esquema (SQL Server Management Studio: Tareas, Generar scripts) o un archivo .dacpac.",
+      "Este es un archivo de exportación de Oracle (.dmp), que solo Oracle puede abrir. Entrega mejor un script SQL del esquema (por ejemplo desde SQL Developer) o archivos CSV de las tablas.",
+      "Este archivo es demasiado grande para leerse en el navegador (más de 1 GB una vez descomprimido)."],
+    de: ["Dies ist eine DuckDB-Datenbankdatei, die nur DuckDB öffnen kann. Exportieren Sie sie zuerst: Führen Sie in DuckDB EXPORT DATABASE 'Ordner' aus und legen Sie den Ordner als ZIP-Datei ab. Eine Parquet-Datei pro Tabelle funktioniert ebenfalls.",
+      "Dies ist eine HDF5-Datei (wissenschaftliche Daten), ein Format, das DataBrief noch nicht lesen kann. Exportieren Sie die benötigten Tabellen als CSV oder Parquet.",
+      "Dies ist eine Apache-Arrow-Datei (Feather), ein Format, das DataBrief noch nicht lesen kann. Speichern Sie die Tabelle als Parquet (zum Beispiel mit pandas: df.to_parquet) oder als CSV.",
+      "Dies ist eine Apache-ORC-Datei, ein Format, das DataBrief noch nicht lesen kann. Speichern Sie die Tabelle als Parquet oder CSV.",
+      "Dies ist eine Apache-Avro-Datei, ein Format, das DataBrief noch nicht lesen kann. Speichern Sie die Daten als Parquet, JSON oder CSV.",
+      "Dies ist ein PDF-Dokument. DataBrief liest Datendateien, keine Dokumente: Geben Sie die Tabelle stattdessen als CSV oder Excel ab.",
+      "Dies ist eine SQL-Server-Sicherung (.bak), die nur SQL Server öffnen kann. Geben Sie stattdessen ein SQL-Skript des Schemas ab (SQL Server Management Studio: Tasks, Skripts generieren) oder eine .dacpac-Datei.",
+      "Dies ist eine Oracle-Exportdatei (.dmp), die nur Oracle öffnen kann. Geben Sie stattdessen ein SQL-Skript des Schemas ab (zum Beispiel aus SQL Developer) oder CSV-Dateien der Tabellen.",
+      "Diese Datei ist zu groß, um im Browser gelesen zu werden (über 1 GB nach dem Entpacken)."],
+    it: ["Questo è un file di database DuckDB, che solo DuckDB può aprire. Esportalo prima: in DuckDB esegui EXPORT DATABASE 'cartella' e trascina la cartella compressa in un file zip. Va bene anche un file Parquet per tabella.",
+      "Questo è un file HDF5 (dati scientifici), un formato che DataBrief non sa ancora leggere. Esporta le tabelle che ti servono in CSV o Parquet.",
+      "Questo è un file Apache Arrow (Feather), un formato che DataBrief non sa ancora leggere. Salva la tabella come Parquet (ad esempio con pandas: df.to_parquet) o come CSV.",
+      "Questo è un file Apache ORC, un formato che DataBrief non sa ancora leggere. Salva la tabella come Parquet o CSV.",
+      "Questo è un file Apache Avro, un formato che DataBrief non sa ancora leggere. Salva i dati come Parquet, JSON o CSV.",
+      "Questo è un documento PDF. DataBrief legge file di dati, non documenti: fornisci invece la tabella come CSV o Excel.",
+      "Questo è un backup di SQL Server (.bak), che solo SQL Server può aprire. Fornisci invece uno script SQL dello schema (SQL Server Management Studio: Attività, Genera script) o un file .dacpac.",
+      "Questo è un file di esportazione Oracle (.dmp), che solo Oracle può aprire. Fornisci invece uno script SQL dello schema (ad esempio da SQL Developer) o file CSV delle tabelle.",
+      "Questo file è troppo grande per essere letto nel browser (oltre 1 GB una volta decompresso)."],
+    pt: ["Este é um arquivo de banco de dados DuckDB, que só o DuckDB consegue abrir. Exporte-o primeiro: no DuckDB, execute EXPORT DATABASE 'pasta' e solte a pasta compactada em um arquivo zip. Um arquivo Parquet por tabela também serve.",
+      "Este é um arquivo HDF5 (dados científicos), um formato que o DataBrief ainda não sabe ler. Exporte as tabelas de que precisa para CSV ou Parquet.",
+      "Este é um arquivo Apache Arrow (Feather), um formato que o DataBrief ainda não sabe ler. Salve a tabela como Parquet (por exemplo com pandas: df.to_parquet) ou como CSV.",
+      "Este é um arquivo Apache ORC, um formato que o DataBrief ainda não sabe ler. Salve a tabela como Parquet ou CSV.",
+      "Este é um arquivo Apache Avro, um formato que o DataBrief ainda não sabe ler. Salve os dados como Parquet, JSON ou CSV.",
+      "Este é um documento PDF. O DataBrief lê arquivos de dados, não documentos: forneça a tabela como CSV ou Excel.",
+      "Este é um backup do SQL Server (.bak), que só o SQL Server consegue abrir. Forneça, em vez disso, um script SQL do esquema (SQL Server Management Studio: Tarefas, Gerar Scripts) ou um arquivo .dacpac.",
+      "Este é um arquivo de exportação do Oracle (.dmp), que só o Oracle consegue abrir. Forneça, em vez disso, um script SQL do esquema (por exemplo do SQL Developer) ou arquivos CSV das tabelas.",
+      "Este arquivo é grande demais para ser lido no navegador (mais de 1 GB depois de descompactado)."],
+    nl: ["Dit is een DuckDB-databasebestand, dat alleen DuckDB kan openen. Exporteer het eerst: voer in DuckDB EXPORT DATABASE 'map' uit en zet de map als zipbestand neer. Een Parquet-bestand per tabel werkt ook.",
+      "Dit is een HDF5-bestand (wetenschappelijke gegevens), een formaat dat DataBrief nog niet kan lezen. Exporteer de tabellen die je nodig hebt naar CSV of Parquet.",
+      "Dit is een Apache Arrow-bestand (Feather), een formaat dat DataBrief nog niet kan lezen. Sla de tabel op als Parquet (bijvoorbeeld met pandas: df.to_parquet) of als CSV.",
+      "Dit is een Apache ORC-bestand, een formaat dat DataBrief nog niet kan lezen. Sla de tabel op als Parquet of CSV.",
+      "Dit is een Apache Avro-bestand, een formaat dat DataBrief nog niet kan lezen. Sla de gegevens op als Parquet, JSON of CSV.",
+      "Dit is een pdf-document. DataBrief leest gegevensbestanden, geen documenten: geef de tabel liever als CSV of Excel.",
+      "Dit is een SQL Server-back-up (.bak), die alleen SQL Server kan openen. Geef in plaats daarvan een SQL-script van het schema (SQL Server Management Studio: Taken, Scripts genereren) of een .dacpac-bestand.",
+      "Dit is een Oracle-exportbestand (.dmp), dat alleen Oracle kan openen. Geef in plaats daarvan een SQL-script van het schema (bijvoorbeeld uit SQL Developer) of CSV-bestanden van de tabellen.",
+      "Dit bestand is te groot om in de browser te lezen (meer dan 1 GB na het uitpakken)."],
+    pl: ["To plik bazy danych DuckDB, który może otworzyć tylko DuckDB. Najpierw go wyeksportuj: w DuckDB uruchom EXPORT DATABASE 'folder', a następnie upuść folder spakowany do pliku zip. Sprawdzi się też jeden plik Parquet na tabelę.",
+      "To plik HDF5 (dane naukowe), format, którego DataBrief jeszcze nie potrafi odczytać. Wyeksportuj potrzebne tabele do CSV lub Parquet.",
+      "To plik Apache Arrow (Feather), format, którego DataBrief jeszcze nie potrafi odczytać. Zapisz tabelę jako Parquet (na przykład w pandas: df.to_parquet) lub CSV.",
+      "To plik Apache ORC, format, którego DataBrief jeszcze nie potrafi odczytać. Zapisz tabelę jako Parquet lub CSV.",
+      "To plik Apache Avro, format, którego DataBrief jeszcze nie potrafi odczytać. Zapisz dane jako Parquet, JSON lub CSV.",
+      "To dokument PDF. DataBrief czyta pliki z danymi, a nie dokumenty: podaj tabelę raczej jako CSV lub Excel.",
+      "To kopia zapasowa SQL Server (.bak), którą może otworzyć tylko SQL Server. Podaj zamiast niej skrypt SQL schematu (SQL Server Management Studio: Zadania, Generuj skrypty) lub plik .dacpac.",
+      "To plik eksportu Oracle (.dmp), który może otworzyć tylko Oracle. Podaj zamiast niego skrypt SQL schematu (na przykład z SQL Developer) lub pliki CSV z tabelami.",
+      "Ten plik jest zbyt duży, by odczytać go w przeglądarce (ponad 1 GB po rozpakowaniu)."],
+    ru: ["Это файл базы данных DuckDB, который может открыть только DuckDB. Сначала экспортируйте его: в DuckDB выполните EXPORT DATABASE 'папка' и перетащите папку, упакованную в zip. Подойдёт и по одному файлу Parquet на таблицу.",
+      "Это файл HDF5 (научные данные) — формат, который DataBrief пока не умеет читать. Экспортируйте нужные таблицы в CSV или Parquet.",
+      "Это файл Apache Arrow (Feather) — формат, который DataBrief пока не умеет читать. Сохраните таблицу как Parquet (например, в pandas: df.to_parquet) или CSV.",
+      "Это файл Apache ORC — формат, который DataBrief пока не умеет читать. Сохраните таблицу как Parquet или CSV.",
+      "Это файл Apache Avro — формат, который DataBrief пока не умеет читать. Сохраните данные как Parquet, JSON или CSV.",
+      "Это документ PDF. DataBrief читает файлы с данными, а не документы: передайте таблицу лучше в виде CSV или Excel.",
+      "Это резервная копия SQL Server (.bak), которую может открыть только SQL Server. Передайте вместо неё SQL-скрипт схемы (SQL Server Management Studio: Задачи, Создать скрипты) или файл .dacpac.",
+      "Это файл экспорта Oracle (.dmp), который может открыть только Oracle. Передайте вместо него SQL-скрипт схемы (например, из SQL Developer) или CSV-файлы таблиц.",
+      "Этот файл слишком велик, чтобы читать его в браузере (больше 1 ГБ после распаковки)."],
+    tr: ["Bu, yalnızca DuckDB'nin açabildiği bir DuckDB veritabanı dosyası. Önce dışa aktarın: DuckDB'de EXPORT DATABASE 'klasör' komutunu çalıştırın ve klasörü zip dosyası olarak bırakın. Tablo başına bir Parquet dosyası da olur.",
+      "Bu, DataBrief'in henüz okuyamadığı bir biçim olan HDF5 dosyası (bilimsel veri). İhtiyacınız olan tabloları CSV veya Parquet olarak dışa aktarın.",
+      "Bu, DataBrief'in henüz okuyamadığı bir biçim olan Apache Arrow (Feather) dosyası. Tabloyu Parquet (örneğin pandas ile: df.to_parquet) veya CSV olarak kaydedin.",
+      "Bu, DataBrief'in henüz okuyamadığı bir biçim olan Apache ORC dosyası. Tabloyu Parquet veya CSV olarak kaydedin.",
+      "Bu, DataBrief'in henüz okuyamadığı bir biçim olan Apache Avro dosyası. Verileri Parquet, JSON veya CSV olarak kaydedin.",
+      "Bu bir PDF belgesi. DataBrief belgeleri değil veri dosyalarını okur: tabloyu bunun yerine CSV veya Excel olarak verin.",
+      "Bu, yalnızca SQL Server'ın açabildiği bir SQL Server yedeği (.bak). Bunun yerine şemanın SQL betiğini (SQL Server Management Studio: Görevler, Betik Oluştur) veya bir .dacpac dosyası verin.",
+      "Bu, yalnızca Oracle'ın açabildiği bir Oracle dışa aktarma dosyası (.dmp). Bunun yerine şemanın SQL betiğini (örneğin SQL Developer'dan) veya tabloların CSV dosyalarını verin.",
+      "Bu dosya tarayıcıda okunamayacak kadar büyük (açıldıktan sonra 1 GB'tan fazla)."],
+    zh: ["这是 DuckDB 数据库文件，只有 DuckDB 能打开。请先导出：在 DuckDB 中运行 EXPORT DATABASE '文件夹'，再把压缩成 zip 的文件夹拖入。每个表一个 Parquet 文件也可以。",
+      "这是 HDF5 文件（科学数据），DataBrief 暂时无法读取这种格式。请把需要的表导出为 CSV 或 Parquet。",
+      "这是 Apache Arrow（Feather）文件，DataBrief 暂时无法读取这种格式。请把表保存为 Parquet（例如用 pandas：df.to_parquet）或 CSV。",
+      "这是 Apache ORC 文件，DataBrief 暂时无法读取这种格式。请把表保存为 Parquet 或 CSV。",
+      "这是 Apache Avro 文件，DataBrief 暂时无法读取这种格式。请把数据保存为 Parquet、JSON 或 CSV。",
+      "这是 PDF 文档。DataBrief 读取的是数据文件，而不是文档：请改为提供 CSV 或 Excel 格式的表格。",
+      "这是 SQL Server 备份文件（.bak），只有 SQL Server 能打开。请改为提供架构的 SQL 脚本（SQL Server Management Studio：任务 → 生成脚本）或 .dacpac 文件。",
+      "这是 Oracle 导出文件（.dmp），只有 Oracle 能打开。请改为提供架构的 SQL 脚本（例如来自 SQL Developer），或各表的 CSV 文件。",
+      "此文件太大，无法在浏览器中读取（解压后超过 1 GB）。"],
+    ja: ["これは DuckDB のデータベースファイルで、DuckDB でしか開けません。先にエクスポートしてください。DuckDB で EXPORT DATABASE 'フォルダー' を実行し、zip に圧縮したフォルダーをドロップします。テーブルごとの Parquet ファイルでも構いません。",
+      "これは HDF5 ファイル（科学データ）で、DataBrief はまだ読み取れない形式です。必要なテーブルを CSV または Parquet にエクスポートしてください。",
+      "これは Apache Arrow（Feather）ファイルで、DataBrief はまだ読み取れない形式です。テーブルを Parquet（例：pandas の df.to_parquet）または CSV で保存してください。",
+      "これは Apache ORC ファイルで、DataBrief はまだ読み取れない形式です。テーブルを Parquet または CSV で保存してください。",
+      "これは Apache Avro ファイルで、DataBrief はまだ読み取れない形式です。データを Parquet、JSON、CSV のいずれかで保存してください。",
+      "これは PDF 文書です。DataBrief が読むのはデータファイルで、文書ではありません。代わりに表を CSV または Excel で渡してください。",
+      "これは SQL Server のバックアップ（.bak）で、SQL Server でしか開けません。代わりにスキーマの SQL スクリプト（SQL Server Management Studio：タスク → スクリプトの生成）か .dacpac ファイルを渡してください。",
+      "これは Oracle のエクスポートファイル（.dmp）で、Oracle でしか開けません。代わりにスキーマの SQL スクリプト（例：SQL Developer から）か、各テーブルの CSV ファイルを渡してください。",
+      "このファイルは大きすぎて、ブラウザーでは読み取れません（展開後に 1 GB 超）。"],
+    ko: ["DuckDB 데이터베이스 파일이며 DuckDB에서만 열 수 있습니다. 먼저 내보내세요. DuckDB에서 EXPORT DATABASE '폴더'를 실행한 뒤 zip으로 압축한 폴더를 끌어다 놓으세요. 테이블마다 Parquet 파일 하나도 가능합니다.",
+      "HDF5 파일(과학 데이터)이며 DataBrief가 아직 읽을 수 없는 형식입니다. 필요한 테이블을 CSV 또는 Parquet로 내보내세요.",
+      "Apache Arrow(Feather) 파일이며 DataBrief가 아직 읽을 수 없는 형식입니다. 테이블을 Parquet(예: pandas의 df.to_parquet) 또는 CSV로 저장하세요.",
+      "Apache ORC 파일이며 DataBrief가 아직 읽을 수 없는 형식입니다. 테이블을 Parquet 또는 CSV로 저장하세요.",
+      "Apache Avro 파일이며 DataBrief가 아직 읽을 수 없는 형식입니다. 데이터를 Parquet, JSON 또는 CSV로 저장하세요.",
+      "PDF 문서입니다. DataBrief는 문서가 아니라 데이터 파일을 읽습니다. 대신 표를 CSV 또는 Excel로 제공하세요.",
+      "SQL Server 백업(.bak)이며 SQL Server에서만 열 수 있습니다. 대신 스키마의 SQL 스크립트(SQL Server Management Studio: 태스크 → 스크립트 생성) 또는 .dacpac 파일을 제공하세요.",
+      "Oracle 내보내기 파일(.dmp)이며 Oracle에서만 열 수 있습니다. 대신 스키마의 SQL 스크립트(예: SQL Developer에서) 또는 테이블별 CSV 파일을 제공하세요.",
+      "이 파일은 너무 커서 브라우저에서 읽을 수 없습니다(압축 해제 후 1GB 초과)."],
+    hi: ["यह DuckDB डेटाबेस फ़ाइल है, जिसे केवल DuckDB खोल सकता है। पहले इसे एक्सपोर्ट करें: DuckDB में EXPORT DATABASE 'फ़ोल्डर' चलाएँ, फिर फ़ोल्डर को zip फ़ाइल बनाकर छोड़ें। हर तालिका की एक Parquet फ़ाइल भी चलेगी।",
+      "यह HDF5 फ़ाइल (वैज्ञानिक डेटा) है, ऐसा फ़ॉर्मैट जिसे DataBrief अभी पढ़ नहीं सकता। ज़रूरी तालिकाओं को CSV या Parquet में एक्सपोर्ट करें।",
+      "यह Apache Arrow (Feather) फ़ाइल है, ऐसा फ़ॉर्मैट जिसे DataBrief अभी पढ़ नहीं सकता। तालिका को Parquet (जैसे pandas में: df.to_parquet) या CSV के रूप में सहेजें।",
+      "यह Apache ORC फ़ाइल है, ऐसा फ़ॉर्मैट जिसे DataBrief अभी पढ़ नहीं सकता। तालिका को Parquet या CSV के रूप में सहेजें।",
+      "यह Apache Avro फ़ाइल है, ऐसा फ़ॉर्मैट जिसे DataBrief अभी पढ़ नहीं सकता। डेटा को Parquet, JSON या CSV के रूप में सहेजें।",
+      "यह PDF दस्तावेज़ है। DataBrief डेटा फ़ाइलें पढ़ता है, दस्तावेज़ नहीं: इसके बजाय तालिका को CSV या Excel में दें।",
+      "यह SQL Server का बैकअप (.bak) है, जिसे केवल SQL Server खोल सकता है। इसके बजाय स्कीमा की SQL स्क्रिप्ट दें (SQL Server Management Studio: Tasks, Generate Scripts) या .dacpac फ़ाइल।",
+      "यह Oracle की एक्सपोर्ट फ़ाइल (.dmp) है, जिसे केवल Oracle खोल सकता है। इसके बजाय स्कीमा की SQL स्क्रिप्ट (जैसे SQL Developer से) या तालिकाओं की CSV फ़ाइलें दें।",
+      "यह फ़ाइल ब्राउज़र में पढ़ने के लिए बहुत बड़ी है (खोलने के बाद 1 GB से अधिक)।"],
+    ar: ["هذا ملف قاعدة بيانات DuckDB ولا يفتحه سوى DuckDB. صدّره أولًا: في DuckDB نفّذ EXPORT DATABASE 'مجلد' ثم أفلِت المجلد مضغوطًا في ملف zip. كما يصلح ملف Parquet لكل جدول.",
+      "هذا ملف HDF5 (بيانات علمية)، وهي صيغة لا يستطيع DataBrief قراءتها بعد. صدّر الجداول التي تحتاجها إلى CSV أو Parquet.",
+      "هذا ملف Apache Arrow (Feather)، وهي صيغة لا يستطيع DataBrief قراءتها بعد. احفظ الجدول بصيغة Parquet (مثلًا في pandas: df.to_parquet) أو CSV.",
+      "هذا ملف Apache ORC، وهي صيغة لا يستطيع DataBrief قراءتها بعد. احفظ الجدول بصيغة Parquet أو CSV.",
+      "هذا ملف Apache Avro، وهي صيغة لا يستطيع DataBrief قراءتها بعد. احفظ البيانات بصيغة Parquet أو JSON أو CSV.",
+      "هذا مستند PDF. يقرأ DataBrief ملفات البيانات لا المستندات: قدّم الجدول بصيغة CSV أو Excel بدلًا من ذلك.",
+      "هذه نسخة احتياطية من SQL Server (.bak) ولا يفتحها سوى SQL Server. قدّم بدلًا منها سكربت SQL للمخطط (SQL Server Management Studio: Tasks ثم Generate Scripts) أو ملف .dacpac.",
+      "هذا ملف تصدير من Oracle (.dmp) ولا يفتحه سوى Oracle. قدّم بدلًا منه سكربت SQL للمخطط (مثلًا من SQL Developer) أو ملفات CSV للجداول.",
+      "هذا الملف أكبر من أن يُقرأ في المتصفح (أكثر من 1 غيغابايت بعد فك الضغط)."],
+  };
+  for (const [lang, v] of Object.entries(P)) window.DB_I18N.prompt[lang].mCompressed = v;
+  for (const [lang, vals] of Object.entries(U)) UK.forEach((k, i) => { window.DB_I18N.ui[lang][k] = vals[i]; });
+})();
+</script>
 <script>/* DataBrief - shared helpers. GPL-3.0-or-later. */
 'use strict';
 (function () {
@@ -6035,7 +6184,7 @@ window.DB_I18N = {
     xml: 'XML', yaml: 'YAML', html: 'HTML', sav: 'SPSS Statistics (.sav)', zsav: 'SPSS Statistics (.zsav)',
     parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)',
   };
-  DB.ACCEPT = DB.FORMATS.flatMap((f) => f.exts.map((e) => '.' + e)).join(',');
+  DB.ACCEPT = DB.FORMATS.flatMap((f) => f.exts.map((e) => '.' + e)).concat(['.gz']).join(','); // .gz: a compressed file of any of these
 
   const extOf = (name) => { const m = /\.([^.]+)$/.exec(name || ''); return m ? m[1].toLowerCase() : ''; };
   const baseOf = (name) => (name || 'data').replace(/\.[^.]+$/, '') || 'data';
@@ -6048,6 +6197,7 @@ window.DB_I18N = {
     if (u8.length >= 8 && u8[0] === 0xd0 && u8[1] === 0xcf && u8[2] === 0x11 && u8[3] === 0xe0) return 'xls';
     if (u8.length >= 4 && u8[0] === 0x50 && u8[1] === 0x4b && u8[2] === 0x03 && u8[3] === 0x04) return 'zip';
     if (DB.isPgArchive && DB.isPgArchive(u8)) return 'pgdump';
+    if (u8.length >= 3 && u8[0] === 0x1f && u8[1] === 0x8b && u8[2] === 8) return 'gzip';
     return null;
   }
 
@@ -6589,11 +6739,45 @@ window.DB_I18N = {
     return { sections: [{ name: baseOf(name), columns, rows: flat.rows }], fileMeta, notes };
   }
 
+  /* ---------- files DataBrief recognises but cannot read: a clear message, with what to do instead ---------- */
+  function knownKind(u8) {
+    const s = (a, b) => String.fromCharCode.apply(null, u8.subarray(a, b));
+    const binary = u8.subarray(0, 512).includes(0);   // a text file that merely starts with the same letters is not one of these
+    if (u8.length >= 12 && s(8, 12) === 'DUCK' && binary) return 'Duckdb';
+    if (u8.length >= 8 && u8[0] === 0x89 && s(1, 4) === 'HDF' && u8[4] === 0x0d && u8[5] === 0x0a && u8[6] === 0x1a && u8[7] === 0x0a) return 'Hdf5';
+    if (u8.length >= 8 && (s(0, 6) === 'ARROW1' || (s(0, 4) === 'FEA1' && binary))) return 'Arrow';
+    if (u8.length >= 8 && s(0, 3) === 'ORC' && binary) return 'Orc';
+    if (u8.length >= 8 && s(0, 3) === 'Obj' && u8[3] === 1) return 'Avro';
+    if (u8.length >= 8 && s(0, 5) === '%PDF-') return 'Pdf';
+    if (u8.length >= 64 && s(0, 4) === 'TAPE' && binary) return 'MssqlBak';
+    if (u8.length >= 64 && /EXPORT:V\d/.test(s(0, 64)) && binary) return 'OracleDmp';
+    return null;
+  }
+
+  /* ---------- gzip: read the file inside (dump.sql.gz, data.csv.gz ...) ---------- */
+  async function parseGzip(u8, fileName, depth) {
+    if (depth) throw new UserError('errCorrupt', { ext: '.gz' });            // a gzip inside a gzip is not followed
+    const n = u8.length;
+    const size = (u8[n - 4] | (u8[n - 3] << 8) | (u8[n - 2] << 16) | (u8[n - 1] << 24)) >>> 0;   // stored size modulo 4 GB
+    if (size > 1024 * 1024 * 1024) throw new UserError('errTooLarge');
+    let inner;
+    try { inner = window.fflate.gunzipSync(u8); } catch (e) { throw new UserError('errCorrupt', { ext: '.gz' }); }
+    const innerName = /\.(gz|gzip)$/i.test(fileName) ? fileName.replace(/\.(gz|gzip)$/i, '') : fileName;
+    const doc = await DB.parseFile(inner, innerName, 1);
+    doc.fileName = fileName;
+    doc.fileSize = n;
+    doc.fileMeta = [['mCompressed', 'gzip · ' + DB.fmtBytes(inner.length)]].concat(doc.fileMeta || []);
+    return doc;
+  }
+
   /* ---------- dispatch ---------- */
-  DB.parseFile = async function (buf, fileName) {
+  DB.parseFile = async function (buf, fileName, depth) {
     const u8 = new Uint8Array(buf);
     let ext = extOf(fileName);
+    const known = knownKind(u8);
+    if (known) throw new UserError('errKind' + known);
     const magic = sniff(u8);
+    if (magic === 'gzip') return parseGzip(u8, fileName, depth || 0);
     let kind;
     if (magic === 'zip') kind = ext === 'ods' ? 'ods' : ext === 'xlsm' ? 'xlsm' : 'xlsx';
     else if (magic) kind = magic;

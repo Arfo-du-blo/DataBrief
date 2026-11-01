@@ -800,6 +800,87 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     else pass('SQL dumps and PostgreSQL archives', 'text dump, zstd archive recognised by content, structure-only types, cut archive, .dump that is text, binary .sql, large dump cut at 250,000 rows');
   }
 
+  // ---------- files recognised but not readable (clear message), and gzip ----------
+  {
+    const checks = [];
+    const bad = (m) => checks.push(m);
+    const zlib = require('zlib');
+    const pad = (n) => Buffer.alloc(n);
+    const ascii = (s) => Buffer.from(s, 'latin1');
+    const SAMPLES = [
+      ['duckdb', Buffer.concat([pad(8), ascii('DUCK'), pad(200)]), 'DuckDB database'],
+      ['hdf5', Buffer.concat([Buffer.from([0x89]), ascii('HDF\r\n'), Buffer.from([0x1a, 0x0a]), pad(100)]), 'HDF5 file'],
+      ['arrow', Buffer.concat([ascii('ARROW1'), pad(2), pad(100)]), 'Apache Arrow'],
+      ['feather', Buffer.concat([ascii('FEA1'), pad(100)]), 'Apache Arrow'],
+      ['orc', Buffer.concat([ascii('ORC'), Buffer.from([0x01, 0x02, 0x00, 0x03]), pad(100)]), 'Apache ORC'],
+      ['avro', Buffer.concat([ascii('Obj'), Buffer.from([1]), ascii('\x04\x16avro.schema'), pad(40)]), 'Apache Avro'],
+      ['pdf', ascii('%PDF-1.7\n%\xe2\xe3\xcf\xd3\n1 0 obj\n<< >>\nendobj\n'), 'PDF document'],
+      ['bak', Buffer.concat([ascii('TAPE'), pad(100)]), 'SQL Server backup'],
+      ['dmp', Buffer.concat([Buffer.from([0x03, 0x00]), ascii('EXPORT:V19.00.00\nUSCOTT\nRTABLES\n'), pad(100)]), 'Oracle export'],
+    ];
+    for (const [ext, bytes, phrase] of SAMPLES) {
+      const f = path.join(outDir, 'known.' + ext);
+      fs.writeFileSync(f, bytes);
+      const p = await newPage();
+      const r = await load(p, f);
+      if (r.ok || !r.err.includes(phrase)) bad(ext + ': expected a message with "' + phrase + '", got ' + JSON.stringify(r.ok ? 'a result' : r.err.slice(0, 80)));
+      if (r.detail) bad(ext + ': no technical details expected, got ' + r.detail.slice(0, 60));
+      await p.close();
+    }
+    // the same file with a name that has no extension, or a wrong one: recognised by its content
+    fs.writeFileSync(path.join(outDir, 'noext'), SAMPLES[0][1]);
+    let p = await newPage();
+    let r = await load(p, path.join(outDir, 'noext'));
+    if (r.ok || !r.err.includes('DuckDB')) bad('a DuckDB file without extension: ' + r.err.slice(0, 80));
+    await p.close();
+    // no false alarm: text files that merely START with the same letters are read as usual
+    for (const [name, text, key] of [['orchard.csv', 'ORCHARD,kind\n1,apple\n2,pear\n', 'ORCHARD'], ['tape.csv', 'TAPE,length\nA,10\nB,20\n', 'TAPE'], ['obj.csv', 'Obj,x\n1,2\n', 'Obj']]) {
+      fs.writeFileSync(path.join(outDir, name), text);
+      p = await newPage();
+      r = await load(p, path.join(outDir, name));
+      if (!r.ok || !r.md.includes(key)) bad(name + ': a CSV starting with the letters of a known format must still be read');
+      await p.close();
+    }
+    // gzip: dump.sql.gz and data.csv.gz are read, and the prompt says the file was compressed
+    fs.writeFileSync(path.join(outDir, 'dump.sql.gz'), zlib.gzipSync(fs.readFileSync(F('pg16-default.sql'))));
+    p = await newPage();
+    r = await load(p, path.join(outDir, 'dump.sql.gz'));
+    let d = r.ok && await p.evaluate(() => { const x = window.DataBrief.getState().doc; return { n: x.fileName, k: x.formatKey, s: x.sections.length }; });
+    if (!d || d.n !== 'dump.sql.gz' || d.k !== 'sql' || d.s !== 8 || !/\*\*Compression:\*\* gzip · /.test(r.md)) bad('dump.sql.gz: ' + JSON.stringify(d || r.err));
+    await p.close();
+    fs.writeFileSync(path.join(outDir, 'data.csv.gz'), zlib.gzipSync(Buffer.from('a,b\n1,2\n3,4\n')));
+    p = await newPage();
+    r = await load(p, path.join(outDir, 'data.csv.gz'));
+    if (!r.ok || !r.md.includes('| 3 | 4 |')) bad('data.csv.gz was not read');
+    await p.close();
+    // a damaged gzip, a gzip of something unknown, a gzip inside a gzip: clear errors, no exception
+    const gz = zlib.gzipSync(Buffer.from('a,b\n1,2\n'));
+    fs.writeFileSync(path.join(outDir, 'broken.csv.gz'), gz.subarray(0, gz.length - 12));
+    p = await newPage();
+    r = await load(p, path.join(outDir, 'broken.csv.gz'));
+    if (r.ok) bad('a truncated gzip should be refused');
+    await p.close();
+    fs.writeFileSync(path.join(outDir, 'double.csv.gz'), zlib.gzipSync(gz));
+    p = await newPage();
+    r = await load(p, path.join(outDir, 'double.csv.gz'));
+    if (r.ok) bad('a gzip inside a gzip should be refused');
+    await p.close();
+    // every message exists in all 15 languages
+    p = await newPage();
+    const miss = await p.evaluate(() => {
+      const I = window.DB_I18N, out = [];
+      for (const l of I.langs.map((x) => x.code)) {
+        for (const k of ['errKindDuckdb', 'errKindHdf5', 'errKindArrow', 'errKindOrc', 'errKindAvro', 'errKindPdf', 'errKindMssqlBak', 'errKindOracleDmp', 'errTooLarge', 'errPgCorrupt', 'errPgVersion', 'errPgCompression']) if (!I.ui[l][k]) out.push(l + ':' + k);
+        if (!I.prompt[l].mCompressed) out.push(l + ':mCompressed');
+      }
+      return out;
+    });
+    if (miss.length) bad('missing texts: ' + miss.join(','));
+    await p.close();
+    if (checks.length) fail('unreadable formats and gzip', checks.join(' | '));
+    else pass('unreadable formats and gzip', '9 known formats refused with advice (by content, any name), no false alarm on text, gzip read, damaged and nested gzip refused, 15 languages');
+  }
+
   // ---------- "Do not share data": the same promise in all 15 languages, and the strings are really translated ----------
   {
     const checks = [];
