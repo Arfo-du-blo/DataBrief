@@ -63,6 +63,23 @@ ws3.sheet_state = "hidden"
 wb.create_sheet("Empty")
 wb.save(P("workbook.xlsx"))
 
+# --- XLSX: formulas without a stored result, merged cells, hidden row and column, defined name ---
+from openpyxl.workbook.defined_name import DefinedName  # noqa: E402
+wf = openpyxl.Workbook()
+sales = wf.active
+sales.title = "Sales"
+sales.append(["item", "qty", "price", "total"])
+sales.append(["pen", 2, 1.5, "=B2*C2"])
+sales.append(["ink", 3, 4.0, "=B3*C3"])
+sales.append(["pad", 1, 9.9, "=B4*C4"])
+sales.append(["note", "merged value"])
+sales.merge_cells("B5:C5")
+sales.row_dimensions[3].hidden = True
+sales.column_dimensions["C"].hidden = True
+wf.defined_names["TotalQty"] = DefinedName("TotalQty", attr_text="Sales!$B$2:$B$4")
+wf.create_sheet("Notes")["A1"] = "plain"
+wf.save(P("features.xlsx"))
+
 # --- JSON (nested object with two record lists + root fields) ---
 json.dump({
     "meta": {"source": "crm", "version": 3},

@@ -65,7 +65,8 @@
     const XLSX = window.XLSX;
     let wb;
     try {
-      wb = XLSX.read(new Uint8Array(buf), { type: 'array', cellNF: true, cellDates: false, cellStyles: false, sheetStubs: false });
+      // sheetStubs: keep formula cells that have no stored result (otherwise they vanish); cellStyles: hidden rows and columns.
+      wb = XLSX.read(new Uint8Array(buf), { type: 'array', cellNF: true, cellDates: false, cellStyles: true, sheetStubs: true });
     } catch (e) {
       if (/password|encrypt/i.test(String(e && e.message))) throw new UserError('errEncrypted', {}, String(e.message));
       throw e;
@@ -73,7 +74,7 @@
     const date1904 = !!(wb.Workbook && wb.Workbook.WBProps && wb.Workbook.WBProps.date1904);
     let isoDates = false;
     const cellText = (cell) => {
-      if (!cell) return '';
+      if (!cell || cell.t === 'z') return ''; // 'z': a stub (blank or formula without a stored result)
       if (cell.t === 'e') return cell.w || '#ERROR';
       if (cell.v === null || cell.v === undefined) return '';
       if (cell.t === 'b') return cell.v ? 'true' : 'false';
@@ -99,12 +100,14 @@
       const info = (wb.Workbook && wb.Workbook.Sheets && wb.Workbook.Sheets[si]) || {};
       const grid = [];
       const comments = [];
+      const formulas = [];
       if (ws) {
         for (const addr of Object.keys(ws)) {
           if (addr[0] === '!') continue;
           const cell = ws[addr];
           const rc = XLSX.utils.decode_cell(addr);
           (grid[rc.r] = grid[rc.r] || [])[rc.c] = cellText(cell);
+          if (cell && cell.f) formulas.push({ rc, addr, f: String(cell.f), noResult: cell.t === 'z' });
           if (cell && cell.c && cell.c.length) {
             const text = cell.c.map((c) => (c.a ? c.a + ': ' : '') + String(c.t || '').replace(/\s+/g, ' ').trim()).join(' / ');
             comments.push({ rc, addr, text });
@@ -116,9 +119,25 @@
       const sec = DB.gridToSection(grid, name, { genName: DB.colLetter });
       sec.comments = comments.map((c) => ({ cell: c.addr, text: c.text }));
       sec.hidden = !!info.Hidden;
+      // What the cell values alone do not say: formulas, merged ranges, hidden rows and columns.
+      formulas.sort((a, b) => a.rc.r - b.rc.r || a.rc.c - b.rc.c);
+      const merges = ws && ws['!merges'] ? ws['!merges'].map((m) => XLSX.utils.encode_range(m)) : [];
+      const hiddenRows = [];
+      ((ws && ws['!rows']) || []).forEach((r, i) => { if (r && r.hidden) hiddenRows.push(i + 1); });
+      const hiddenCols = [];
+      ((ws && ws['!cols']) || []).forEach((c, i) => { if (c && c.hidden) hiddenCols.push(DB.colLetter(i)); });
+      if (formulas.length || merges.length || hiddenRows.length || hiddenCols.length) {
+        sec.sheetInfo = {
+          merges, hiddenRows, hiddenCols,
+          formulas: { count: formulas.length, noResult: formulas.filter((x) => x.noResult).length, examples: formulas.slice(0, 5).map((x) => ({ addr: x.addr, f: x.f })) },
+        };
+      }
       return sec;
     });
-    return { sections, fileMeta: [], notes: { isoDates } };
+    // Defined names (named ranges and constants), without Excel's own technical names
+    const names = ((wb.Workbook && wb.Workbook.Names) || []).filter((n) => n && n.Name && n.Ref && !/^_xlnm\./.test(n.Name));
+    const fileMeta = names.length ? [['mNames', names.slice(0, 50).map((n) => '`' + n.Name + '` → `' + n.Ref + '`').join('; ') + (names.length > 50 ? '; …' : '')]] : [];
+    return { sections, fileMeta, notes: { isoDates } };
   }
 
   /* ---------- JSON / NDJSON / YAML (trees) ---------- */

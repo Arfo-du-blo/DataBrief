@@ -130,6 +130,35 @@
     return out.length ? out.join('\n\n') + '\n\n' : '';
   }
 
+  /* Compact list of numbers: 3, 7-9. */
+  function numRanges(nums) {
+    const out = [];
+    for (let i = 0; i < nums.length; i++) {
+      let j = i;
+      while (j + 1 < nums.length && nums[j + 1] === nums[j] + 1) j++;
+      out.push(j > i ? nums[i] + '-' + nums[j] : String(nums[i]));
+      i = j;
+    }
+    return out.length > 30 ? out.slice(0, 30).join(', ') + ', …' : out.join(', ');
+  }
+
+  /* What the values of a spreadsheet do not say by themselves: formulas, merged cells, hidden rows and columns. */
+  function sheetInfoText(si, t) {
+    const out = [];
+    const f = si.formulas;
+    if (f && f.count) {
+      let s = '**' + t('xFormulas') + ':** ' + f.count + (f.noResult ? ' · ' + t('xNoResult') + ': ' + f.noResult : '');
+      s += '\n' + f.examples.map((e) => '- `' + e.addr + '`: ' + code('=' + e.f)).join('\n') + (f.count > f.examples.length ? '\n- …' : '');
+      out.push(s);
+    }
+    if (si.merges && si.merges.length) {
+      out.push('**' + t('xMerged') + ':** ' + si.merges.slice(0, 20).map(code).join(', ') + (si.merges.length > 20 ? ', … (+' + (si.merges.length - 20) + ')' : ''));
+    }
+    if (si.hiddenRows && si.hiddenRows.length) out.push('**' + t('xHidRows') + ':** ' + numRanges(si.hiddenRows));
+    if (si.hiddenCols && si.hiddenCols.length) out.push('**' + t('xHidCols') + ':** ' + si.hiddenCols.join(', '));
+    return out.length ? out.join('\n\n') + '\n\n' : '';
+  }
+
   /* Collects locked and editable parts. */
   /*
    * Collects the prompt. Everything is locked, except free regions: each region becomes one editable
@@ -264,6 +293,7 @@
       b.lock('\n');
       if (s.columns.length) b.lock(columnsTable(s, t) + '\n\n');
       if (s.constraints) b.lock(constraintsText(s.constraints, t));
+      if (s.sheetInfo) b.lock(sheetInfoText(s.sheetInfo, t));
       if (s.comments && s.comments.length) {
         b.lock('**'); say('comments', 'comments@' + i); b.lock(':**\n');
         const list = s.comments.slice(0, 200).map((c) => '- `' + c.cell + '`: ' + c.text.replace(/\n/g, ' '));

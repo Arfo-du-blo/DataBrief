@@ -51,6 +51,14 @@ const CASES = [
   { file: 'table_none.parquet', has: PARQUET },
   { file: 'table_brotli.parquet', error: /compression|Parquet/ },
   { file: 'shop.sqlite', has: ['`customers`', '`orders`', 'primary key', '→ `customers.id`', '`big_orders`', '[binary 4 bytes]', '| `name` | text | TEXT |  | yes |', 'separate table'] },
+  // Regression tests for the Excel gaps of the audit: formulas without a stored result (used to be dropped, or shown as 0),
+  // merged cells, hidden rows and columns, defined names.
+  { file: 'features.xlsx', has: [
+    '| pen | 2 | 1.5 |  |', '| note | merged value |  |  |',
+    '**Formula cells:** 3 · without a stored result, shown empty: 3', '- `D2`: `=B2*C2`',
+    '**Merged cells (the value is in the top-left cell only):** `B5:C5`', '**Hidden rows:** 3', '**Hidden columns:** C',
+    '**Defined names:** `TotalQty` → `Sales!$B$2:$B$4`',
+  ], not: ['| pen | 2 | 1.5 | 0 |'] },
   // Regression tests for confirmed defects (audit P1-P5): nested types, LIST and MAP, required fields, decimals, units,
   // columns taken from the schema (a null struct adds no column; a map is one column), pandas metadata, file layout.
   { file: 'nested.parquet', has: [
