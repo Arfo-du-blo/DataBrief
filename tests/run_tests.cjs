@@ -51,6 +51,20 @@ const CASES = [
   { file: 'table_none.parquet', has: PARQUET },
   { file: 'table_brotli.parquet', error: /compression|Parquet/ },
   { file: 'shop.sqlite', has: ['`customers`', '`orders`', 'primary key', '→ `customers.id`', '`big_orders`', '[binary 4 bytes]', '| `name` | text | TEXT |  | yes |', 'separate table'] },
+  // Regression tests for confirmed defects (audit P1-P5): nested types, LIST and MAP, required fields, decimals, units,
+  // columns taken from the schema (a null struct adds no column; a map is one column), pandas metadata, file layout.
+  { file: 'nested.parquet', has: [
+    '| `id` | integer | yes | INT64 |', '| `name` | text |  | BYTE_ARRAY / STRING |',
+    '| `when` | date-time |  | INT64 / TIMESTAMP (MICROS, UTC) |', '| `price` | decimal |  | FIXED_LEN_BYTE_ARRAY / DECIMAL (12,3) |',
+    '| `geo.lat` | decimal |  | DOUBLE |', '| `geo.lon` | decimal |  | DOUBLE |',
+    '| `geo.meta.src` | text |  | BYTE_ARRAY / STRING |', '| `geo.meta.acc` | decimal |  | FLOAT |',
+    '| `tags` | text |  | LIST<BYTE_ARRAY / STRING> |', '| `items` | text |  | LIST<STRUCT<sku: BYTE_ARRAY / STRING, qty: INT32>> |',
+    '| `attrs` | text |  | MAP<BYTE_ARRAY / STRING, INT64> |',
+    '| 1 | a | 2024-01-01 12:00:00 | 10.5 | 1.5 | 2.5 | gps | 0.5 | ["x","y"] | [{"sku":"A1","qty":2},{"sku":"B2","qty":1}] | {"k1":1,"k2":2} |',
+    '| 2 |  |  | 0.125 | 3.5 | 4.5 |  |  |  |  |  |',
+    '| 3 | c | 2024-03-05 08:30:00 |  |  |  |  |  |  |  |  |',
+    '`pandas`: ', 'rowkey', 'int64', '**Row groups:** 2 (2 + 1 rows)', '**Compression:** SNAPPY',
+  ], not: ['| `geo` |', '`attrs.k1`', 'GROUP'] },
   // Regression tests for confirmed defects (audit S1-S6): generated columns, composite keys, 64-bit integers,
   // implicit foreign-key targets, constraints, indexes, table and view definitions.
   { file: 'schema_features.sqlite', has: [

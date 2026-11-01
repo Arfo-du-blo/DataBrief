@@ -375,6 +375,64 @@
     }
     return out;
   }
+  /* ---- Parquet schema: types of every field, including nested ones ---- */
+  const pqLogical = (n) => { const e = n.element || {}; return (e.logical_type && e.logical_type.type) || ''; };
+  const pqIsList = (n) => pqLogical(n) === 'LIST' || (n.element || {}).converted_type === 'LIST';
+  const pqIsMap = (n) => pqLogical(n) === 'MAP' || /^MAP/.test((n.element || {}).converted_type || '');
+  function pqPrim(el) {
+    let t = el.type || '';
+    const lt = el.logical_type || {};
+    if (lt.type === 'INTEGER') t += ' / ' + (lt.isSigned === false ? 'UINT' : 'INT') + '(' + lt.bitWidth + ')';
+    else if (lt.type && lt.type !== t) t += ' / ' + lt.type;
+    else if (!lt.type && el.converted_type && el.converted_type !== t) t += ' / ' + el.converted_type;
+    if (lt.type === 'DECIMAL') t += ' (' + lt.precision + ',' + (lt.scale || 0) + ')';
+    else if (el.converted_type === 'DECIMAL' && el.precision != null) t += ' (' + el.precision + ',' + (el.scale || 0) + ')';
+    if (lt.unit) t += ' (' + lt.unit + (lt.isAdjustedToUTC ? ', UTC' : '') + ')';
+    return t;
+  }
+  /* inList: the node is the repeated part of a LIST or MAP, not a list of its own. */
+  function pqType(node, inList) {
+    const el = node.element || {};
+    const ch = node.children || [];
+    if (!inList && el.repetition_type === 'REPEATED' && !pqIsList(node) && !pqIsMap(node)) return 'LIST<' + pqType(node, true) + '>'; // older writers
+    if (!ch.length) return pqPrim(el);
+    if (pqIsList(node)) {
+      const rep = ch[0];
+      const one = rep.children && rep.children.length === 1 && !/^(array|.+_tuple)$/.test((rep.element || {}).name || '');
+      return 'LIST<' + pqType(one ? rep.children[0] : rep, true) + '>';
+    }
+    if (pqIsMap(node)) {
+      const kv = (ch[0] && ch[0].children) || [];
+      return 'MAP<' + (kv[0] ? pqType(kv[0], true) : '?') + ', ' + (kv[1] ? pqType(kv[1], true) : '?') + '>';
+    }
+    return 'STRUCT<' + ch.map((c) => c.element.name + ': ' + pqType(c, false)).join(', ') + '>';
+  }
+  /* One record following the schema: structs become objects with every leaf (null when absent), maps become JSON text. */
+  function pqNormalize(value, node) {
+    const src = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const out = {};
+    for (const c of node.children || []) {
+      const nm = c.element.name;
+      const v = src[nm];
+      const isStruct = (c.children || []).length && !pqIsList(c) && !pqIsMap(c) && c.element.repetition_type !== 'REPEATED';
+      if (isStruct) out[nm] = pqNormalize(v, c);
+      else if (pqIsMap(c)) { // an empty map is an empty cell, like an empty list
+        const m = v instanceof Map ? Object.fromEntries(v) : v;
+        out[nm] = m == null || !Object.keys(m).length ? null : DB.json(m);
+      }
+      else out[nm] = v === undefined ? null : v;
+    }
+    return out;
+  }
+  function pandasSummary(raw) {
+    try {
+      const p = JSON.parse(raw);
+      const cols = (p.columns || []).map((c) => '`' + c.name + '` ' + (c.pandas_type || c.numpy_type || '?'));
+      const idx = (p.index_columns || []).map((c) => (typeof c === 'string' ? '`' + c + '`' : 'range index'));
+      return (idx.length ? 'index ' + idx.join(', ') + '; ' : '') + 'columns ' + cols.slice(0, 40).join(', ') + (cols.length > 40 ? ', …' : '');
+    } catch (e) { return String(raw).replace(/\s+/g, ' ').slice(0, 300); }
+  }
+
   async function parseParquet(buf, ext, name) {
     const H = window.hyparquet;
     const ab = buf instanceof ArrayBuffer ? buf : buf.buffer;
@@ -393,30 +451,50 @@
       throw e;
     }
     for (const r of rows) if (r && typeof r === 'object' && '__index__' in r) delete r.__index__;
-    const flat = DB.flattenRecords(rows);
     const schema = H.parquetSchema(metadata);
-    const typeOf = {};
-    for (const child of (schema.children || [])) {
-      const el = child.element || {};
-      let t = el.type || (child.children && child.children.length ? 'GROUP' : '');
-      const logical = el.logical_type && el.logical_type.type;
-      const conv = el.converted_type;
-      if (logical && logical !== t) t += ' / ' + logical;
-      else if (conv && conv !== t) t += ' / ' + conv;
-      if (el.logical_type && el.logical_type.unit) t += ' (' + el.logical_type.unit + ')';
-      if (el.logical_type && el.logical_type.precision != null) t += ' (' + el.logical_type.precision + ',' + (el.logical_type.scale || 0) + ')';
-      typeOf[el.name] = t;
-    }
-    const columns = flat.columns.map((c) => {
-      const top = typeOf[c] !== undefined ? c : c.split('.')[0];
-      return { name: c, meta: { parquetType: typeOf[top] || '' } };
-    });
+
+    // The columns come from the schema: every leaf of a struct is a column (a null struct adds none) and a map is one column.
+    const typeByPath = new Map();
+    const required = new Set();
+    const walk = (node, path, parentsRequired) => {
+      const el = node.element || {};
+      const p = path.concat(el.name);
+      const req = parentsRequired && el.repetition_type === 'REQUIRED';
+      if (!(node.children || []).length || pqIsList(node) || pqIsMap(node) || el.repetition_type === 'REPEATED') {
+        typeByPath.set(p.join('.'), pqType(node, false));
+        if (req) required.add(p.join('.'));
+        return;
+      }
+      for (const c of node.children) walk(c, p, req);
+    };
+    for (const c of (schema.children || [])) walk(c, [], true);
+    const root = { children: schema.children || [] };
+    const flat = DB.flattenRecords(rows.map((r) => pqNormalize(r, root)));
+
+    const typeOf = (col) => {
+      const parts = col.split('.');
+      for (let i = parts.length; i > 0; i--) { const t = typeByPath.get(parts.slice(0, i).join('.')); if (t !== undefined) return t; }
+      return '';
+    };
+    const columns = flat.columns.map((c) => ({ name: c, meta: { parquetType: typeOf(c), notNull: required.has(c) ? { key: 'yes' } : '' } }));
+
     const fileMeta = [];
     if (metadata.created_by) fileMeta.push(['mProduct', metadata.created_by]);
-    const kv = (metadata.key_value_metadata || []).filter((x) => x && x.key && !/^(ARROW:schema|pandas|org\.apache\.spark\.sql\.parquet\.row\.metadata)$/.test(x.key));
-    if (kv.length) {
-      fileMeta.push(['mEmbedded', kv.map((x) => '`' + x.key + '`: ' + String(x.value == null ? '' : x.value).replace(/\s+/g, ' ').slice(0, 300)).join('; ')]);
+    const groups = metadata.row_groups || [];
+    if (groups.length) {
+      const sizes = groups.slice(0, 8).map((g) => Number(g.num_rows)).join(' + ') + (groups.length > 8 ? ' + …' : '');
+      fileMeta.push(['mRowGroups', groups.length + (groups.length > 1 ? ' (' + sizes + ' rows)' : '')]);
+      const codecs = Array.from(new Set(groups.flatMap((g) => (g.columns || []).map((c) => c.meta_data && c.meta_data.codec).filter(Boolean))));
+      if (codecs.length) fileMeta.push(['mCodec', codecs.join(', ')]);
     }
+    const kv = [];
+    for (const x of (metadata.key_value_metadata || [])) {
+      if (!x || !x.key || x.key === 'ARROW:schema') continue; // the Arrow schema is binary: the schema above already says it
+      const val = String(x.value == null ? '' : x.value);
+      if (x.key === 'pandas') kv.push('`pandas`: ' + pandasSummary(val));
+      else kv.push('`' + x.key + '`: ' + val.replace(/\s+/g, ' ').slice(0, /spark/.test(x.key) ? 600 : 300));
+    }
+    if (kv.length) fileMeta.push(['mEmbedded', kv.join('; ')]);
     const notes = { isoDates: flat.flags.isoDates };
     if (flat.flags.flattened) notes.flattened = true;
     if (flat.flags.arrays) notes.arrays = true;

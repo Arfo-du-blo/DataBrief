@@ -37,12 +37,24 @@
     return s.replace('T', ' ').replace(/\.000Z$/, '').replace(/Z$/, '');
   };
 
+  /* Compact JSON text. 64-bit integers (BigInt) are written as numbers, not as quoted strings. */
   DB.json = function (v) {
-    return JSON.stringify(v, function (k, x) {
+    const ser = (x) => {
+      if (x === null || x === undefined) return 'null';
       if (typeof x === 'bigint') return x.toString();
-      if (x instanceof Uint8Array) return '[binary ' + x.length + ' bytes]';
-      return x;
-    });
+      if (typeof x === 'number') return Number.isFinite(x) ? String(x) : 'null';
+      if (typeof x === 'boolean') return String(x);
+      if (typeof x === 'string') return JSON.stringify(x);
+      if (x instanceof Uint8Array) return JSON.stringify('[binary ' + x.length + ' bytes]');
+      if (x instanceof Date) return JSON.stringify(x);
+      if (Array.isArray(x)) return '[' + x.map(ser).join(',') + ']';
+      if (typeof x === 'object') {
+        if (typeof x.toJSON === 'function') return ser(x.toJSON());
+        return '{' + Object.keys(x).filter((k) => x[k] !== undefined && typeof x[k] !== 'function').map((k) => JSON.stringify(k) + ':' + ser(x[k])).join(',') + '}';
+      }
+      return 'null';
+    };
+    return ser(v);
   };
 
   const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v) &&

@@ -148,6 +148,34 @@ table = pa.table({
 for codec in ["snappy", "gzip", "zstd", "lz4", "none", "brotli"]:
     pq.write_table(table, P(f"table_{codec}.parquet"), compression=codec)
 
+# --- Parquet: nested types (struct in struct, list, list of struct, map), required field, decimal, timestamp with unit, pandas metadata ---
+import pandas as pd  # noqa: E402
+nested_schema = pa.schema([
+    pa.field("id", pa.int64(), nullable=False),
+    pa.field("name", pa.string()),
+    pa.field("when", pa.timestamp("us", tz="UTC")),
+    pa.field("price", pa.decimal128(12, 3)),
+    pa.field("geo", pa.struct([("lat", pa.float64()), ("lon", pa.float64()), ("meta", pa.struct([("src", pa.string()), ("acc", pa.float32())]))])),
+    pa.field("tags", pa.list_(pa.string())),
+    pa.field("items", pa.list_(pa.struct([("sku", pa.string()), ("qty", pa.int32())]))),
+    pa.field("attrs", pa.map_(pa.string(), pa.int64())),
+])
+nested_rows = {
+    "id": [1, 2, 3],
+    "name": ["a", None, "c"],
+    "when": [dt.datetime(2024, 1, 1, 12, 0, tzinfo=dt.timezone.utc), None, dt.datetime(2024, 3, 5, 8, 30, tzinfo=dt.timezone.utc)],
+    "price": [decimal.Decimal("10.500"), decimal.Decimal("0.125"), None],
+    "geo": [{"lat": 1.5, "lon": 2.5, "meta": {"src": "gps", "acc": 0.5}}, {"lat": 3.5, "lon": 4.5, "meta": None}, None],
+    "tags": [["x", "y"], [], None],
+    "items": [[{"sku": "A1", "qty": 2}, {"sku": "B2", "qty": 1}], [], None],
+    "attrs": [[("k1", 1), ("k2", 2)], [], None],
+}
+pdf = pd.DataFrame({"id": nested_rows["id"], "name": nested_rows["name"]}, index=pd.Index([10, 11, 12], name="rowkey"))
+base = pa.Table.from_pandas(pdf, preserve_index=True)  # carries the pandas metadata
+nested_table = pa.table({k: pa.array(v, type=nested_schema.field(k).type) for k, v in nested_rows.items()}, schema=nested_schema)
+nested_table = nested_table.replace_schema_metadata(base.schema.metadata)
+pq.write_table(nested_table, P("nested.parquet"), compression="snappy", row_group_size=2)
+
 # --- SQLite: FK, view, NULLs, BLOB ---
 db_path = P("shop.sqlite")
 if os.path.exists(db_path):
