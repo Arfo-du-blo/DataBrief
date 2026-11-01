@@ -27,12 +27,13 @@
     { key: 'sql', label: 'SQL', exts: ['sql'] },
     { key: 'pgdump', label: 'pg_dump', exts: ['dump', 'backup', 'pgdump', 'tar'] },
     { key: 'dbf', label: 'DBF', exts: ['dbf'] },
+    { key: 'duckdb', label: 'DuckDB', exts: ['zip'] },
   ];
   const FORMAT_NAMES = {
     csv: 'CSV', tsv: 'TSV', txt: 'TXT (CSV)', xlsx: 'Excel (XLSX)', xlsm: 'Excel (XLSM)',
     xls: 'Excel 97-2003 (XLS)', ods: 'OpenDocument (ODS)', json: 'JSON', ndjson: 'NDJSON / JSON Lines',
     xml: 'XML', yaml: 'YAML', html: 'HTML', sav: 'SPSS Statistics (.sav)', zsav: 'SPSS Statistics (.zsav)',
-    parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)', dbf: 'dBase / FoxPro (DBF)',
+    parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)', dbf: 'dBase / FoxPro (DBF)', duckdb: 'DuckDB export (zip)',
   };
   DB.ACCEPT = DB.FORMATS.flatMap((f) => f.exts.map((e) => '.' + e)).concat(['.gz']).join(','); // .gz: a compressed file of any of these
 
@@ -442,6 +443,59 @@
     return sqlDocument(r, [['mArchive', text]]);
   }
 
+  /* ---------- a zipped DuckDB "EXPORT DATABASE" folder: schema.sql + load.sql + one CSV or Parquet file per table ---------- */
+  function zipNames(u8) {
+    const names = [];
+    try { window.fflate.unzipSync(u8, { filter: (f) => { names.push(f.name); return false; } }); } catch (e) { /* not readable as a zip: the spreadsheet reader says so */ }
+    return names;
+  }
+  function isDuckdbZip(u8) {
+    const names = zipNames(u8);
+    return names.some((n) => /(^|\/)schema\.sql$/.test(n)) && names.some((n) => /(^|\/)load\.sql$/.test(n));
+  }
+  async function parseDuckdbZip(u8) {
+    let files;
+    try { files = window.fflate.unzipSync(u8, { filter: (f) => !/\/$/.test(f.name) && f.originalSize < 1024 * 1024 * 1024 }); } catch (e) { throw new UserError('errCorrupt', { ext: '.zip' }); }
+    const names = Object.keys(files);
+    const schema = names.find((n) => /(^|\/)schema\.sql$/.test(n)), load = names.find((n) => /(^|\/)load\.sql$/.test(n));
+    const r = DB.parseSqlDump([DB.decodeText(files[schema]).text, '\n', DB.decodeText(files[load]).text], { maxRows: DB.SQL_MAX_ROWS, dialect: 'generic' });
+    const byBase = {};
+    for (const n of names) byBase[n.split('/').pop()] = n;
+    const missing = [];
+    let cut = false;
+    const read = new Set();
+    for (const s of r.sections) {
+      if (!s.externalData) continue;
+      const entry = byBase[s.externalData];
+      if (!entry) { missing.push(s.name); continue; }
+      const info = s.externalInfo || {};
+      let rows;
+      try {
+        if (info.format === 'parquet') {
+          const pq = (await parseParquet(files[entry].slice().buffer, 'parquet', s.name)).sections[0];
+          const at = s.columns.map((c, i) => { const j = pq.columns.findIndex((x) => x.name.toLowerCase() === c.name.toLowerCase()); return j >= 0 ? j : i; });
+          rows = pq.rows.map((row) => at.map((j) => (row[j] === undefined ? '' : row[j])));
+        } else {
+          const text = DB.decodeText(files[entry]).text;
+          rows = DB.parseDelimited(text, info.delimiter || ',', DB.SQL_MAX_ROWS + 2);
+          if (info.header !== false) rows.shift();
+          const width = s.columns.length;
+          rows = rows.map((row) => (row.length === width ? row : row.concat(new Array(Math.max(0, width - row.length)).fill('')).slice(0, width)));
+        }
+      } catch (e) { missing.push(s.name); continue; }
+      if (rows.length > DB.SQL_MAX_ROWS) { rows = rows.slice(0, DB.SQL_MAX_ROWS); cut = true; }
+      s.rows = rows;
+      s.rowsTotal = rows.length;
+      read.add(s.externalData);
+    }
+    r.info.externalFiles = r.info.externalFiles.filter((f) => !read.has(f) && !missing.some((m) => (r.sections.find((s) => s.name === m) || {}).externalData === f));
+    if (cut) r.info.truncated = true;
+    const doc = sqlDocument(r, [['mArchive', 'zip archive · ' + names.length + ' files']]);
+    doc.fileMeta[0][1] = 'DuckDB (EXPORT DATABASE)';
+    if (missing.length) doc.fileMeta.push(['mSkipped', missing.map((x) => '`' + x + '`').join(', ')]);
+    return doc;
+  }
+
   /* ---------- Parquet (hyparquet) ---------- */
   function lz4RawDecompress(input, outputLength) {
     const out = new Uint8Array(outputLength);
@@ -629,13 +683,13 @@
     const magic = sniff(u8);
     if (magic === 'gzip') return parseGzip(u8, fileName, depth || 0);
     let kind;
-    if (magic === 'zip') kind = ext === 'ods' ? 'ods' : ext === 'xlsm' ? 'xlsm' : 'xlsx';
+    if (magic === 'zip') kind = isDuckdbZip(u8) ? 'duckdb' : ext === 'ods' ? 'ods' : ext === 'xlsm' ? 'xlsm' : 'xlsx';
     else if (magic) kind = magic;
     else {
       const f = DB.FORMATS.find((x) => x.exts.includes(ext));
       if (!f) throw new UserError('errUnsupported', { ext: ext ? '.' + ext : '?' });
       kind = f.key;
-      if (['xlsx', 'xlsm', 'xls', 'ods', 'sqlite', 'parquet', 'sav'].includes(kind)) {
+      if (['xlsx', 'xlsm', 'xls', 'ods', 'sqlite', 'parquet', 'sav', 'duckdb'].includes(kind)) {
         // Binary format expected but the content does not match: try as text.
         const sample = DB.decodeText(u8.subarray(0, 4096)).text.trim();
         if (/^</.test(sample)) kind = /<table/i.test(sample) || /^<!doctype html|^<html/i.test(sample) ? 'html' : 'xml';
@@ -660,6 +714,7 @@
       case 'sqlite': res = await parseSqlite(buf); break;
       case 'sql': res = parseSqlFile(buf, ext); break;
       case 'pgdump': res = parsePgFile(buf); break;
+      case 'duckdb': res = await parseDuckdbZip(u8); break;
       case 'dbf': res = DB.parseDbf(u8, { maxRows: DB.SQL_MAX_ROWS }); res.sections[0].name = baseOf(fileName); break;
       case 'parquet': res = await parseParquet(buf, ext, fileName); break;
       case 'sav': res = DB.parseSav(buf); res.sections[0].name = baseOf(fileName); break;
@@ -667,7 +722,7 @@
     }
     const formatKey = kind === 'sav' && ext === 'zsav' ? 'zsav' : kind;
     const sectionKind = ['xlsx', 'xlsm', 'xls', 'ods'].includes(kind) ? 'sheets'
-      : ['html', 'sqlite', 'sql', 'pgdump'].includes(kind) ? 'tables' : 'records';
+      : ['html', 'sqlite', 'sql', 'pgdump', 'duckdb'].includes(kind) ? 'tables' : 'records';
     return finalize(Object.assign(res, {
       fileName, fileSize: u8.length, formatKey, formatName: FORMAT_NAMES[formatKey] || kind.toUpperCase(), sectionKind,
     }));
@@ -675,7 +730,7 @@
 
   function finalize(doc) {
     doc.sections = doc.sections.filter((s) => s && s.columns);
-    const fromSql = ['sql', 'pgdump', 'dbf'].includes(doc.formatKey);
+    const fromSql = ['sql', 'pgdump', 'dbf', 'duckdb'].includes(doc.formatKey);
     for (const s of doc.sections) {
       s.columns.forEach((c, i) => { c.type = DB.detectColumnType(s.rows, i); });
       // A dump of the structure only (or whose data is in other files): no row was read, the SQL type tells the kind

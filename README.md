@@ -627,6 +627,7 @@ how to export it, and its limits.
 | Databases | SQLite (`.db`, `.sqlite`, `.sqlite3`; **all tables**) | [SQLite](docs/formats/sqlite.md) |
 | | **SQL dumps** (`.sql`: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite, ClickHouse; read as text, never executed) | [SQL dumps](docs/formats/sql.md) |
 | | **PostgreSQL archives** (`pg_dump -Fc` and `-Ft`, gzip, lz4 or zstd) | [PostgreSQL archives](docs/formats/pgdump.md) |
+| | **DuckDB exports** (a zipped `EXPORT DATABASE` folder: structure and rows, CSV or Parquet) | [DuckDB exports](docs/formats/duckdb.md) |
 | Legacy databases | **DBF** (dBase, FoxPro, Visual FoxPro, shapefile attribute tables; any code page) | [DBF](docs/formats/dbf.md) |
 
 When a file holds several sheets or tables, each one becomes its own section, and the AI is told that they are separate.
@@ -683,6 +684,8 @@ both, and lets you catch a deliberately tampered copy in the act:
 ## Limits
 
 - Encrypted or password-protected files (Excel, SQLite) cannot be read: save a copy without the password first.
+- Files DataBrief recognises but cannot read (a DuckDB database, HDF5, Arrow / Feather, ORC, Avro, PDF, a SQL Server `.bak`, an Oracle `.dmp`) are
+  recognised by their content, whatever their name, and answered with what to do instead. `.gz` files (`dump.sql.gz`, `data.csv.gz`) are unpacked and read.
 - JSON and YAML numbers above 2^53 may lose precision (they are read as floating-point numbers); quote very large
   identifiers. SQLite and Parquet 64-bit integers are exact.
 - Parquet: Snappy, Gzip, Zstd and LZ4 (raw) compression are supported; Brotli and Hadoop-LZ4 are not.
@@ -713,6 +716,7 @@ src/
   util.js                     type detection, flattening, CSV parsing, token estimate
   parsers.js                  format detection and readers (CSV…SQLite)
   sqldump.js, pgarchive.js    the SQL dump reader (text, streaming, never executes) and the PostgreSQL archive reader
+  dbf.js, dbf-codepages.js    the DBF reader (dBase, FoxPro) and its DOS code pages (generated)
   relationships.js            declared and inferred relationships between sections
   profile.js                  the data profile (statistics of every column; on by default, can be switched off)
   noshare.js                  "Do not share data": the record-free copy of a file

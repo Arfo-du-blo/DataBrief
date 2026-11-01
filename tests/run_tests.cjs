@@ -143,6 +143,11 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     // Start every page from a clean state (English, default theme): settings are kept in localStorage.
     await page.evaluate(() => { try { localStorage.clear(); } catch (e) { /* ignore */ } });
     await page.reload({ waitUntil: 'load' });
+    // A page whose scripts do not even start (a syntax error) must stop the run at once, not hang every test for minutes
+    if (!(await page.evaluate(() => typeof window.DataBrief === 'object'))) {
+      console.log('FAIL the page did not start (window.DataBrief is missing): ' + problems.slice(-3).join(' | '));
+      process.exit(1);
+    }
     return page;
   }
 
@@ -558,7 +563,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     {
       const p = await newPage();
       ok(await p.evaluate(() => document.getElementById('nsOn').offsetParent === null), '8: switch must not be visible before a file is read');
-      ok(await p.evaluate(() => document.getElementById('chips').children.length === 18 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
+      ok(await p.evaluate(() => document.getElementById('chips').children.length === 19 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
       const r0 = await load(p, F('confidential.csv'));
       ok(r0.md.includes('CONFIDENTIAL_CUSTOMER_74291') && await p.evaluate(() => document.getElementById('nsOn').offsetParent !== null && !document.getElementById('nsOn').checked), '8: after loading: data included, switch visible and off');
       const order = await p.evaluate(() => ['secSummary', 'secShare', 'secOutput'].map((id) => document.getElementById(id).getBoundingClientRect().top));
@@ -663,7 +668,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
     const page = await newPage();
     const chips = await page.$$eval('#chips button.chip', (els) => els.length);
-    if (chips !== 18) checks.push('expected 18 clickable formats, got ' + chips);
+    if (chips !== 19) checks.push('expected 19 clickable formats, got ' + chips);
     for (let i = 0; i < chips; i++) {
       await page.evaluate((n) => document.querySelectorAll('#chips button.chip')[n].click(), i); await wait(60);
       const r = await page.evaluate(() => ({
@@ -677,12 +682,12 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     // every card in every language, with the guide link
     const miss = await page.evaluate(() => {
       const I = window.DB_I18N, out = [];
-      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump', 'Dbf']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
+      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump', 'Dbf', 'Duckdb']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
       return out;
     });
     if (miss.length) checks.push('missing card texts: ' + miss.join(','));
     // the guides the cards link to exist in the repository
-    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump', 'dbf']) {
+    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump', 'dbf', 'duckdb']) {
       if (!fs.existsSync(path.join(path.dirname(htmlPath), 'docs', 'formats', g + '.md'))) checks.push('guide docs/formats/' + g + '.md is missing');
     }
     // "what was found"
@@ -691,7 +696,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     if (found !== 'Found: 7 sections · 16 columns · 5 relationships (0 declared, 5 inferred)') checks.push('found line: ' + found);
     await page.close();
     if (checks.length) fail('format cards', checks.join(' | '));
-    else pass('format cards', '18 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
+    else pass('format cards', '19 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
   }
 
   // ---------- SQL dumps and PostgreSQL archives (real dumps of tests/sql-fixtures) ----------
@@ -848,6 +853,56 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     await p.close();
     if (checks.length) fail('DBF files', checks.join(' | '));
     else pass('DBF files', 'dBase III with memo and a deleted record, DOS code page 866, Visual FoxPro, a cut file, a text file named .dbf, 15 languages');
+  }
+
+  // ---------- DuckDB "EXPORT DATABASE" folders, zipped (real exports of tests/sql-fixtures) ----------
+  {
+    const checks = [];
+    const bad = (m) => checks.push(m);
+    const info = (p) => p.evaluate(() => {
+      const d = window.DataBrief.getState().doc;
+      return { k: d.formatKey, n: d.sections.length, rows: Object.fromEntries(d.sections.map((s) => [s.name, s.rows.length])), declared: (d.relationships || []).filter((r) => r.source === 'declared').length,
+        weird: d.sections.find((s) => s.name === 'weird name').rows, cust: d.sections.find((s) => s.name === 'customers').rows };
+    });
+    for (const [file, label] of [['duckdb-csv.zip', 'CSV in a folder'], ['duckdb-parquet.zip', 'Parquet, flat']]) {
+      const p = await newPage();
+      const r = await load(p, F(file));
+      if (!r.ok) { bad(label + ': ' + r.err); await p.close(); continue; }
+      const d = await info(p);
+      const want = { customers: 6, products: 4, tags: 3, product_tags: 4, orders: 5, order_items: 5, shipments: 3, 'weird name': 2 };
+      if (d.k !== 'duckdb' || d.n !== 8 || JSON.stringify(Object.entries(d.rows).sort()) !== JSON.stringify(Object.entries(want).sort()) || d.declared !== 7) bad(label + ': ' + JSON.stringify(d));
+      if (!r.md.includes('**SQL dialect:** DuckDB (EXPORT DATABASE)') || !r.md.includes('**Archive:** zip archive · 10 files') || r.md.includes('Data stored in other files')) bad(label + ': the prompt lines');
+      const bob = d.cust.find((row) => row[0] === '2');
+      if (!bob || bob[2] !== "Bob O'Brien" || !bob[5].includes('with semicolon -- not a comment')) bad(label + ': a value was not read right: ' + JSON.stringify(bob));
+      if (file === 'duckdb-csv.zip' && (JSON.stringify(d.weird) !== JSON.stringify([['1', 'a;b', '--x'], ['2', '', '/* not a comment */']]) || d.cust.find((row) => row[0] === '4')[5] !== 'back\\slash path C:\\temp')) bad(label + ': the awkward values');
+      if (!r.md.includes('many to many')) bad(label + ': the relationships should include the junction table');
+      await p.close();
+    }
+    // a data file missing from the zip: that table is listed as skipped, the others are read
+    let p = await newPage();
+    let r = await load(p, F('duckdb-missing.zip'));
+    if (!r.ok || !r.md.includes('(skipped):** `orders`') || (await info(p)).rows.orders !== 0 || (await info(p)).rows.customers !== 6) bad('missing data file: ' + (r.ok ? 'not reported' : r.err));
+    await p.close();
+    // a spreadsheet is still a spreadsheet (a zip inside)
+    p = await newPage();
+    r = await load(p, F('workbook.xlsx'));
+    if (!r.ok || !r.md.includes('Globex')) bad('an .xlsx must still be read as a workbook');
+    await p.close();
+    // no-share: the rows are dropped, the structure stays
+    p = await newPage();
+    r = await load(p, F('duckdb-csv.zip'));
+    await p.click('#nsOn'); await new Promise((res) => setTimeout(res, 500));
+    const ns = await p.evaluate(() => window.DataBrief.getMarkdown());
+    if (ns.includes('ana.secret@example.com') || ns.includes('CONFIDENTIAL_CUSTOMER_74291') || !ns.includes('many to many')) bad('no-share on a DuckDB export: a row leaked or the relationships are missing');
+    await p.evaluate(() => localStorage.clear());
+    await p.close();
+    // the card exists in all 15 languages
+    p = await newPage();
+    const miss = await p.evaluate(() => { const I = window.DB_I18N, out = []; for (const l of I.langs.map((x) => x.code)) for (const k of ['fcDuckdbReads', 'fcDuckdbBest', 'fcDuckdbGood']) if (!I.ui[l][k]) out.push(l + ':' + k); return out; });
+    if (miss.length) bad('missing texts: ' + miss.join(','));
+    await p.close();
+    if (checks.length) fail('DuckDB exports', checks.join(' | '));
+    else pass('DuckDB exports', 'zipped CSV folder and flat Parquet read with their rows, relationships and awkward values; a missing data file skipped; xlsx still a workbook; no-share; 15 languages');
   }
 
   // ---------- files recognised but not readable (clear message), and gzip ----------

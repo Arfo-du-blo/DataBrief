@@ -434,3 +434,12 @@ for _f in sorted(os.listdir(_dbf)):
     if _f.endswith(".dbf"):
         shutil.copy(os.path.join(_dbf, _f), P(_f))
 shutil.copy(os.path.join(_dbf, "canary", "CONFIDENTIAL_FILE_dbf.dbf"), Q("dbf", "dbf"))
+
+# --- DuckDB "EXPORT DATABASE" folders as zip files (real exports of tests/sql-fixtures): CSV in a folder, Parquet flat, and one without a data file ---
+import zipfile
+for _name, _kind, _prefix, _skip in (("duckdb-csv.zip", "csv", "shop/", None), ("duckdb-parquet.zip", "parquet", "", None), ("duckdb-missing.zip", "csv", "", "orders.csv")):
+    _d = os.path.join(_sqlfix, "duckdb-export-" + _kind)
+    with zipfile.ZipFile(P(_name), "w", zipfile.ZIP_DEFLATED) as _z:
+        for _f in sorted(os.listdir(_d)):
+            if _f != _skip:
+                _z.write(os.path.join(_d, _f), _prefix + _f)

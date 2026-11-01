@@ -1129,6 +1129,11 @@
       if (f && f.k === 's') {
         const base = f.v.split(/[\\/]/).pop();
         t.externalData = base;
+        const rest = c.st.toks.slice(c.i + 1);
+        const after = (w) => { const k = rest.findIndex((x) => x.k === 'w' && x.u === w); return k >= 0 ? rest[k + 1] : null; };
+        const fmt = after('FORMAT'), del = after('DELIMITER'), hdr = after('HEADER');
+        t.externalInfo = { format: fmt ? String(fmt.v).toLowerCase() : /\.parquet$/i.test(base) ? 'parquet' : 'csv', delimiter: del && del.k === 's' ? del.v : ',',
+          header: !(hdr && (hdr.v === '0' || String(hdr.v).toUpperCase() === 'FALSE')) };
         if (!this.info.externalFiles.includes(base)) this.info.externalFiles.push(base);
       }
       this.ignore('copy from file');
@@ -1171,7 +1176,7 @@
           return { name: col.name, meta };
         });
         return {
-          name: display(t), columns, rows: t.rows, rowsTotal: t.rowsTotal, description: t.description, externalData: t.externalData,
+          name: display(t), columns, rows: t.rows, rowsTotal: t.rowsTotal, description: t.description, externalData: t.externalData, externalInfo: t.externalInfo || null,
           constraints: { pk: t.pk.slice(), fks, unique: t.unique, indexes: t.indexes, ddl: t.ddl },
         };
       });

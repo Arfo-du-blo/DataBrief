@@ -8,7 +8,8 @@ understand the data. DataBrief reads it **as text, without running anything**.
 
 ## What DataBrief reads
 
-Files ending in `.sql` (also `.dump`, `.backup` or `.tar` when they are really plain SQL text).
+Files ending in `.sql` (also `.dump`, `.backup` or `.tar` when they are really plain SQL text), and **gzip-compressed** ones such as
+`dump.sql.gz`: DataBrief unpacks them and says so in the prompt.
 
 - **Table definitions**, as one section each: column names and **SQL types**, **NOT NULL**, **primary keys** (composite too),
   **unique constraints**, **indexes**, **generated columns**, and the original `CREATE TABLE`.
@@ -53,8 +54,9 @@ Never put a password on a command line: use your tool's password file or environ
   DataBrief only reads the text of the file. Procedures, functions and triggers are **not read** and are listed as such.
 - **Large dumps:** only the **first 250,000 rows of each table** are kept; the **row counts stay exact** and the prompt says
   how many rows were read. The statistics of such a table describe the rows read, and the prompt says so.
-- **Data in other files** (DuckDB's `EXPORT DATABASE` writes a CSV or Parquet file per table) is **not read**: the file names
-  are listed. Drop the CSV or Parquet files separately if you need their rows.
+- **Data in other files** (DuckDB's `EXPORT DATABASE` writes a CSV or Parquet file per table) is **not read** when you drop
+  `schema.sql` / `load.sql` alone: the file names are listed. To get the rows too, zip the exported folder and drop the zip
+  ([DuckDB exports](duckdb.md)).
 - **`INSERT ... SELECT`** has no values to read and is skipped. A table whose `CREATE TABLE` is missing gets numbered columns.
 - **Binary values** become `[binary N bytes]`.
 - **SQL Server** scripts (`GO` batches, `[brackets]`) and **Oracle** scripts are read from their structure; they are less
@@ -76,4 +78,4 @@ See [the guide to this mode](../no-share.md).
 
 ## See also
 
-[PostgreSQL archives](pgdump.md) · [SQLite](sqlite.md) · [Parquet](parquet.md) · [CSV](csv.md)
+[PostgreSQL archives](pgdump.md) · [DuckDB exports](duckdb.md) · [SQLite](sqlite.md) · [Parquet](parquet.md) · [CSV](csv.md)
