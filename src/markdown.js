@@ -130,6 +130,38 @@
     return out.length ? out.join('\n\n') + '\n\n' : '';
   }
 
+  /* Relationships between sections: declared by the source, and inferred candidates (kept apart, never mixed). */
+  function relationshipsText(rels, t) {
+    const ref = (e) => code(e.section) + ' (' + e.columns.map(code).join(', ') + ')';
+    const CARD = { one_to_one: 'cardOneOne', many_to_one: 'cardManyOne', many_to_many: 'cardManyMany' };
+    const CONF = { high: 'confHigh', medium: 'confMedium', low: 'confLow' };
+    const table = (heads, rows) => {
+      const h = heads.map((k) => t(k));
+      return ['| ' + h.join(' | ') + ' |', '|' + h.map(() => '---').join('|') + '|']
+        .concat(rows.map((r) => '| ' + r.map(cellMd).join(' | ') + ' |')).join('\n');
+    };
+    const out = [];
+    const dec = rels.filter((r) => r.source === 'declared');
+    const inf = rels.filter((r) => r.source === 'inferred');
+    if (dec.length) {
+      out.push('**' + t('relDeclared') + ':**\n\n' + table(['relFrom', 'relTo', 'relCard', 'relNotes'], dec.map((r) => {
+        const notes = [];
+        if (r.onDelete && r.onDelete !== 'NO ACTION') notes.push(t('onDelete') + ': ' + r.onDelete);
+        if (r.onUpdate && r.onUpdate !== 'NO ACTION') notes.push(t('onUpdate') + ': ' + r.onUpdate);
+        if (r.from.section === r.to.section && r.cardinality !== 'many_to_many') notes.push(t('relSelf'));
+        if (r.via) notes.push(t('relVia', { t: code(r.via) }));
+        return [ref(r.from), ref(r.to), t(CARD[r.cardinality]), notes.join(' · ')];
+      })));
+    }
+    if (inf.length) {
+      out.push('**' + t('relInferred') + ':**\n\n' + table(['relFrom', 'relTo', 'relCard', 'relConf', 'relEvid'], inf.map((r) => [
+        ref(r.from), ref(r.to), t(CARD[r.cardinality]), t(CONF[r.confidence]),
+        (r.evidence || []).map((e) => (typeof e === 'string' ? t(e) : t(e.key, { pct: e.pct }))).join('; '),
+      ])));
+    }
+    return out.join('\n\n') + '\n\n';
+  }
+
   /* Compact list of numbers: 3, 7-9. */
   function numRanges(nums) {
     const out = [];
@@ -308,6 +340,12 @@
     if (doc.views && doc.views.length) {
       line('## ', 'mViews'); b.lock('\n');
       for (const v of doc.views) b.lock('### ' + code(v.name) + '\n\n' + sqlBlock(v.sql) + '\n\n');
+    }
+
+    // Relationships between the sections: declared by the source, inferred candidates (marked as such)
+    if (doc.relationships && doc.relationships.length) {
+      line('## ', 'relTitle'); b.lock('\n');
+      b.lock(relationshipsText(doc.relationships, t));
     }
 
     // Data

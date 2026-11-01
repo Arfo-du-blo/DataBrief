@@ -52,6 +52,27 @@ const CASES = [
   { file: 'table_none.parquet', has: PARQUET },
   { file: 'table_brotli.parquet', error: /compression|Parquet/ },
   { file: 'shop.sqlite', has: ['`customers`', '`orders`', 'primary key', '→ `customers.id`', '`big_orders`', '[binary 4 bytes]', '| `name` | text | TEXT |  | yes |', 'separate table'] },
+  // Relationships. Declared ones (SQLite): composite, implicit, self-reference, one to one, junction (many to many), no inferred noise.
+  { file: 'schema_features.sqlite', has: [
+    '## Relationships', '**Declared by the source:**',
+    '| `child` (`a`, `b`) | `parent` (`k1`, `k2`) | many to one | on delete: CASCADE |',
+    '| `refs` (`sid`) | `singles` (`id`) | many to one |  |',
+    '| `people` (`manager_id`) | `people` (`id`) | many to one | self-reference |',
+    '| `people_tags` (`person_id`) | `people` (`id`) | many to one |  |',
+    '| `profiles` (`person_id`) | `people` (`id`) | one to one |  |',
+    '| `people` (`id`) | `tags` (`id`) | many to many | via `people_tags` |',
+  ], not: ['**Inferred candidates'] },
+  // Inferred ones (no declared relationship): names must correspond, values are compared, the best parent wins, nothing is invented.
+  { file: 'relations.xlsx', has: [
+    '**Inferred candidates (not declared by the source, to be validated before relying on them):**',
+    '| `orders` (`customer_id`) | `customers` (`id`) | many to one | high |',
+    '| `order_lines` (`order_id`) | `orders` (`order_id`) | many to one | high |',
+    '| `order_lines` (`product_id`) | `products` (`product_id`) | many to one | high |',
+    '| `profiles` (`customer_id`) | `customers` (`id`) | one to one | high |',
+    '| `visits` (`customer_id`) | `customers` (`id`) | many to one | medium |',
+    'the column names correspond; 100% of the distinct values exist in the parent column; the parent column is unique',
+    '60% of the distinct values exist in the parent column',
+  ], not: ['`audit` (`customer_id`)', '| `orders` (`customer_id`) | `profiles`', '**Declared by the source:**'] },
   // Regression tests for the Excel gaps of the audit: formulas without a stored result (used to be dropped, or shown as 0),
   // merged cells, hidden rows and columns, defined names.
   { file: 'features.xlsx', has: [

@@ -331,7 +331,8 @@
               f.to = f.from.map((_, i) => (pk.length === f.from.length ? pk[i] : null));
             }
             return f;
-          });
+          // SQLite lists foreign keys in reverse order of definition: sort them by the position of their first column
+          }).sort((a, b) => info.findIndex((c) => c.name === a.from[0]) - info.findIndex((c) => c.name === b.from[0]));
 
           const columns = info.map((c) => {
             const arrows = [];
@@ -571,6 +572,7 @@
     }
     doc.notes = doc.notes || {};
     if (!doc.sections.some((s) => s.rows.length || s.columns.length)) throw new UserError('errEmpty');
+    if (DB.addRelationships) DB.addRelationships(doc); // declared relationships, then inferred candidates (relationships.js)
     return doc;
   }
 })();

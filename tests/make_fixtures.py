@@ -233,6 +233,10 @@ CREATE TABLE pk_order (x TEXT, y TEXT, PRIMARY KEY (y, x));
 CREATE TABLE singles (id INTEGER PRIMARY KEY, v TEXT);
 CREATE TABLE refs (id INTEGER PRIMARY KEY, sid INTEGER REFERENCES singles);
 CREATE TABLE big (n INTEGER);
+CREATE TABLE people (id INTEGER PRIMARY KEY, name TEXT, manager_id INTEGER REFERENCES people (id));
+CREATE TABLE tags (id INTEGER PRIMARY KEY, label TEXT);
+CREATE TABLE people_tags (person_id INTEGER REFERENCES people (id), tag_id INTEGER REFERENCES tags (id), PRIMARY KEY (person_id, tag_id));
+CREATE TABLE profiles (person_id INTEGER PRIMARY KEY REFERENCES people (id), bio TEXT);
 CREATE VIEW v_child AS SELECT id, a FROM child WHERE qty > 0;
 INSERT INTO parent VALUES (1, 1, 'p11'), (1, 2, 'p12');
 INSERT INTO child (id, a, b, qty) VALUES (1, 1, 2, 3), (2, 1, 1, 4);
@@ -240,6 +244,45 @@ INSERT INTO big VALUES (9007199254740993), (-9223372036854775808), (922337203685
 """)
 con.commit()
 con.close()
+
+# --- XLSX without declared relationships: inferred ones, and traps (no overlap, partial overlap, non-unique parent, two parents) ---
+wr = openpyxl.Workbook()
+sheets = {
+    "customers": (["id", "name"], [[1, "Ann"], [2, "Ben"], [3, "Cy"], [4, "Di"], [5, "Ed"]]),
+    "orders": (["order_id", "customer_id", "total"], [[1, 1, 9.5], [2, 2, 3.25], [3, 3, 7.0], [4, 3, 1.5], [5, 5, 4.75], [6, 2, 8.0]]),
+    "products": (["product_id", "title"], [[10, "pen"], [20, "ink"], [30, "pad"]]),
+    "order_lines": (["order_id", "product_id", "qty"], [[1, 10, 2], [1, 20, 1], [2, 10, 5], [3, 30, 1], [3, 20, 2], [6, 10, 4]]),
+    "profiles": (["customer_id", "bio"], [[1, "likes pens"], [2, "likes ink"], [3, "likes pads"]]),
+    "visits": (["customer_id", "day"], [[1, "2024-01-01"], [2, "2024-01-02"], [3, "2024-01-03"], [90, "2024-01-04"], [91, "2024-01-05"], [1, "2024-01-06"]]),
+    "audit": (["customer_id", "event"], [[100 + i, "login"] for i in range(11)]),
+}
+wr.remove(wr.active)
+for sheet_name, (head, body) in sheets.items():
+    sh = wr.create_sheet(sheet_name)
+    sh.append(head)
+    for r in body:
+        sh.append(r)
+wr.save(P("relations.xlsx"))
+
+# --- Data profile: every kind of column ---
+with open(P("profile.csv"), "w", encoding="utf-8", newline="") as f:
+    f.write("id,group,score,day,note,flag,mix,empty,price_fr,amb\n")
+    rows = [
+        ("1", "A", "1.5", "2024-01-01", "first note", "x", "true", "", '"12,50"', '"1,5"'),
+        ("2", "A", "1.5", "2024-01-02", "second note", "x", "1", "", '"8,00"', "2.5"),
+        ("3", "B", "1.5", "2024-01-03", "third note", "x", "false", "", '"7,25"', '"3,5"'),
+        ("4", "B", "1.5", "2024-01-04", "fourth note", "x", "2", "", '"9,99"', "4.5"),
+        ("5", "A", "1.5", "2024-01-05", "fifth note", "x", "true", "", '"10,00"', '"5,5"'),
+        ("6", "C", "11.5", "2024-01-06", "sixth note", "x", "1", "", '"11,11"', "6.5"),
+        ("7", "A", "1.5", "2024-01-07", "seventh note", "x", "false", "", '"3,50"', '"7,5"'),
+        ("8", "B", "1.5", "2024-01-08", "eighth note", "x", "2", "", '"4,75"', "8.5"),
+        ("9", "A", "1.5", "2024-01-09", "ninth note", "x", "true", "", '"6,20"', '"9,5"'),
+        ("10", "B", "1.5", "2024-01-10", "tenth note", "x", "1", "", '"5,40"', "10.5"),
+    ]
+    for r in rows:
+        f.write(",".join(r) + "\n")
+with open(P("dupes.csv"), "w", encoding="utf-8", newline="") as f:
+    f.write("a,b\n1,x\n1,x\n2,y\n")
 
 # --- Large CSV to trigger the warning ---
 with open(P("big.csv"), "w", encoding="utf-8", newline="") as f:

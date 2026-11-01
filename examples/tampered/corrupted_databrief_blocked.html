@@ -2457,6 +2457,33 @@ window.DB_I18N = {
   for (const [lang, vals] of Object.entries(P)) KEYS.forEach((k, i) => { window.DB_I18N.prompt[lang][k] = vals[i]; });
 })();
 </script>
+<script>/* DataBrief - translations for relationships between sections (tables, sheets). GPL-3.0-or-later.
+ * Prompt order: relTitle, relDeclared, relInferred, relFrom, relTo, relCard, relConf, relEvid, relNotes, cardOneOne, cardManyOne,
+ * cardManyMany, confHigh, confMedium, confLow, relVia, relSelf, relEvNames, relEvOverlap, relEvUnique, relEvNameOnly */
+'use strict';
+(function () {
+  const KEYS = ['relTitle', 'relDeclared', 'relInferred', 'relFrom', 'relTo', 'relCard', 'relConf', 'relEvid', 'relNotes', 'cardOneOne', 'cardManyOne',
+    'cardManyMany', 'confHigh', 'confMedium', 'confLow', 'relVia', 'relSelf', 'relEvNames', 'relEvOverlap', 'relEvUnique', 'relEvNameOnly'];
+  const P = {
+    en: ["Relationships", "Declared by the source", "Inferred candidates (not declared by the source, to be validated before relying on them)", "From", "To", "Cardinality", "Confidence", "Evidence", "Notes", "one to one", "many to one", "many to many", "high", "medium", "low", "via {t}", "self-reference", "the column names correspond", "{pct}% of the distinct values exist in the parent column", "the parent column is unique", "names correspond only; the values could not be compared"],
+    fr: ["Relations", "Déclarées par la source", "Candidates déduites (non déclarées par la source, à valider avant de s'y fier)", "De", "Vers", "Cardinalité", "Confiance", "Indices", "Remarques", "un à un", "plusieurs à un", "plusieurs à plusieurs", "élevée", "moyenne", "faible", "via {t}", "auto-référence", "les noms des colonnes correspondent", "{pct} % des valeurs distinctes existent dans la colonne parente", "la colonne parente est unique", "seuls les noms correspondent ; les valeurs n'ont pas pu être comparées"],
+    es: ["Relaciones", "Declaradas por el origen", "Candidatas inferidas (no declaradas por el origen, a validar antes de confiar en ellas)", "Desde", "Hacia", "Cardinalidad", "Confianza", "Indicios", "Notas", "uno a uno", "muchos a uno", "muchos a muchos", "alta", "media", "baja", "vía {t}", "autorreferencia", "los nombres de las columnas coinciden", "el {pct} % de los valores distintos existe en la columna padre", "la columna padre es única", "solo coinciden los nombres; no se pudieron comparar los valores"],
+    de: ["Beziehungen", "Von der Quelle deklariert", "Abgeleitete Kandidaten (von der Quelle nicht deklariert, vor der Verwendung zu prüfen)", "Von", "Nach", "Kardinalität", "Konfidenz", "Hinweise", "Anmerkungen", "eins zu eins", "viele zu eins", "viele zu viele", "hoch", "mittel", "niedrig", "über {t}", "Selbstreferenz", "die Spaltennamen entsprechen sich", "{pct} % der unterschiedlichen Werte kommen in der übergeordneten Spalte vor", "die übergeordnete Spalte ist eindeutig", "nur die Namen entsprechen sich; die Werte konnten nicht verglichen werden"],
+    it: ["Relazioni", "Dichiarate dall'origine", "Candidate dedotte (non dichiarate dall'origine, da convalidare prima di farci affidamento)", "Da", "A", "Cardinalità", "Affidabilità", "Indizi", "Note", "uno a uno", "molti a uno", "molti a molti", "alta", "media", "bassa", "tramite {t}", "autoriferimento", "i nomi delle colonne corrispondono", "il {pct}% dei valori distinti esiste nella colonna padre", "la colonna padre è univoca", "corrispondono solo i nomi; i valori non hanno potuto essere confrontati"],
+    pt: ["Relações", "Declaradas pela fonte", "Candidatas inferidas (não declaradas pela fonte, a validar antes de confiar nelas)", "De", "Para", "Cardinalidade", "Confiança", "Indícios", "Observações", "um para um", "muitos para um", "muitos para muitos", "alta", "média", "baixa", "via {t}", "autorreferência", "os nomes das colunas correspondem", "{pct}% dos valores distintos existem na coluna pai", "a coluna pai é única", "apenas os nomes correspondem; não foi possível comparar os valores"],
+    nl: ["Relaties", "Gedeclareerd door de bron", "Afgeleide kandidaten (niet gedeclareerd door de bron, te valideren voordat je erop vertrouwt)", "Van", "Naar", "Kardinaliteit", "Betrouwbaarheid", "Aanwijzingen", "Opmerkingen", "één op één", "veel op één", "veel op veel", "hoog", "gemiddeld", "laag", "via {t}", "zelfverwijzing", "de kolomnamen komen overeen", "{pct}% van de unieke waarden bestaat in de bovenliggende kolom", "de bovenliggende kolom is uniek", "alleen de namen komen overeen; de waarden konden niet worden vergeleken"],
+    pl: ["Relacje", "Zadeklarowane przez źródło", "Wywnioskowane kandydatki (niezadeklarowane przez źródło, do zweryfikowania przed poleganiem na nich)", "Z", "Do", "Liczność relacji", "Pewność", "Przesłanki", "Uwagi", "jeden do jednego", "wiele do jednego", "wiele do wielu", "wysoka", "średnia", "niska", "przez {t}", "odwołanie do samej siebie", "nazwy kolumn się zgadzają", "{pct}% unikalnych wartości istnieje w kolumnie nadrzędnej", "kolumna nadrzędna jest unikalna", "zgadzają się tylko nazwy; nie udało się porównać wartości"],
+    ru: ["Связи", "Объявлены источником", "Предполагаемые связи (не объявлены источником, их нужно проверить, прежде чем на них полагаться)", "Откуда", "Куда", "Кратность", "Уверенность", "Признаки", "Примечания", "один к одному", "многие к одному", "многие ко многим", "высокая", "средняя", "низкая", "через {t}", "ссылка на себя", "названия столбцов совпадают", "{pct}% различных значений есть в родительском столбце", "родительский столбец уникален", "совпадают только названия; значения сравнить не удалось"],
+    tr: ["İlişkiler", "Kaynak tarafından tanımlanan", "Çıkarsanan adaylar (kaynak tarafından tanımlanmamış, güvenmeden önce doğrulanmalı)", "Kaynak", "Hedef", "Kardinalite", "Güven", "Kanıtlar", "Notlar", "bire bir", "çoktan bire", "çoktan çoğa", "yüksek", "orta", "düşük", "{t} üzerinden", "kendine gönderme", "sütun adları uyuşuyor", "farklı değerlerin %{pct} kadarı üst sütunda var", "üst sütun benzersiz", "yalnızca adlar uyuşuyor; değerler karşılaştırılamadı"],
+    zh: ["关系", "由数据源声明", "推断的候选项（数据源未声明，使用前需验证）", "来自", "指向", "基数", "置信度", "依据", "备注", "一对一", "多对一", "多对多", "高", "中", "低", "经由 {t}", "自引用", "列名相符", "{pct}% 的不同值存在于父列中", "父列的值唯一", "仅名称相符；无法比较值"],
+    ja: ["リレーション", "ソースで宣言済み", "推定された候補（ソースでは宣言されておらず、利用前に検証が必要）", "参照元", "参照先", "多重度", "確度", "根拠", "備考", "1対1", "多対1", "多対多", "高", "中", "低", "{t} 経由", "自己参照", "列名が一致", "異なる値の {pct}% が親の列に存在", "親の列は一意", "名前のみ一致。値は比較できませんでした"],
+    ko: ["관계", "원본에서 선언됨", "추정된 후보(원본에서 선언되지 않았으며, 사용 전에 검증 필요)", "출발", "대상", "카디널리티", "신뢰도", "근거", "비고", "일대일", "다대일", "다대다", "높음", "보통", "낮음", "{t} 경유", "자기 참조", "열 이름이 일치함", "고유 값의 {pct}%가 상위 열에 존재함", "상위 열은 고유함", "이름만 일치하며 값은 비교할 수 없었음"],
+    hi: ["संबंध", "स्रोत द्वारा घोषित", "अनुमानित उम्मीदवार (स्रोत द्वारा घोषित नहीं, भरोसा करने से पहले सत्यापित करें)", "से", "तक", "कार्डिनैलिटी", "विश्वसनीयता", "प्रमाण", "टिप्पणियाँ", "एक से एक", "अनेक से एक", "अनेक से अनेक", "उच्च", "मध्यम", "निम्न", "{t} के माध्यम से", "स्व-संदर्भ", "स्तंभों के नाम मेल खाते हैं", "अलग-अलग मानों में से {pct}% मूल स्तंभ में मौजूद हैं", "मूल स्तंभ अद्वितीय है", "केवल नाम मेल खाते हैं; मानों की तुलना नहीं की जा सकी"],
+    ar: ["العلاقات", "معرّفة من المصدر", "مرشحات مستنتجة (غير معرّفة من المصدر، يجب التحقق منها قبل الاعتماد عليها)", "من", "إلى", "الكاردينالية", "الثقة", "الأدلة", "ملاحظات", "واحد إلى واحد", "متعدد إلى واحد", "متعدد إلى متعدد", "عالية", "متوسطة", "منخفضة", "عبر {t}", "إحالة ذاتية", "أسماء الأعمدة متطابقة", "{pct}% من القيم المميزة موجودة في العمود الأصل", "العمود الأصل فريد", "الأسماء فقط متطابقة؛ تعذرت مقارنة القيم"],
+  };
+  for (const [lang, vals] of Object.entries(P)) KEYS.forEach((k, i) => { window.DB_I18N.prompt[lang][k] = vals[i]; });
+})();
+</script>
 <script>/* DataBrief - shared helpers. GPL-3.0-or-later. */
 'use strict';
 (function () {
@@ -2785,6 +2812,163 @@ window.DB_I18N = {
       else t += 0.5;
     }
     return t;
+  };
+})();
+</script>
+<script>/* DataBrief - relationships between sections (tables, sheets). GPL-3.0-or-later.
+ *
+ * doc.relationships = [{ from: { section, columns }, to: { section, columns },
+ *   cardinality: 'one_to_one' | 'many_to_one' | 'many_to_many', source: 'declared' | 'inferred',
+ *   onDelete?, onUpdate?, via? (junction table), confidence?: 'high' | 'medium' | 'low', evidence?: [key | { key, pct }] }]
+ *
+ * Declared: written in the source (SQLite foreign keys), never changed here.
+ * Inferred: a candidate only when the column names correspond AND (when the sizes allow) the values agree.
+ * A name alone is never more than "low". Only ratios are reported, never values. */
+'use strict';
+(function () {
+  const DB = window.DB;
+  const MAX_ROWS = 200000;   // larger sections are not compared value by value
+  const MAX_SECTIONS = 40;
+  // Names too common to say anything on their own (every table has an "id" or a "name").
+  const GENERIC = new Set(['id', 'name', 'value', 'code', 'key', 'type', 'status', 'date', 'description', 'label', 'title', 'number', 'no', 'nr',
+    'created', 'updated', 'email', 'comment', 'notes', 'note', 'text', 'data', 'index', 'count', 'total', 'amount', 'price', 'day', 'year']);
+  const SUFFIXES = ['id', 'key', 'code', 'no', 'nr', 'number', 'ref', 'fk'];
+
+  const norm = (s) => String(s).normalize('NFKD').replace(/\p{M}+/gu, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+  const singular = (s) => {
+    if (s.length > 4 && /ies$/.test(s)) return s.slice(0, -3) + 'y';
+    if (/(sses|xes|ches|shes)$/.test(s)) return s.slice(0, -2);
+    if (s.length > 3 && /s$/.test(s) && !/ss$/.test(s)) return s.slice(0, -1);
+    return s;
+  };
+
+  /* 2: "customer_id" points to the table "customers" (column id, customer_id or customer); 1: same name that is not generic; 0: nothing. */
+  function nameScore(childCol, parentSec, parentCol) {
+    const cn = norm(childCol), pn = norm(parentCol), sn = norm(parentSec.name);
+    if (!cn || !pn) return 0;
+    for (const suf of SUFFIXES) {
+      if (cn.length > suf.length && cn.endsWith(suf)) {
+        const stem = cn.slice(0, -suf.length);
+        if (stem && (stem === sn || stem === singular(sn)) && (pn === suf || pn === cn || pn === stem)) return 2;
+      }
+    }
+    return cn === pn && !GENERIC.has(cn) ? 1 : 0;
+  }
+
+  /* Non-empty values of a column: how many, the distinct ones, and whether they are all different. */
+  const cache = new WeakMap();
+  function stats(sec, j) {
+    let cols = cache.get(sec);
+    if (!cols) { cols = []; cache.set(sec, cols); }
+    if (cols[j]) return cols[j];
+    const set = new Set();
+    let nonEmpty = 0;
+    for (const r of sec.rows) {
+      const v = r[j];
+      if (v === '' || v == null) continue;
+      const t = v.trim();
+      if (!t) continue;
+      nonEmpty++;
+      set.add(t);
+    }
+    cols[j] = { nonEmpty, set, unique: nonEmpty > 0 && set.size === nonEmpty };
+    return cols[j];
+  }
+
+  /* Relationships written in the source: foreign keys, with their cardinality, and junction tables (many to many). */
+  function declared(doc) {
+    const rels = [];
+    for (const s of doc.sections) {
+      const c = s.constraints;
+      if (!c || !c.fks) continue;
+      for (const f of c.fks) {
+        const covers = (cols) => cols.length === f.from.length && f.from.every((x) => cols.includes(x));
+        const one = covers(c.pk || []) || (c.unique || []).some((u) => covers(u.cols));
+        rels.push({
+          from: { section: s.name, columns: f.from.slice() }, to: { section: f.table, columns: f.to.map((x) => x || '?') },
+          cardinality: one ? 'one_to_one' : 'many_to_one', source: 'declared', onDelete: f.onDelete, onUpdate: f.onUpdate,
+        });
+      }
+    }
+    // A table whose primary key is made of foreign-key columns links its two parents: many to many.
+    for (const s of doc.sections) {
+      const c = s.constraints;
+      if (!c || !c.fks || c.fks.length < 2 || !c.pk || !c.pk.length) continue;
+      const fkCols = new Set(c.fks.flatMap((f) => f.from));
+      if (!c.pk.every((x) => fkCols.has(x))) continue;
+      const [a, b] = c.fks;
+      rels.push({
+        from: { section: a.table, columns: a.to.map((x) => x || '?') }, to: { section: b.table, columns: b.to.map((x) => x || '?') },
+        cardinality: 'many_to_many', source: 'declared', via: s.name,
+      });
+    }
+    return rels;
+  }
+
+  const compatible = (a, b) => (a === 'integer' && b === 'integer') || (a === 'text' && b === 'text');
+  const RANK = { high: 3, medium: 2, low: 1 };
+
+  /* Candidates for sections without declared relationships (spreadsheets, CSV, Parquet...). */
+  function inferred(doc, declaredRels) {
+    const secs = doc.sections.filter((s) => s.rows.length && s.columns.length);
+    if (secs.length < 2 || secs.length > MAX_SECTIONS) return [];
+    const declaredCols = new Set();
+    for (const r of declaredRels) for (const c of r.from.columns) declaredCols.add(r.from.section + '\u0001' + c);
+
+    const best = new Map(); // the best parent of each child column
+    secs.forEach((A, ai) => {
+      A.columns.forEach((cA, i) => {
+        if (declaredCols.has(A.name + '\u0001' + cA.name)) return;
+        if (cA.type !== 'integer' && cA.type !== 'text') return;
+        for (const B of secs) {
+          if (B === A) continue;
+          B.columns.forEach((cB, j) => {
+            if (!compatible(cA.type, cB.type)) return;
+            const ns = nameScore(cA.name, B, cB.name);
+            if (!ns) return;
+            let overlap = null, childUnique = false;
+            if (A.rows.length <= MAX_ROWS && B.rows.length <= MAX_ROWS) {
+              const sp = stats(B, j), sc = stats(A, i);
+              if (!sp.unique || sp.nonEmpty < 2 || !sc.nonEmpty) return;           // a parent column holds each value once
+              let hit = 0;
+              for (const v of sc.set) if (sp.set.has(v)) hit++;
+              overlap = hit / sc.set.size;
+              childUnique = sc.unique;
+              if (overlap < 0.5) return;                                            // the values do not agree: no candidate
+            }
+            const confidence = overlap == null ? 'low' : overlap >= 0.95 ? 'high' : 'medium';
+            const cand = { ai, i, A, B, cA, cB, ns, overlap, childUnique, confidence };
+            const key = A.name + '\u0001' + i;
+            const cur = best.get(key);
+            const better = !cur || RANK[confidence] > RANK[cur.confidence] ||
+              (RANK[confidence] === RANK[cur.confidence] && (ns > cur.ns || (ns === cur.ns && (overlap || 0) > (cur.overlap || 0))));
+            if (better) best.set(key, cand);
+          });
+        }
+      });
+    });
+
+    const list = Array.from(best.values()).sort((x, y) => RANK[y.confidence] - RANK[x.confidence] || x.ai - y.ai || x.i - y.i);
+    const seen = new Set();
+    const out = [];
+    for (const c of list) {
+      const fwd = c.A.name + '\u0001' + c.cA.name + '\u0001' + c.B.name + '\u0001' + c.cB.name;
+      const back = c.B.name + '\u0001' + c.cB.name + '\u0001' + c.A.name + '\u0001' + c.cA.name;
+      if (seen.has(back)) continue; // the same link seen from the other side
+      seen.add(fwd);
+      out.push({
+        from: { section: c.A.name, columns: [c.cA.name] }, to: { section: c.B.name, columns: [c.cB.name] },
+        cardinality: c.childUnique ? 'one_to_one' : 'many_to_one', source: 'inferred', confidence: c.confidence,
+        evidence: c.overlap == null ? ['relEvNames', 'relEvNameOnly'] : ['relEvNames', { key: 'relEvOverlap', pct: Math.round(c.overlap * 100) }, 'relEvUnique'],
+      });
+    }
+    return out;
+  }
+
+  DB.addRelationships = function (doc) {
+    const d = declared(doc);
+    const i = inferred(doc, d);
+    if (d.length || i.length) doc.relationships = d.concat(i);
   };
 })();
 </script>
@@ -3591,7 +3775,8 @@ window.DB_I18N = {
               f.to = f.from.map((_, i) => (pk.length === f.from.length ? pk[i] : null));
             }
             return f;
-          });
+          // SQLite lists foreign keys in reverse order of definition: sort them by the position of their first column
+          }).sort((a, b) => info.findIndex((c) => c.name === a.from[0]) - info.findIndex((c) => c.name === b.from[0]));
 
           const columns = info.map((c) => {
             const arrows = [];
@@ -3831,6 +4016,7 @@ window.DB_I18N = {
     }
     doc.notes = doc.notes || {};
     if (!doc.sections.some((s) => s.rows.length || s.columns.length)) throw new UserError('errEmpty');
+    if (DB.addRelationships) DB.addRelationships(doc); // declared relationships, then inferred candidates (relationships.js)
     return doc;
   }
 })();
@@ -3965,6 +4151,38 @@ window.DB_I18N = {
     if (c.indexes && c.indexes.length) out.push('**' + t('tblIndexes') + ':** ' + c.indexes.map(ixLine).join('; '));
     if (c.ddl) out.push('**' + t('tblDdl') + ':**\n\n' + sqlBlock(c.ddl));
     return out.length ? out.join('\n\n') + '\n\n' : '';
+  }
+
+  /* Relationships between sections: declared by the source, and inferred candidates (kept apart, never mixed). */
+  function relationshipsText(rels, t) {
+    const ref = (e) => code(e.section) + ' (' + e.columns.map(code).join(', ') + ')';
+    const CARD = { one_to_one: 'cardOneOne', many_to_one: 'cardManyOne', many_to_many: 'cardManyMany' };
+    const CONF = { high: 'confHigh', medium: 'confMedium', low: 'confLow' };
+    const table = (heads, rows) => {
+      const h = heads.map((k) => t(k));
+      return ['| ' + h.join(' | ') + ' |', '|' + h.map(() => '---').join('|') + '|']
+        .concat(rows.map((r) => '| ' + r.map(cellMd).join(' | ') + ' |')).join('\n');
+    };
+    const out = [];
+    const dec = rels.filter((r) => r.source === 'declared');
+    const inf = rels.filter((r) => r.source === 'inferred');
+    if (dec.length) {
+      out.push('**' + t('relDeclared') + ':**\n\n' + table(['relFrom', 'relTo', 'relCard', 'relNotes'], dec.map((r) => {
+        const notes = [];
+        if (r.onDelete && r.onDelete !== 'NO ACTION') notes.push(t('onDelete') + ': ' + r.onDelete);
+        if (r.onUpdate && r.onUpdate !== 'NO ACTION') notes.push(t('onUpdate') + ': ' + r.onUpdate);
+        if (r.from.section === r.to.section && r.cardinality !== 'many_to_many') notes.push(t('relSelf'));
+        if (r.via) notes.push(t('relVia', { t: code(r.via) }));
+        return [ref(r.from), ref(r.to), t(CARD[r.cardinality]), notes.join(' · ')];
+      })));
+    }
+    if (inf.length) {
+      out.push('**' + t('relInferred') + ':**\n\n' + table(['relFrom', 'relTo', 'relCard', 'relConf', 'relEvid'], inf.map((r) => [
+        ref(r.from), ref(r.to), t(CARD[r.cardinality]), t(CONF[r.confidence]),
+        (r.evidence || []).map((e) => (typeof e === 'string' ? t(e) : t(e.key, { pct: e.pct }))).join('; '),
+      ])));
+    }
+    return out.join('\n\n') + '\n\n';
   }
 
   /* Compact list of numbers: 3, 7-9. */
@@ -4145,6 +4363,12 @@ window.DB_I18N = {
     if (doc.views && doc.views.length) {
       line('## ', 'mViews'); b.lock('\n');
       for (const v of doc.views) b.lock('### ' + code(v.name) + '\n\n' + sqlBlock(v.sql) + '\n\n');
+    }
+
+    // Relationships between the sections: declared by the source, inferred candidates (marked as such)
+    if (doc.relationships && doc.relationships.length) {
+      line('## ', 'relTitle'); b.lock('\n');
+      b.lock(relationshipsText(doc.relationships, t));
     }
 
     // Data
