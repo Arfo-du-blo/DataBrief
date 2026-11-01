@@ -284,6 +284,85 @@ with open(P("profile.csv"), "w", encoding="utf-8", newline="") as f:
 with open(P("dupes.csv"), "w", encoding="utf-8", newline="") as f:
     f.write("a,b\n1,x\n1,x\n2,y\n")
 
+# --- "Do not share data", every format: one small file per format with canary values wherever something must stay out ---
+#   CONFIDENTIAL_REC     a record (cell value): never in the prompt, at any level
+#   CONFIDENTIAL_TEXT    free text (comments, file label, notes, embedded metadata): only when the user allows it
+#   CONFIDENTIAL_SQL     a literal in a SQL definition: only when the user allows it
+#   CONFIDENTIAL_FORMULA a literal inside a spreadsheet formula: never
+#   CONFIDENTIAL_COL     a name (column, sheet, table, key, caption): only when names are shared
+#   CONFIDENTIAL_LABEL   a variable or value label: only when labels are shared
+#   CONFIDENTIAL_FILE    the file name: only when the file name is shared
+from openpyxl.workbook.defined_name import DefinedName as _DefinedName  # noqa: E402
+NCAN = 12
+C_REC = [f"CONFIDENTIAL_REC_{i + 1:02d}" for i in range(NCAN)]
+C_NUM = [100 + i * 3 for i in range(NCAN)]
+C_CAT = ["common"] * 8 + ["other"] * 3 + ["CONFIDENTIAL_REC_RARE"]   # the rare one has 1 record: always hidden
+CA, CB, CC = "CONFIDENTIAL_COL_A", "CONFIDENTIAL_COL_B", "CONFIDENTIAL_COL_C"
+def Q(fmt, ext):
+    return P(f"CONFIDENTIAL_FILE_{fmt}.{ext}")
+for fmt, ext, sep in (("csv", "csv", ","), ("tsv", "tsv", "\t"), ("txt", "txt", ";")):
+    with open(Q(fmt, ext), "w", encoding="utf-8", newline="") as f:
+        f.write(sep.join([CA, CB, CC]) + "\n")
+        for r, n, c in zip(C_REC, C_NUM, C_CAT):
+            f.write(sep.join([r, str(n), c]) + "\n")
+cwb = openpyxl.Workbook()
+csh = cwb.active
+csh.title = "CONFIDENTIAL_COL_SHEET"
+csh.append([CA, CB, CC, "calc"])
+for i, (r, n, c) in enumerate(zip(C_REC, C_NUM, C_CAT)):
+    csh.append([r, n, c, ('=IF(A%d="CONFIDENTIAL_FORMULA","x","y")' % (i + 2)) if i < 3 else None])
+csh["A2"].comment = Comment("CONFIDENTIAL_TEXT_COMMENT", "tester")
+cwb.defined_names["CONFIDENTIAL_COL_NAME"] = _DefinedName("CONFIDENTIAL_COL_NAME", attr_text="CONFIDENTIAL_COL_SHEET!$B$2:$B$13")
+cwb.save(Q("xlsx", "xlsx"))
+c_rows = [{CA: r, CB: n, CC: c, "CONFIDENTIAL_COL_NEST": {"CONFIDENTIAL_COL_DEEP": f"CONFIDENTIAL_REC_DEEP_{i + 1:02d}"}}
+          for i, (r, n, c) in enumerate(zip(C_REC, C_NUM, C_CAT))]
+json.dump(c_rows, open(Q("json", "json"), "w", encoding="utf-8"))
+with open(Q("ndjson", "ndjson"), "w", encoding="utf-8") as f:
+    for row in c_rows:
+        f.write(json.dumps(row) + "\n")
+with open(Q("yaml", "yaml"), "w", encoding="utf-8") as f:
+    for r, n, c in zip(C_REC, C_NUM, C_CAT):
+        f.write(f"- {CA}: {r}\n  {CB}: {n}\n  {CC}: {c}\n")
+with open(Q("xml", "xml"), "w", encoding="utf-8") as f:
+    f.write("<CONFIDENTIAL_COL_ROOT>\n")
+    for r, n, c in zip(C_REC, C_NUM, C_CAT):
+        f.write(f'<row CONFIDENTIAL_COL_ATTR="{r}_ATTR"><{CA}>{r}</{CA}><{CB}>{n}</{CB}><{CC}>{c}</{CC}></row>\n')
+    f.write("</CONFIDENTIAL_COL_ROOT>\n")
+with open(Q("html", "html"), "w", encoding="utf-8") as f:
+    f.write(f"<!doctype html><html><body><table><caption>CONFIDENTIAL_COL_CAPTION</caption><thead><tr><th>{CA}</th><th>{CB}</th><th>{CC}</th></tr></thead><tbody>")
+    for r, n, c in zip(C_REC, C_NUM, C_CAT):
+        f.write(f"<tr><td>{r}</td><td>{n}</td><td>{c}</td></tr>")
+    f.write("</tbody></table></body></html>")
+cdf = pd.DataFrame({CA: C_REC, CB: C_NUM, CC: [1] * 8 + [2] * 3 + [3]})
+cmeta = dict(file_label="CONFIDENTIAL_TEXT_FILELABEL", note="CONFIDENTIAL_TEXT_NOTE",
+             column_labels=["CONFIDENTIAL_LABEL_A", "CONFIDENTIAL_LABEL_B", "CONFIDENTIAL_LABEL_C"],
+             variable_value_labels={CC: {1: "common_label", 2: "other_label", 3: "CONFIDENTIAL_LABEL_V3"}})
+pyreadstat.write_sav(cdf, Q("sav", "sav"), **cmeta)
+pyreadstat.write_sav(cdf, Q("zsav", "zsav"), compress=True, **cmeta)
+ctbl = pa.table({
+    CA: C_REC, CB: pa.array(C_NUM, pa.int64()), CC: C_CAT,
+    "CONFIDENTIAL_COL_STRUCT": pa.array([{"CONFIDENTIAL_COL_FIELD": f"CONFIDENTIAL_REC_S_{i + 1:02d}", "n": i} for i in range(NCAN)],
+                                        pa.struct([("CONFIDENTIAL_COL_FIELD", pa.string()), ("n", pa.int64())])),
+    "CONFIDENTIAL_COL_ITEMS": pa.array([[{"CONFIDENTIAL_COL_SKU": f"CONFIDENTIAL_REC_ITEM_{i + 1:02d}"}] for i in range(NCAN)],
+                                       pa.list_(pa.struct([("CONFIDENTIAL_COL_SKU", pa.string())]))),
+}).replace_schema_metadata({"note": "CONFIDENTIAL_TEXT_META"})
+pq.write_table(ctbl, Q("parquet", "parquet"), compression="snappy")
+cdb = Q("sqlite", "sqlite")
+if os.path.exists(cdb):
+    os.remove(cdb)
+ccon = sqlite3.connect(cdb)
+ccon.executescript(f"""
+CREATE TABLE CONFIDENTIAL_COL_PARENT (CONFIDENTIAL_COL_ID INTEGER PRIMARY KEY, label TEXT);
+CREATE TABLE CONFIDENTIAL_COL_TABLE ({CA} TEXT DEFAULT 'CONFIDENTIAL_SQL_DEFAULT', {CB} INTEGER, {CC} TEXT,
+  CONFIDENTIAL_COL_PID INTEGER REFERENCES CONFIDENTIAL_COL_PARENT (CONFIDENTIAL_COL_ID));
+CREATE INDEX CONFIDENTIAL_COL_INDEX ON CONFIDENTIAL_COL_TABLE ({CB});
+INSERT INTO CONFIDENTIAL_COL_PARENT VALUES (1, 'CONFIDENTIAL_REC_PARENT');
+CREATE VIEW CONFIDENTIAL_COL_VIEW AS SELECT {CA} FROM CONFIDENTIAL_COL_TABLE WHERE {CA} = 'CONFIDENTIAL_SQL_LITERAL';
+""")
+ccon.executemany("INSERT INTO CONFIDENTIAL_COL_TABLE (CONFIDENTIAL_COL_A, CONFIDENTIAL_COL_B, CONFIDENTIAL_COL_C, CONFIDENTIAL_COL_PID) VALUES (?, ?, ?, 1)", list(zip(C_REC, C_NUM, C_CAT)))
+ccon.commit()
+ccon.close()
+
 # --- "Do not share data": values that must never reach the prompt, whatever the level ---
 with open(P("confidential.csv"), "w", encoding="utf-8", newline="") as f:
     f.write("customer,email,segment,amount,signup,note\n")

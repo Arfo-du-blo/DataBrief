@@ -4203,22 +4203,23 @@ window.DB_I18N = {
     if (lt.unit) t += ' (' + lt.unit + (lt.isAdjustedToUTC ? ', UTC' : '') + ')';
     return t;
   }
-  /* inList: the node is the repeated part of a LIST or MAP, not a list of its own. */
-  function pqType(node, inList) {
+  /* inList: the node is the repeated part of a LIST or MAP, not a list of its own.
+   * anon: leave the field names of structs out (used by "Do not share data" when names are not shared). */
+  function pqType(node, inList, anon) {
     const el = node.element || {};
     const ch = node.children || [];
-    if (!inList && el.repetition_type === 'REPEATED' && !pqIsList(node) && !pqIsMap(node)) return 'LIST<' + pqType(node, true) + '>'; // older writers
+    if (!inList && el.repetition_type === 'REPEATED' && !pqIsList(node) && !pqIsMap(node)) return 'LIST<' + pqType(node, true, anon) + '>'; // older writers
     if (!ch.length) return pqPrim(el);
     if (pqIsList(node)) {
       const rep = ch[0];
       const one = rep.children && rep.children.length === 1 && !/^(array|.+_tuple)$/.test((rep.element || {}).name || '');
-      return 'LIST<' + pqType(one ? rep.children[0] : rep, true) + '>';
+      return 'LIST<' + pqType(one ? rep.children[0] : rep, true, anon) + '>';
     }
     if (pqIsMap(node)) {
       const kv = (ch[0] && ch[0].children) || [];
-      return 'MAP<' + (kv[0] ? pqType(kv[0], true) : '?') + ', ' + (kv[1] ? pqType(kv[1], true) : '?') + '>';
+      return 'MAP<' + (kv[0] ? pqType(kv[0], true, anon) : '?') + ', ' + (kv[1] ? pqType(kv[1], true, anon) : '?') + '>';
     }
-    return 'STRUCT<' + ch.map((c) => c.element.name + ': ' + pqType(c, false)).join(', ') + '>';
+    return 'STRUCT<' + ch.map((c) => (anon ? '' : c.element.name + ': ') + pqType(c, false, anon)).join(', ') + '>';
   }
   /* One record following the schema: structs become objects with every leaf (null when absent), maps become JSON text. */
   function pqNormalize(value, node) {
@@ -4268,6 +4269,7 @@ window.DB_I18N = {
 
     // The columns come from the schema: every leaf of a struct is a column (a null struct adds none) and a map is one column.
     const typeByPath = new Map();
+    const anonByPath = new Map(); // the same types without struct field names (see pqType)
     const required = new Set();
     const walk = (node, path, parentsRequired) => {
       const el = node.element || {};
@@ -4275,6 +4277,7 @@ window.DB_I18N = {
       const req = parentsRequired && el.repetition_type === 'REQUIRED';
       if (!(node.children || []).length || pqIsList(node) || pqIsMap(node) || el.repetition_type === 'REPEATED') {
         typeByPath.set(p.join('.'), pqType(node, false));
+        anonByPath.set(p.join('.'), pqType(node, false, true));
         if (req) required.add(p.join('.'));
         return;
       }
@@ -4284,12 +4287,12 @@ window.DB_I18N = {
     const root = { children: schema.children || [] };
     const flat = DB.flattenRecords(rows.map((r) => pqNormalize(r, root)));
 
-    const typeOf = (col) => {
+    const typeOf = (col, map) => {
       const parts = col.split('.');
-      for (let i = parts.length; i > 0; i--) { const t = typeByPath.get(parts.slice(0, i).join('.')); if (t !== undefined) return t; }
+      for (let i = parts.length; i > 0; i--) { const t = (map || typeByPath).get(parts.slice(0, i).join('.')); if (t !== undefined) return t; }
       return '';
     };
-    const columns = flat.columns.map((c) => ({ name: c, meta: { parquetType: typeOf(c), notNull: required.has(c) ? { key: 'yes' } : '' } }));
+    const columns = flat.columns.map((c) => ({ name: c, meta: { parquetType: typeOf(c), parquetTypeAnon: typeOf(c, anonByPath), notNull: required.has(c) ? { key: 'yes' } : '' } }));
 
     const fileMeta = [];
     if (metadata.created_by) fileMeta.push(['mProduct', metadata.created_by]);
@@ -4865,6 +4868,9 @@ window.DB_I18N = {
         const cols = s.columns.map((c) => {
           const meta = {};
           for (const [k, v] of Object.entries(c.meta)) if (sw.labels || (k !== 'label' && k !== 'values')) meta[k] = v;
+          // Struct field names are names too: when names are not shared, the type without them is used
+          if (!sw.names && meta.parquetTypeAnon) meta.parquetType = meta.parquetTypeAnon;
+          delete meta.parquetTypeAnon;
           if (c.keyInfo) {
             meta.key = [c.keyInfo.pk ? { key: 'pk' } : null]
               .concat(c.keyInfo.refs.map((r) => '→ `' + S(r.table) + '.' + (r.col ? C(r.table, r.col) : '?') + '`')).filter(Boolean);

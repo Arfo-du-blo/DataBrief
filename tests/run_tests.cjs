@@ -18,6 +18,10 @@ const F = (n) => path.join(fixDir, n);
   const wb = XLSX.readFile(F('workbook.xlsx'), { cellNF: true });
   XLSX.writeFile(wb, F('workbook.xls'), { bookType: 'biff8' });
   XLSX.writeFile(wb, F('workbook.ods'), { bookType: 'ods' });
+  // The same for the "Do not share data" canary workbook
+  const cw = XLSX.readFile(F('CONFIDENTIAL_FILE_xlsx.xlsx'), { cellNF: true });
+  XLSX.writeFile(cw, F('CONFIDENTIAL_FILE_xls.xls'), { bookType: 'biff8' });
+  XLSX.writeFile(cw, F('CONFIDENTIAL_FILE_ods.ods'), { bookType: 'ods' });
 }
 
 const SPSS = [
@@ -422,6 +426,118 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
 
     if (checks.length) fail('do not share data', checks.join(' | '));
     else pass('do not share data', '3 levels, every output checked (prompt, preview, formatted view, clipboard, download, state), switches, leave dialog, reload, URL, team lock, errors');
+  }
+
+  // ---------- "Do not share data": every format ----------
+  // Canary values (see tests/make_fixtures.py): records and formula literals never; free text, SQL literals, names, labels and the
+  // file name only when the user allows them. Each "only when allowed" rule also has a positive control, so a test cannot pass
+  // just because nothing was ever there.
+  {
+    const FILES = [
+      { f: 'csv.csv' }, { f: 'tsv.tsv' }, { f: 'txt.txt' },
+      { f: 'xlsx.xlsx', txt: true, frm: true }, { f: 'xls.xls' }, { f: 'ods.ods' },
+      { f: 'json.json' }, { f: 'ndjson.ndjson' }, { f: 'yaml.yaml' }, { f: 'xml.xml' }, { f: 'html.html' },
+      { f: 'sav.sav', txt: true, lab: true }, { f: 'zsav.zsav', txt: true, lab: true },
+      { f: 'parquet.parquet', txt: true }, { f: 'sqlite.sqlite', sql: true },
+    ];
+    const checks = [];
+    const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
+    const md = (p) => p.evaluate(() => window.DataBrief.getMarkdown());
+    const sw = (p, name) => p.evaluate((n) => document.querySelector('[data-sw="' + n + '"]').click(), name);
+    for (const c of FILES) {
+      const label = c.f.split('.')[0];
+      const bad = (msg) => checks.push(label + ': ' + msg);
+      const page = await newPage();
+      const first = await load(page, F('CONFIDENTIAL_FILE_' + c.f));
+      if (!first.ok) { bad('could not be read: ' + first.err); await page.close(); continue; }
+      if (!first.md.includes('CONFIDENTIAL_REC')) bad('normal mode should contain the records (control)');
+      if (c.frm && !first.md.includes('CONFIDENTIAL_FORMULA')) bad('normal mode should show the formula (control)');
+      await page.click('#nsOn'); await wait(300);
+      const never = (s, where) => { for (const k of ['CONFIDENTIAL_REC', 'CONFIDENTIAL_FORMULA']) if (s.includes(k)) bad(k + ' in ' + where); };
+      const notByDefault = (s, where) => { for (const k of ['CONFIDENTIAL_TEXT', 'CONFIDENTIAL_SQL']) if (s.includes(k)) bad(k + ' in ' + where); };
+      for (const level of [1, 2, 3]) {
+        await page.click('#nsLevelGroup button[data-level="' + level + '"]'); await wait();
+        const s = await md(page);
+        never(s, 'level ' + level); notByDefault(s, 'level ' + level);
+        if (level === 1) {
+          if (!s.includes('CONFIDENTIAL_COL')) bad('names should be present at level 1 (control)');
+          if (!s.includes('CONFIDENTIAL_FILE')) bad('file name should be present by default (control)');
+          if (c.lab && !s.includes('CONFIDENTIAL_LABEL')) bad('labels should be present by default (control)');
+        }
+      }
+      // level 3 (the most permissive): the other outputs of the page
+      never(await page.$eval('#preview', (el) => el.textContent), 'preview');
+      never(await page.evaluate(() => JSON.stringify(window.DataBrief.getState(), (k, v) => (typeof v === 'bigint' ? String(v) : v))), 'page state');
+      // names and file name off
+      await sw(page, 'names'); await sw(page, 'file'); await wait();
+      let s = await md(page);
+      never(s, 'names and file name off'); notByDefault(s, 'names and file name off');
+      if (s.includes('CONFIDENTIAL_COL')) bad('names should be replaced when off');
+      if (s.includes('CONFIDENTIAL_FILE')) bad('file name should be hidden when off');
+      await sw(page, 'names'); await sw(page, 'file');
+      if (c.lab) {
+        await sw(page, 'labels'); await wait(); s = await md(page);
+        never(s, 'labels off');
+        if (s.includes('CONFIDENTIAL_LABEL')) bad('labels should be hidden when off');
+        await sw(page, 'labels');
+      }
+      await sw(page, 'text'); await wait(); s = await md(page);
+      never(s, 'free text on');
+      if (c.txt && !s.includes('CONFIDENTIAL_TEXT')) bad('free text should appear when allowed (control)');
+      await sw(page, 'text');
+      await sw(page, 'sql'); await wait(); s = await md(page);
+      never(s, 'SQL on');
+      if (c.sql && !s.includes('CONFIDENTIAL_SQL')) bad('SQL definitions should appear when allowed (control)');
+      await page.evaluate(() => localStorage.clear());
+      await page.close();
+    }
+    if (checks.length) fail('do not share data: every format', checks.join(' | '));
+    else pass('do not share data: every format', FILES.length + ' formats x 3 levels x switches: no record, formula, free text, SQL, name, label or file name beyond what is allowed');
+  }
+
+  // ---------- "Do not share data": the same promise in all 15 languages, and the strings are really translated ----------
+  {
+    const checks = [];
+    const wait = (ms) => new Promise((res) => setTimeout(res, ms || 200));
+    const page = await newPage();
+    await load(page, F('CONFIDENTIAL_FILE_csv.csv'));
+    await page.click('#nsOn'); await wait(300);
+    await page.click('#nsLevelGroup button[data-level="3"]'); await wait();
+    const langs = await page.evaluate(() => window.DB_I18N.langs.map((l) => l.code));
+    for (const code of langs) {
+      await page.select('#promptLang', code); await wait();
+      const r = await page.evaluate((c) => {
+        const P = window.DB_I18N.prompt[c], U = window.DB_I18N.ui[c];
+        return { s: window.DataBrief.getMarkdown(), title: P.nsTitle.split('{file}')[0], c1: P.nsC1, c2: P.nsC2, ctx: P.nsContextL3, small: P.nsOtherSmall, warn: U.nsL3Warn };
+      }, code);
+      const bad = (m) => checks.push(code + ': ' + m);
+      if (!r.s.startsWith('# ' + r.title)) bad('title');
+      if (!r.s.includes(r.c1) || !r.s.includes(r.c2)) bad('"you have not received the records" constraint missing');
+      if (/\{\w+\}/.test(r.s)) bad('unreplaced placeholder');
+      if (r.s.includes('CONFIDENTIAL_REC')) bad('a record leaked');
+      // the thresholds written in the text must be the ones the code applies (groups under 5, tables under 10 rows)
+      if (!/5/.test(r.ctx) || !/10/.test(r.ctx) || !/5/.test(r.small) || !/5/.test(r.warn)) bad('the thresholds 5 / 10 are not in the text');
+    }
+    // Translations: a new string identical to English is a missed translation, except for words that really are the same
+    const same = await page.evaluate(() => {
+      const I = window.DB_I18N;
+      const NEW = /^(ns|rel|card|conf|prof|kind|stat|tbl|gen|x[A-Z]|mCodec|mRowGroups|mNames|fmtYamlDocs|fmtNested|onDelete|onUpdate|cGenerated|profile)/;
+      const out = [];
+      for (const part of ['ui', 'prompt']) {
+        for (const k of Object.keys(I[part].en).filter((x) => NEW.test(x))) {
+          for (const l of I.langs.map((x) => x.code).filter((x) => x !== 'en')) if (I[part][l][k] === I[part].en[k]) out.push(part + '.' + l + '.' + k);
+        }
+      }
+      return out;
+    });
+    const ALLOWED = new Set(['prompt.fr.mCodec', 'prompt.fr.relVia', 'prompt.fr.statMin', 'prompt.fr.statMax', 'prompt.es.genVirtual', 'prompt.de.tblDdl',
+      'prompt.it.statMin', 'prompt.it.statMax', 'prompt.pt.genVirtual', 'prompt.pt.relVia', 'prompt.nl.relVia']);
+    const missed = same.filter((x) => !ALLOWED.has(x));
+    if (missed.length) checks.push('identical to English (missed translation?): ' + missed.join(', '));
+    await page.evaluate(() => localStorage.clear());
+    await page.close();
+    if (checks.length) fail('do not share data: 15 languages', checks.join(' | '));
+    else pass('do not share data: 15 languages', 'constraint, no leak, thresholds and no missed translation in all ' + langs.length + ' languages');
   }
 
   // ---------- layout toggle + downloads ----------

@@ -495,6 +495,9 @@
         const cols = s.columns.map((c) => {
           const meta = {};
           for (const [k, v] of Object.entries(c.meta)) if (sw.labels || (k !== 'label' && k !== 'values')) meta[k] = v;
+          // Struct field names are names too: when names are not shared, the type without them is used
+          if (!sw.names && meta.parquetTypeAnon) meta.parquetType = meta.parquetTypeAnon;
+          delete meta.parquetTypeAnon;
           if (c.keyInfo) {
             meta.key = [c.keyInfo.pk ? { key: 'pk' } : null]
               .concat(c.keyInfo.refs.map((r) => '→ `' + S(r.table) + '.' + (r.col ? C(r.table, r.col) : '?') + '`')).filter(Boolean);
