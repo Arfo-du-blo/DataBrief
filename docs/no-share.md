@@ -21,8 +21,8 @@ The no-share prompt is **not** the normal prompt with the rows removed: it is a 
 
 ## How to use it
 
-1. Tick **Do not share data**, under the drop zone (you can do it before choosing the file).
-2. Drop your file. DataBrief analyses it locally.
+1. Drop your file. DataBrief analyses it locally.
+2. In the **Do not share data** section of the result, tick the box. The data is released from memory and the prompt is rewritten without any record.
 3. Choose **how much to include** (below), and **what to include** (switches).
 4. **Read the prompt** in the preview, then copy it or download the `.md`.
 5. Paste it into your AI and describe your goal: what you want to find out or decide.

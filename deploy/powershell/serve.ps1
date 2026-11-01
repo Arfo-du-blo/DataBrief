@@ -28,6 +28,7 @@ param(
   [string]$Layout,
   [string]$Theme,
   [string]$Share,
+  [string]$DataProfile,
   [string]$SampleRows,
   [string]$WarnTokens,
   [string]$Lock,
@@ -45,7 +46,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Langs = @('en', 'fr', 'es', 'de', 'it', 'pt', 'nl', 'pl', 'ru', 'tr', 'zh', 'ja', 'ko', 'hi', 'ar')
-$Lockable = @('lang', 'promptLang', 'mode', 'layout', 'theme', 'limit', 'edit', 'view', 'share')
+$Lockable = @('lang', 'promptLang', 'mode', 'layout', 'theme', 'limit', 'edit', 'view', 'share', 'profile')
 
 # Param, environment variable, default, page config key ('' = server setting), question for -Setup ('' = none)
 $Settings = @(
@@ -55,6 +56,7 @@ $Settings = @(
   @('Layout', 'DATABRIEF_LAYOUT', 'auto', 'layout', 'Data layout: auto, table or csv'),
   @('Theme', 'DATABRIEF_THEME', 'system', 'theme', 'Theme: system, light or dark'),
   @('Share', 'DATABRIEF_SHARE', 'yes', 'share', 'Share the data with the AI: yes, or no (Do not share data: the prompt describes the file without its records)'),
+  @('DataProfile', 'DATABRIEF_PROFILE', 'yes', 'profile', 'Statistics about each column (data profile): yes (default), or no to switch it off'),
   @('SampleRows', 'DATABRIEF_SAMPLE_ROWS', '5', 'sampleRows', 'Sample rows per section in CSV-files mode (1-100)'),
   @('WarnTokens', 'DATABRIEF_WARN_TOKENS', '150000', 'warnTokens', 'Large-file warning above how many tokens'),
   @('Lock', 'DATABRIEF_LOCK', '', 'lock', "Settings to lock, comma-separated ($($Lockable -join ','); empty = none)"),
@@ -136,7 +138,7 @@ function Test-Settings {
   foreach ($k in @(@('Lang', 'DATABRIEF_LANG'), @('PromptLang', 'DATABRIEF_PROMPT_LANG'))) {
     if ($eff[$k[0]] -and $Langs -notcontains $eff[$k[0]]) { $errors += "$($k[1]): '$($eff[$k[0]])' is not one of $($Langs -join ' ')" }
   }
-  $choices = @{ Mode = @('DATABRIEF_MODE', 'inline', 'files'); Layout = @('DATABRIEF_LAYOUT', 'auto', 'table', 'csv'); Theme = @('DATABRIEF_THEME', 'system', 'light', 'dark'); Share = @('DATABRIEF_SHARE', 'yes', 'no') }
+  $choices = @{ Mode = @('DATABRIEF_MODE', 'inline', 'files'); Layout = @('DATABRIEF_LAYOUT', 'auto', 'table', 'csv'); Theme = @('DATABRIEF_THEME', 'system', 'light', 'dark'); Share = @('DATABRIEF_SHARE', 'yes', 'no'); DataProfile = @('DATABRIEF_PROFILE', 'yes', 'no') }
   foreach ($k in $choices.Keys) {
     $allowed = $choices[$k][1..($choices[$k].Count - 1)]
     if ($allowed -cnotcontains $eff[$k]) { $errors += "$($choices[$k][0]): '$($eff[$k])' must be one of $($allowed -join ', ')" }

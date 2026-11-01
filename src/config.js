@@ -12,8 +12,9 @@
  *   <script id="databrief-config" type="application/json">{ ... }</script>
  *   {
  *     "lang": "fr", "promptLang": "en", "mode": "inline|files", "layout": "auto|table|csv", "theme": "system|light|dark", "share": "yes|no",
+ *     "profile": "yes|no",
  *     "sampleRows": 5, "warnTokens": 150000,
- *     "lock": ["lang", "promptLang", "mode", "layout", "theme", "limit", "edit", "view", "share"],
+ *     "lock": ["lang", "promptLang", "mode", "layout", "theme", "limit", "edit", "view", "share", "profile"],
  *     "promptIntro": "...", "promptRespond": "...", "promptRespondFiles": "..."
  *   }
  */
@@ -28,8 +29,9 @@
     layout: (v) => v === 'auto' || v === 'table' || v === 'csv',
     theme: (v) => v === 'system' || v === 'light' || v === 'dark',
     share: (v) => v === 'yes' || v === 'no', // 'no' = "Do not share data"
+    profile: (v) => v === 'yes' || v === 'no', // the data profile (statistics of every column): on by default
   };
-  DB.LOCKABLE = ['lang', 'promptLang', 'mode', 'layout', 'theme', 'limit', 'edit', 'view', 'share'];
+  DB.LOCKABLE = ['lang', 'promptLang', 'mode', 'layout', 'theme', 'limit', 'edit', 'view', 'share', 'profile'];
 
   function str(v) { return typeof v === 'string' && v.trim() ? v.replace(/\r\n?/g, '\n') : ''; }
   function int(v, d, min, max) { const n = parseInt(v, 10); return Number.isFinite(n) && n >= min && n <= max ? n : d; }
@@ -49,7 +51,7 @@
     const out = {};
     let p;
     try { p = new URLSearchParams(window.location.search); } catch (e) { return out; }
-    const names = { lang: 'lang', prompt: 'promptLang', promptLang: 'promptLang', mode: 'mode', layout: 'layout', theme: 'theme', share: 'share' };
+    const names = { lang: 'lang', prompt: 'promptLang', promptLang: 'promptLang', mode: 'mode', layout: 'layout', theme: 'theme', share: 'share', profile: 'profile' };
     for (const [param, key] of Object.entries(names)) {
       const v = p.get(param);
       if (v) out[key] = v.trim().toLowerCase().replace(/^promptlang$/, 'promptLang');

@@ -19,7 +19,7 @@
     limitOn: false, limitN: null, fullParts: [], fullMd: '', fullTokens: 0, parts: [], md: '', tokens: 0,
     lastErr: null, busy: false,
     mode: 'inline',  // 'inline': data inside the prompt, 'files': data in separate CSV files
-    profile: false,  // add the optional data profile (statistics of every column)
+    profile: true,   // add the data profile (statistics of every column); on by default, the user can switch it off
     // "Do not share data": share 'no' = the prompt describes the file without any record. Then state.doc is null
     // (the parsed rows are dropped) and state.ns holds the record-free copy (noshare.js); `file` lets the page
     // read the file again if the user decides to share after all.
@@ -50,11 +50,13 @@
   // link never switches back to sharing behind the user's back. Only an explicit "Include my data" does.
   if (state.share === 'no' && !CFG.locked('share')) store.set('share', 'no');
   state.nsSw = Object.assign({}, DB.NS_DEFAULTS);
+  // The data profile is on unless the team or a link switches it off (a locked setting hides the checkbox).
+  state.profile = DB.setting('profile', null, 'yes') === 'yes';
 
   /* Settings locked by the team are hidden. */
   const LOCK_TARGETS = {
     lang: ['uiLangWrap'], promptLang: ['promptLangOpt'], mode: ['modeBox'], layout: ['layoutOpt', 'layoutHint'],
-    theme: ['themeBtn'], limit: ['limitRow'], edit: ['editBtn'], view: ['viewBtn'], share: ['nsToggleWrap'],
+    theme: ['themeBtn'], limit: ['limitRow'], edit: ['editBtn'], view: ['viewBtn'], share: ['nsOn'], profile: ['profileOpt'],
   };
   for (const [key, ids] of Object.entries(LOCK_TARGETS)) {
     if (CFG.locked(key)) for (const id of ids) { const el = $(id); if (el) el.classList.add('locked-hidden'); }
@@ -92,6 +94,7 @@
     $('fmtGood').textContent = tu('fc' + k + 'Good');
     $('fmtGuide').setAttribute('href', 'https://github.com/Arfo-du-blo/DataBrief/blob/main/docs/formats/' + GUIDE[k] + '.md');
     const dlg = $('fmtDialog');
+    dlg.classList.toggle('wide', ['Excel', 'Json', 'Xml', 'Spss', 'Parquet', 'Sqlite'].includes(k)); // the complex formats get a larger card
     if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
   }
   for (const f of DB.FORMATS) {
@@ -434,6 +437,7 @@
     const ns = noShare();
     $('result').classList.toggle('ns-on', ns);
     $('nsOn').checked = ns;
+    $('secShare').classList.toggle('hidden', CFG.locked('share') && !ns); // locked to sharing: nothing to show
     $('shareBox').classList.toggle('hidden', !ns);
     $('nsBanner').classList.toggle('hidden', !ns);
     $('nsOptions').classList.toggle('hidden', !ns);

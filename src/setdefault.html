@@ -72,6 +72,10 @@
       <select id="f_share" class="select"><option value="">Yes, the prompt contains the data (default; with Lock, users cannot switch to "Do not share data")</option><option value="no">No: "Do not share data" (structure only, no records)</option></select>
       <label class="sd-lock"><input type="checkbox" data-lock="share"> Lock</label>
 
+      <label for="f_profile">Statistics about each column (data profile)</label>
+      <select id="f_profile" class="select"><option value="">On: missing values, distinct values, ranges (default)</option><option value="no">Off</option></select>
+      <label class="sd-lock"><input type="checkbox" data-lock="profile"> Lock</label>
+
       <label for="f_sampleRows">Sample rows in CSV-files mode</label>
       <input id="f_sampleRows" class="select" type="number" min="1" max="100" placeholder="5">
       <span></span>
@@ -135,6 +139,7 @@
 <script>/*@inline src/i18n-profile.js*/</script>
 <script>/*@inline src/i18n-noshare.js*/</script>
 <script>/*@inline src/i18n-formats.js*/</script>
+<script>/*@inline src/i18n-sections.js*/</script>
 <script>/*@inline src/util.js*/</script>
 <script>/*@inline src/markdown.js*/</script>
 <script>/*@inline src/setdefault.js*/</script>

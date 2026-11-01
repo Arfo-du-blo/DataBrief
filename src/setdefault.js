@@ -6,12 +6,12 @@
   const DB = window.DB;
   const I = window.DB_I18N;
   const $ = (id) => document.getElementById(id);
-  const FIELDS = ['lang', 'promptLang', 'mode', 'layout', 'theme', 'share'];
+  const FIELDS = ['lang', 'promptLang', 'mode', 'layout', 'theme', 'share', 'profile'];
   const TEXTS = [['promptIntro', 't_intro'], ['promptRespond', 't_respond'], ['promptRespondFiles', 't_respondFiles']];
   /* Settings -> environment variable names used by the servers, Docker and databrief.conf */
   const ENV = {
     lang: 'DATABRIEF_LANG', promptLang: 'DATABRIEF_PROMPT_LANG', mode: 'DATABRIEF_MODE', layout: 'DATABRIEF_LAYOUT',
-    theme: 'DATABRIEF_THEME', share: 'DATABRIEF_SHARE', sampleRows: 'DATABRIEF_SAMPLE_ROWS', warnTokens: 'DATABRIEF_WARN_TOKENS', lock: 'DATABRIEF_LOCK',
+    theme: 'DATABRIEF_THEME', share: 'DATABRIEF_SHARE', profile: 'DATABRIEF_PROFILE', sampleRows: 'DATABRIEF_SAMPLE_ROWS', warnTokens: 'DATABRIEF_WARN_TOKENS', lock: 'DATABRIEF_LOCK',
     promptIntro: 'DATABRIEF_PROMPT_INTRO', promptRespond: 'DATABRIEF_PROMPT_RESPOND', promptRespondFiles: 'DATABRIEF_PROMPT_RESPOND_FILES',
   };
 

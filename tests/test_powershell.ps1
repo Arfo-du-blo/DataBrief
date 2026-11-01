@@ -63,6 +63,10 @@ $out = & powershell -NoProfile -ExecutionPolicy Bypass -File $serve -Html $html 
 Check 'powershell: -Share NO refused (no silent sharing)' ($LASTEXITCODE -eq 2 -and $out -cmatch 'DATABRIEF_SHARE') $out
 $out = & powershell -NoProfile -ExecutionPolicy Bypass -File $serve -Html $html -Share no -Lock share -Check 2>&1 | Out-String
 Check 'powershell: -Share no -Lock share in the page' ($LASTEXITCODE -eq 0 -and $out -match '"share":\s*"no"' -and $out -match '"lock":\s*\[?\s*"share"') $out
+$out = & powershell -NoProfile -ExecutionPolicy Bypass -File $serve -Html $html -DataProfile no -Lock profile -Check 2>&1 | Out-String
+Check 'powershell: -DataProfile no -Lock profile in the page' ($LASTEXITCODE -eq 0 -and $out -match '"profile":\s*"no"' -and $out -match '"lock":\s*\[?\s*"profile"') $out
+$out = & powershell -NoProfile -ExecutionPolicy Bypass -File $serve -Html $html -DataProfile maybe -Check 2>&1 | Out-String
+Check 'powershell: invalid -DataProfile rejected' ($LASTEXITCODE -eq 2 -and $out -match 'DATABRIEF_PROFILE') $out
 $out = & powershell -NoProfile -ExecutionPolicy Bypass -File $serve -Html $html -Config (Join-Path $root 'deploy\databrief.conf') -Check 2>&1 | Out-String
 Check 'powershell: repository databrief.conf is valid' ($LASTEXITCODE -eq 0) $out
 

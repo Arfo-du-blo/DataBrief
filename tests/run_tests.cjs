@@ -259,12 +259,11 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     await page.close();
   }
 
-  // ---------- data profile (optional: off by default, switched on with the checkbox) ----------
+  // ---------- data profile (on by default, switched off with the checkbox) ----------
   {
     const page = await newPage();
     const first = await load(page, F('profile.csv'));
-    const offByDefault = !first.md.includes('## Data profile');
-    await page.click('#profileOn');
+    const onByDefault = first.md.includes('## Data profile') && await page.evaluate(() => document.getElementById('profileOn').checked);
     await new Promise((res) => setTimeout(res, 400));
     const md = await page.evaluate(() => window.DataBrief.getMarkdown());
     const expected = [
@@ -286,18 +285,53 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     await page.click('#profileOn');
     await new Promise((res) => setTimeout(res, 300));
     const offAgain = !(await page.evaluate(() => window.DataBrief.getMarkdown())).includes('## Data profile');
-    if (offByDefault && !missing.length && offAgain) pass('data profile', 'off by default; every kind of column; switches off again');
-    else fail('data profile', (offByDefault ? '' : 'on by default; ') + (offAgain ? '' : 'did not switch off; ') + 'missing: ' + JSON.stringify(missing));
+    if (onByDefault && !missing.length && offAgain) pass('data profile', 'on by default; every kind of column; switches off again');
+    else fail('data profile', (onByDefault ? '' : 'not on by default; ') + (offAgain ? '' : 'did not switch off; ') + 'missing: ' + JSON.stringify(missing));
     await page.close();
 
     const page2 = await newPage();
-    await load(page2, F('dupes.csv'));
-    await page2.click('#profileOn');
+    await load(page2, F('dupes.csv')); // the profile is on by default
     await new Promise((res) => setTimeout(res, 300));
     const md2 = await page2.evaluate(() => window.DataBrief.getMarkdown());
     if (md2.includes('**Duplicate rows:** 1')) pass('data profile: duplicate rows', '1 duplicate row found');
     else fail('data profile: duplicate rows', md2.slice(md2.indexOf('## Data profile'), md2.indexOf('## Data profile') + 400));
     await page2.close();
+  }
+
+  // ---------- data profile: the team can switch it off by default (and lock it) ----------
+  {
+    const BLOCK = /(<script id="databrief-config" type="application\/json">)[\s\S]*?(<\/script>)/;
+    const make = (name, cfg) => {
+      const f = path.join(outDir, name);
+      fs.writeFileSync(f, fs.readFileSync(htmlPath, 'utf8').replace(BLOCK, (m, a, b) => a + '\n' + cfg + '\n' + b));
+      return 'file://' + f;
+    };
+    const checks = [];
+    const wait = (ms) => new Promise((res) => setTimeout(res, ms || 200));
+    const state = (p) => p.evaluate(() => ({ md: window.DataBrief.getMarkdown(), on: document.getElementById('profileOn').checked, hidden: document.getElementById('profileOpt').classList.contains('locked-hidden') }));
+    // default "no": off, but the user can switch it on
+    const pOff = await newPageAt(make('cfg_profile_off.html', '{"profile":"no"}'));
+    await load(pOff, F('profile.csv'));
+    let s = await state(pOff);
+    if (s.on || s.md.includes('## Data profile') || s.hidden) checks.push('profile "no": expected off and still switchable, got ' + JSON.stringify({ on: s.on, hidden: s.hidden }));
+    await pOff.click('#profileOn'); await wait(300);
+    s = await state(pOff);
+    if (!s.on || !s.md.includes('## Data profile')) checks.push('profile "no": the user could not switch it on');
+    await pOff.close();
+    // locked "no": off, the checkbox is hidden
+    const pLock = await newPageAt(make('cfg_profile_locked.html', '{"profile":"no","lock":["profile"]}'));
+    await load(pLock, F('profile.csv'));
+    s = await state(pLock);
+    if (s.md.includes('## Data profile') || !s.hidden) checks.push('profile locked "no": expected off and hidden, got ' + JSON.stringify({ on: s.on, hidden: s.hidden }));
+    await pLock.close();
+    // locked without a value: stays on (the default), hidden
+    const pLockOn = await newPageAt(make('cfg_profile_lockon.html', '{"lock":["profile"]}'));
+    await load(pLockOn, F('profile.csv'));
+    s = await state(pLockOn);
+    if (!s.md.includes('## Data profile') || !s.hidden) checks.push('profile locked (default): expected on and hidden, got ' + JSON.stringify({ on: s.on, hidden: s.hidden }));
+    await pLockOn.close();
+    if (!checks.length) pass('data profile: team setting', 'default off, lock off, lock on');
+    else fail('data profile: team setting', checks.join(' | '));
   }
 
   // ---------- "Do not share data": no record in any output, at any level; the structure stays ----------
@@ -408,7 +442,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     await p3.evaluate(() => localStorage.clear()); await p3.reload({ waitUntil: 'load' });
     const locked = await load(p3, F('confidential.csv'));
     ok(locked.md.includes('(data not shared)'), 'team lock should impose no-share');
-    ok(await p3.evaluate(() => document.getElementById('nsToggleWrap').classList.contains('locked-hidden') && !document.getElementById('nsTeam').classList.contains('hidden')), 'locked: switch hidden, team note shown');
+    ok(await p3.evaluate(() => document.getElementById('nsOn').classList.contains('locked-hidden') && !document.getElementById('nsTeam').classList.contains('hidden')), 'locked: switch hidden, team note shown');
     await p3.evaluate(() => { const x = document.getElementById('nsOn'); x.checked = false; x.dispatchEvent(new Event('change')); }); await wait();
     ok((await md(p3)).includes('(data not shared)') && !(await p3.evaluate(() => document.getElementById('nsLeaveDialog').open)), 'locked: cannot be turned off');
     await p3.close();
@@ -513,19 +547,24 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     const level = async (p, n) => { await p.click('#nsLevelGroup button[data-level="' + n + '"]'); await p.waitForFunction((x) => window.DataBrief.getState().nsLevel === x && !window.DataBrief.getState().busy, {}, n); await wait(); };
     const nsPage = async (file, lv) => {
       const p = await newPage();
-      await p.click('#nsOn'); await wait(); // set before the file is read (the switch is next to the drop zone)
       await load(p, F(file));
+      await p.click('#nsOn'); await wait(); // the switch is in the "Do not share data" section, once a file is loaded
       if (lv && lv > 1) await level(p, lv);
       return p;
     };
 
-    // 8: the switch is reachable before any file is read, and then the rows are never kept
+    // 8: the switch only exists once a file is loaded (section "Do not share data"); switching releases the rows
     {
       const p = await newPage();
-      ok(await p.evaluate(() => document.getElementById('nsOn').offsetParent !== null), '8: switch not visible before a file is read');
+      ok(await p.evaluate(() => document.getElementById('nsOn').offsetParent === null), '8: switch must not be visible before a file is read');
+      ok(await p.evaluate(() => document.getElementById('chips').children.length === 15 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
+      const r0 = await load(p, F('confidential.csv'));
+      ok(r0.md.includes('CONFIDENTIAL_CUSTOMER_74291') && await p.evaluate(() => document.getElementById('nsOn').offsetParent !== null && !document.getElementById('nsOn').checked), '8: after loading: data included, switch visible and off');
+      const order = await p.evaluate(() => ['secSummary', 'secShare', 'secOutput'].map((id) => document.getElementById(id).getBoundingClientRect().top));
+      ok(order[0] < order[1] && order[1] < order[2], '8: sections in the order summary, do not share, output');
+      ok(await p.evaluate(() => document.getElementById('shareBox').classList.contains('hidden')), '8: levels hidden while the mode is off');
       await p.click('#nsOn'); await wait();
-      const r = await load(p, F('confidential.csv'));
-      ok(r.md.includes('(data not shared)') && await p.evaluate(() => window.DataBrief.getState().doc === null), '8: switched on before reading: no-share prompt, no rows kept');
+      ok((await md(p)).includes('(data not shared)') && await p.evaluate(() => window.DataBrief.getState().doc === null && !document.getElementById('shareBox').classList.contains('hidden')), '8: switched on after reading: no-share prompt, rows released, levels shown');
       await p.evaluate(() => localStorage.clear()); await p.close();
     }
     // 1: a file without header row: the first record is not used as column names

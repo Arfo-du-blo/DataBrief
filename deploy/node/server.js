@@ -22,7 +22,7 @@ const readline = require('readline');
 
 const HERE = __dirname;
 const LANGS = ['en', 'fr', 'es', 'de', 'it', 'pt', 'nl', 'pl', 'ru', 'tr', 'zh', 'ja', 'ko', 'hi', 'ar'];
-const LOCKABLE = ['lang', 'promptLang', 'mode', 'layout', 'theme', 'limit', 'edit', 'view', 'share'];
+const LOCKABLE = ['lang', 'promptLang', 'mode', 'layout', 'theme', 'limit', 'edit', 'view', 'share', 'profile'];
 
 // name, environment variable, default, page config key (null = server setting), question for --setup
 const SETTINGS = [
@@ -32,6 +32,7 @@ const SETTINGS = [
   ['layout', 'DATABRIEF_LAYOUT', 'auto', 'layout', 'Data layout: auto, table or csv'],
   ['theme', 'DATABRIEF_THEME', 'system', 'theme', 'Theme: system, light or dark'],
   ['share', 'DATABRIEF_SHARE', 'yes', 'share', 'Share the data with the AI: yes, or no (Do not share data: the prompt describes the file without its records)'],
+  ['profile', 'DATABRIEF_PROFILE', 'yes', 'profile', 'Statistics about each column (data profile): yes (default), or no to switch it off'],
   ['sample-rows', 'DATABRIEF_SAMPLE_ROWS', '5', 'sampleRows', 'Sample rows per section in CSV-files mode (1-100)'],
   ['warn-tokens', 'DATABRIEF_WARN_TOKENS', '150000', 'warnTokens', 'Large-file warning above how many tokens'],
   ['lock', 'DATABRIEF_LOCK', '', 'lock', `Settings to lock, comma-separated (${LOCKABLE.join(',')}; empty = none)`],
@@ -144,7 +145,7 @@ const splitList = (v) => String(v).split(',').map((x) => x.trim()).filter(Boolea
 function validate(eff) {
   const errors = [];
   for (const k of ['lang', 'prompt-lang']) if (eff[k] && !LANGS.includes(eff[k])) errors.push(`${BY_NAME[k][1]}: '${eff[k]}' is not one of ${LANGS.join(' ')}`);
-  const choices = { mode: ['inline', 'files'], layout: ['auto', 'table', 'csv'], theme: ['system', 'light', 'dark'], share: ['yes', 'no'] };
+  const choices = { mode: ['inline', 'files'], layout: ['auto', 'table', 'csv'], theme: ['system', 'light', 'dark'], share: ['yes', 'no'], profile: ['yes', 'no'] };
   for (const [k, allowed] of Object.entries(choices)) if (!allowed.includes(eff[k])) errors.push(`${BY_NAME[k][1]}: '${eff[k]}' must be one of ${allowed.join(', ')}`);
   for (const [k, lo, hi] of [['sample-rows', 1, 100], ['warn-tokens', 1000, 100000000], ['port', 1, 65535], ['max-connections', 1, 1000000]]) {
     const n = Number(eff[k]);

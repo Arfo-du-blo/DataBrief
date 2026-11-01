@@ -96,6 +96,9 @@ main { width: 100%; max-width: 780px; margin: 0 auto; padding: 8px 16px 32px; fl
 .brand-mark svg { width: 20px; height: 20px; }
 .tagline { margin: 10px 0 6px; font-size: 18px; font-weight: 500; color: var(--text); }
 .purpose { margin: 0 auto; max-width: 600px; color: var(--text-2); }
+.more { display: block; width: fit-content; margin: 6px auto 12px; font-size: 14px; color: var(--accent); text-decoration: none; }
+.more:hover, .more:focus-visible { text-decoration: underline; }
+.more::after { content: " \2197"; } /* arrow: opens another page */
 .privacy { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; padding: 4px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 500; }
 .privacy svg { width: 14px; height: 14px; }
 
@@ -174,10 +177,20 @@ main { width: 100%; max-width: 780px; margin: 0 auto; padding: 8px 16px 32px; fl
 
 /* "Do not share data" */
 .share-box { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
-.ns-pre { margin-top: 12px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
-.ns-toggle { font-weight: 600; }
+.ns-toggle { font-weight: 600; font-size: 15px; }
+/* The result is cut into titled sections: summary, "Do not share data", output (then the prompt below) */
+.sec { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+.sec-title { margin: 0 0 2px; font-size: 15px; font-weight: 600; }
+.sec .hint { margin-top: 4px; }
+.sec .stats { margin-top: 10px; }
+#secSummary .found { margin-top: 2px; }
+#fmtDialog { max-height: calc(100vh - 32px); overflow: auto; }
+#fmtDialog.wide { width: min(780px, calc(100vw - 32px)); max-width: min(780px, calc(100vw - 32px)); }
+#fmtDialog.wide .dialog-body { padding: 24px 28px 10px; }
+#fmtDialog.wide .dialog-body p { font-size: 15px; line-height: 1.55; }
 .ns-banner { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--accent); color: #fff; font-size: 14px; }
 .ns-options { margin-top: 12px; }
+#nsLevelGroup { flex-wrap: wrap; max-width: 100%; } /* long translations wrap on a phone instead of overflowing */
 .ns-warn { margin-top: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--warn-border); font-size: 13px; }
 .ns-switches { margin-top: 10px; font-size: 14px; }
 .ns-switches summary { cursor: pointer; color: var(--muted); }
@@ -210,7 +223,7 @@ main { width: 100%; max-width: 780px; margin: 0 auto; padding: 8px 16px 32px; fl
 }
 .preview-head h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .preview-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
-.preview-actions { display: flex; align-items: center; gap: 8px; margin-inline-start: auto; flex: none; }
+.preview-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-inline-start: auto; flex: 0 1 auto; max-width: 100%; }
 .btn-sm { height: 32px; padding: 0 12px; font-size: 13px; border-radius: 8px; }
 .btn-sm svg { width: 14px; height: 14px; }
 .btn-ghost { background: transparent; color: var(--text-2); }
@@ -329,6 +342,7 @@ footer .powered { font-weight: 600; color: var(--text-2); }
     </h1>
     <p class="tagline" data-i18n="tagline">Turn any data file into an AI-ready prompt.</p>
     <p class="purpose" data-i18n="purpose"></p>
+    <a class="more" href="https://github.com/Arfo-du-blo/DataBrief#readme" target="_blank" rel="noopener noreferrer" data-i18n="purposeMore">Learn more on GitHub</a>
     <div class="privacy">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
       <span data-i18n="privacy"></span>
@@ -338,6 +352,7 @@ footer .powered { font-weight: 600; color: var(--text-2); }
   <section class="formats" aria-labelledby="formatsTitle">
     <div class="formats-title" id="formatsTitle" data-i18n="accepted">Accepted formats</div>
     <div class="chips" id="chips"></div>
+    <div class="hint chips-hint" data-i18n="chipsHint">Click a format to see what DataBrief reads and the best file to give.</div>
   </section>
 
   <label class="drop" id="drop" for="fileInput">
@@ -346,12 +361,6 @@ footer .powered { font-weight: 600; color: var(--text-2); }
     <span class="drop-title" id="dropTitle" data-i18n="dropTitle">Drop a file here</span>
     <span class="drop-sub" id="dropSub" data-i18n="dropSub">or click to browse</span>
   </label>
-
-  <!-- Before any file is read: in "Do not share data" the parsed rows are never kept nor shown -->
-  <div class="ns-pre" id="nsToggleWrap">
-    <label class="check ns-toggle"><input type="checkbox" id="nsOn"> <span data-i18n="nsToggle">Do not share data</span></label>
-    <div class="hint" data-i18n="nsToggleHint"></div>
-  </div>
 
   <section class="card error hidden" id="errorBox" role="alert">
     <div class="card-body">
@@ -372,8 +381,26 @@ footer .powered { font-weight: 600; color: var(--text-2); }
         <button class="link-btn" type="button" id="anotherBtn" data-i18n="another">Choose another file</button>
       </div>
 
-      <div class="hint found" id="foundLine"></div>
+      <div class="sec" id="secSummary">
+        <h2 class="sec-title" data-i18n="secSummary">Summary</h2>
+        <div class="hint found" id="foundLine"></div>
+        <div class="stats">
+          <div class="stat"><div class="stat-label" data-i18n="sFormat">Format</div><div class="stat-value" id="stFormat"></div></div>
+          <div class="stat"><div class="stat-label" data-i18n="sSections">Sections</div><div class="stat-value" id="stSections"></div></div>
+          <div class="stat"><div class="stat-label" data-i18n="sRows">Rows</div><div class="stat-value" id="stRows"></div></div>
+          <div class="stat"><div class="stat-label" data-i18n="sColumns">Columns</div><div class="stat-value" id="stCols"></div></div>
+          <div class="stat tokens">
+            <div class="stat-label"><span data-i18n="tokens">Estimated size</span>
+              <button class="info-btn" type="button" id="infoBtn" data-i18n-aria="infoBtn" aria-label="How is this estimated?"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
+            </div>
+            <div class="stat-value"><span id="stTokens"></span> <span class="stat-unit" id="stTokensUnit"></span></div>
+          </div>
+        </div>
+      </div>
 
+      <div class="sec" id="secShare">
+        <h2 class="sec-title" id="nsToggleWrap"><label class="check ns-toggle"><input type="checkbox" id="nsOn"> <span data-i18n="nsToggle">Do not share data</span></label></h2>
+        <div class="hint" data-i18n="nsToggleHint"></div>
       <div class="share-box hidden" id="shareBox">
         <div class="ns-banner hidden" id="nsBanner" role="status"><strong data-i18n="nsBanner"></strong> <span class="hidden" id="nsTeam" data-i18n="nsTeamLock"></span></div>
         <div class="ns-options hidden" id="nsOptions">
@@ -395,7 +422,10 @@ footer .powered { font-weight: 600; color: var(--text-2); }
           </details>
         </div>
       </div>
+      </div>
 
+      <div class="sec" id="secOutput">
+        <h2 class="sec-title" data-i18n="secOutput">Output</h2>
       <div class="mode" id="modeBox">
         <div class="opt-label" data-i18n="modeQ">How will you give the data to the AI?</div>
         <div class="segmented" role="group" id="modeGroup">
@@ -403,19 +433,6 @@ footer .powered { font-weight: 600; color: var(--text-2); }
           <button type="button" data-mode="files" aria-pressed="false" data-i18n="modeFiles">As separate CSV files</button>
         </div>
         <div class="hint hidden" id="modeHint"></div>
-      </div>
-
-      <div class="stats">
-        <div class="stat"><div class="stat-label" data-i18n="sFormat">Format</div><div class="stat-value" id="stFormat"></div></div>
-        <div class="stat"><div class="stat-label" data-i18n="sSections">Sections</div><div class="stat-value" id="stSections"></div></div>
-        <div class="stat"><div class="stat-label" data-i18n="sRows">Rows</div><div class="stat-value" id="stRows"></div></div>
-        <div class="stat"><div class="stat-label" data-i18n="sColumns">Columns</div><div class="stat-value" id="stCols"></div></div>
-        <div class="stat tokens">
-          <div class="stat-label"><span data-i18n="tokens">Estimated size</span>
-            <button class="info-btn" type="button" id="infoBtn" data-i18n-aria="infoBtn" aria-label="How is this estimated?"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
-          </div>
-          <div class="stat-value"><span id="stTokens"></span> <span class="stat-unit" id="stTokensUnit"></span></div>
-        </div>
       </div>
 
       <div class="warn hidden" id="warnBox">
@@ -466,6 +483,7 @@ footer .powered { font-weight: 600; color: var(--text-2); }
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8"/><path d="M1 3h22v5H1zM10 12h4"/></svg>
           <span data-i18n="downloadAll">Download all (.zip)</span>
         </button>
+      </div>
       </div>
     </div>
     <div class="preview-head">
@@ -892,7 +910,7 @@ window.DB_I18N = {
   ui: {
     en: {
       tagline: "Turn any data file into an AI-ready prompt.",
-      purpose: "Drop a data file to get a Markdown file for any AI assistant. It contains an introduction that tells the AI what the file holds and how to help you, followed by all of your data.",
+      purpose: "Drop a data file to get a Markdown prompt for any AI assistant. DataBrief reads your file in your browser and writes an introduction that tells the AI what it holds and how to help you. Include your data, or only its structure to keep confidential files private.",
       privacy: "100% offline · your file never leaves this browser",
       accepted: "Accepted formats",
       dropTitle: "Drop a file here",
@@ -946,7 +964,7 @@ window.DB_I18N = {
     },
     fr: {
       tagline: "Transformez n'importe quel fichier de données en prompt prêt pour l'IA.",
-      purpose: "Déposez un fichier de données pour obtenir un fichier Markdown destiné à n'importe quel assistant IA. Il contient une introduction qui explique à l'IA ce que contient le fichier et comment vous aider, suivie de toutes vos données.",
+      purpose: "Déposez un fichier de données pour obtenir un prompt Markdown pour n'importe quel assistant IA. DataBrief lit votre fichier dans votre navigateur et rédige une introduction qui explique à l'IA ce qu'il contient et comment vous aider. Incluez vos données, ou seulement leur structure pour garder vos fichiers confidentiels.",
       privacy: "100 % hors ligne · votre fichier ne quitte jamais ce navigateur",
       accepted: "Formats acceptés",
       dropTitle: "Déposez un fichier ici",
@@ -1000,7 +1018,7 @@ window.DB_I18N = {
     },
     es: {
       tagline: "Convierte cualquier archivo de datos en un prompt listo para la IA.",
-      purpose: "Suelta un archivo de datos y obtén un archivo Markdown para cualquier asistente de IA. Contiene una introducción que le explica a la IA qué hay en el archivo y cómo ayudarte, seguida de todos tus datos.",
+      purpose: "Suelta un archivo de datos y obtén un prompt en Markdown para cualquier asistente de IA. DataBrief lee tu archivo en tu navegador y escribe una introducción que le explica a la IA qué contiene y cómo ayudarte. Incluye tus datos, o solo su estructura para proteger archivos confidenciales.",
       privacy: "100 % sin conexión · tu archivo nunca sale de este navegador",
       accepted: "Formatos aceptados",
       dropTitle: "Suelta un archivo aquí",
@@ -1054,7 +1072,7 @@ window.DB_I18N = {
     },
     de: {
       tagline: "Verwandeln Sie jede Datendatei in einen KI-fertigen Prompt.",
-      purpose: "Legen Sie eine Datendatei ab und erhalten Sie eine Markdown-Datei für jeden KI-Assistenten. Sie enthält eine Einleitung, die der KI erklärt, was die Datei enthält und wie sie Ihnen helfen soll, gefolgt von all Ihren Daten.",
+      purpose: "Legen Sie eine Datendatei ab und erhalten Sie einen Markdown-Prompt für jeden KI-Assistenten. DataBrief liest Ihre Datei in Ihrem Browser und schreibt eine Einleitung, die der KI erklärt, was die Datei enthält und wie sie Ihnen helfen soll. Fügen Sie Ihre Daten bei – oder nur deren Struktur, um vertrauliche Dateien zu schützen.",
       privacy: "100 % offline · Ihre Datei verlässt diesen Browser nie",
       accepted: "Unterstützte Formate",
       dropTitle: "Datei hier ablegen",
@@ -1108,7 +1126,7 @@ window.DB_I18N = {
     },
     it: {
       tagline: "Trasforma qualsiasi file di dati in un prompt pronto per l'IA.",
-      purpose: "Trascina un file di dati per ottenere un file Markdown per qualsiasi assistente IA. Contiene un'introduzione che spiega all'IA cosa contiene il file e come aiutarti, seguita da tutti i tuoi dati.",
+      purpose: "Trascina un file di dati per ottenere un prompt Markdown per qualsiasi assistente IA. DataBrief legge il tuo file nel browser e scrive un'introduzione che spiega all'IA cosa contiene e come aiutarti. Includi i tuoi dati, oppure solo la loro struttura per proteggere i file riservati.",
       privacy: "100% offline · il tuo file non lascia mai questo browser",
       accepted: "Formati accettati",
       dropTitle: "Trascina qui un file",
@@ -1162,7 +1180,7 @@ window.DB_I18N = {
     },
     pt: {
       tagline: "Transforme qualquer arquivo de dados em um prompt pronto para IA.",
-      purpose: "Solte um arquivo de dados para obter um arquivo Markdown para qualquer assistente de IA. Ele contém uma introdução que explica à IA o que o arquivo contém e como ajudar você, seguida de todos os seus dados.",
+      purpose: "Solte um arquivo de dados para obter um prompt em Markdown para qualquer assistente de IA. O DataBrief lê seu arquivo no navegador e escreve uma introdução que explica à IA o que ele contém e como ajudar você. Inclua seus dados, ou apenas a estrutura deles para proteger arquivos confidenciais.",
       privacy: "100% offline · seu arquivo nunca sai deste navegador",
       accepted: "Formatos aceitos",
       dropTitle: "Solte um arquivo aqui",
@@ -1216,7 +1234,7 @@ window.DB_I18N = {
     },
     nl: {
       tagline: "Maak van elk databestand een prompt die klaar is voor AI.",
-      purpose: "Sleep een databestand hierheen en krijg een Markdown-bestand voor elke AI-assistent. Het bevat een inleiding die de AI vertelt wat er in het bestand staat en hoe hij je kan helpen, gevolgd door al je gegevens.",
+      purpose: "Sleep een databestand hierheen en krijg een Markdown-prompt voor elke AI-assistent. DataBrief leest je bestand in je browser en schrijft een inleiding die de AI vertelt wat erin staat en hoe hij je kan helpen. Neem je gegevens op, of alleen de structuur om vertrouwelijke bestanden te beschermen.",
       privacy: "100% offline · je bestand verlaat deze browser nooit",
       accepted: "Ondersteunde formaten",
       dropTitle: "Sleep een bestand hierheen",
@@ -1270,7 +1288,7 @@ window.DB_I18N = {
     },
     pl: {
       tagline: "Zamień dowolny plik z danymi w prompt gotowy dla AI.",
-      purpose: "Upuść plik z danymi, aby otrzymać plik Markdown dla dowolnego asystenta AI. Zawiera wstęp, który wyjaśnia AI, co jest w pliku i jak ma Ci pomóc, a po nim wszystkie Twoje dane.",
+      purpose: "Upuść plik z danymi, aby otrzymać prompt w Markdown dla dowolnego asystenta AI. DataBrief odczytuje Twój plik w przeglądarce i pisze wstęp, który wyjaśnia AI, co zawiera plik i jak ma Ci pomóc. Dołącz swoje dane albo tylko ich strukturę, by chronić poufne pliki.",
       privacy: "100% offline · Twój plik nigdy nie opuszcza tej przeglądarki",
       accepted: "Obsługiwane formaty",
       dropTitle: "Upuść plik tutaj",
@@ -1324,7 +1342,7 @@ window.DB_I18N = {
     },
     ru: {
       tagline: "Превратите любой файл с данными в готовый промпт для ИИ.",
-      purpose: "Перетащите файл с данными и получите файл Markdown для любого ИИ-ассистента. В нём есть вступление, которое объясняет ИИ, что содержит файл и как вам помочь, а за ним — все ваши данные.",
+      purpose: "Перетащите файл с данными и получите промпт в формате Markdown для любого ИИ-ассистента. DataBrief читает файл в вашем браузере и пишет вступление, которое объясняет ИИ, что в нём содержится и как вам помочь. Включите свои данные или только их структуру, чтобы защитить конфиденциальные файлы.",
       privacy: "100% офлайн · ваш файл никогда не покидает этот браузер",
       accepted: "Поддерживаемые форматы",
       dropTitle: "Перетащите файл сюда",
@@ -1378,7 +1396,7 @@ window.DB_I18N = {
     },
     tr: {
       tagline: "Her veri dosyasını yapay zekâya hazır bir prompta dönüştürün.",
-      purpose: "Bir veri dosyası bırakın ve herhangi bir yapay zekâ asistanı için bir Markdown dosyası alın. Dosyada, yapay zekâya dosyanın içeriğini ve size nasıl yardım edeceğini anlatan bir giriş ve ardından tüm verileriniz bulunur.",
+      purpose: "Bir veri dosyası bırakın ve herhangi bir yapay zekâ asistanı için Markdown biçiminde bir istem alın. DataBrief dosyanızı tarayıcınızda okur ve yapay zekâya dosyanın içeriğini ve size nasıl yardım edeceğini anlatan bir giriş yazar. Verilerinizi ya da gizli dosyaları korumak için yalnızca yapılarını ekleyin.",
       privacy: "%100 çevrimdışı · dosyanız bu tarayıcıdan asla çıkmaz",
       accepted: "Desteklenen biçimler",
       dropTitle: "Dosyayı buraya bırakın",
@@ -1432,7 +1450,7 @@ window.DB_I18N = {
     },
     zh: {
       tagline: "把任何数据文件变成可直接交给 AI 的提示词。",
-      purpose: "拖入一个数据文件，即可得到一份可用于任何 AI 助手的 Markdown 文件。文件开头的介绍会告诉 AI 文件里有什么、应如何帮助你，后面附上你的全部数据。",
+      purpose: "拖入一个数据文件，即可得到适用于任何 AI 助手的 Markdown 提示词。DataBrief 在你的浏览器中读取文件，并写出一段介绍，告诉 AI 文件里有什么、该如何帮助你。可以包含你的数据，或只包含结构，以保护机密文件。",
       privacy: "100% 离线 · 你的文件永远不会离开此浏览器",
       accepted: "支持的格式",
       dropTitle: "将文件拖到这里",
@@ -1486,7 +1504,7 @@ window.DB_I18N = {
     },
     ja: {
       tagline: "あらゆるデータファイルを、AI にそのまま渡せるプロンプトに。",
-      purpose: "データファイルをドロップすると、どの AI アシスタントにも使える Markdown ファイルができます。冒頭の導入文で AI にファイルの内容と手伝い方を伝え、その後にすべてのデータが続きます。",
+      purpose: "データファイルをドロップすると、どの AI アシスタントにも使える Markdown のプロンプトができます。DataBrief はファイルをブラウザー内で読み取り、AI にファイルの内容と手伝い方を伝える導入文を書きます。データを含めることも、機密ファイルを守るために構造だけにすることもできます。",
       privacy: "100% オフライン · ファイルがこのブラウザの外に出ることはありません",
       accepted: "対応フォーマット",
       dropTitle: "ここにファイルをドロップ",
@@ -1540,7 +1558,7 @@ window.DB_I18N = {
     },
     ko: {
       tagline: "어떤 데이터 파일이든 AI에 바로 쓸 수 있는 프롬프트로 바꿔 보세요.",
-      purpose: "데이터 파일을 끌어다 놓으면 어떤 AI 어시스턴트에서도 쓸 수 있는 Markdown 파일이 만들어집니다. 파일에는 AI에게 파일 내용과 도와줄 방법을 알려 주는 소개 글과 함께 모든 데이터가 들어 있습니다.",
+      purpose: "데이터 파일을 끌어다 놓으면 어떤 AI 어시스턴트에서도 쓸 수 있는 Markdown 프롬프트가 만들어집니다. DataBrief는 브라우저 안에서 파일을 읽고, AI에게 파일 내용과 도와줄 방법을 알려 주는 소개글을 작성합니다. 데이터를 넣거나, 기밀 파일 보호를 위해 구조만 넣을 수 있습니다.",
       privacy: "100% 오프라인 · 파일이 이 브라우저 밖으로 나가지 않습니다",
       accepted: "지원 형식",
       dropTitle: "여기에 파일을 놓으세요",
@@ -1594,7 +1612,7 @@ window.DB_I18N = {
     },
     hi: {
       tagline: "किसी भी डेटा फ़ाइल को AI के लिए तैयार प्रॉम्प्ट में बदलें।",
-      purpose: "कोई डेटा फ़ाइल यहाँ छोड़ें और किसी भी AI असिस्टेंट के लिए एक Markdown फ़ाइल पाएँ। इसमें एक परिचय होता है जो AI को बताता है कि फ़ाइल में क्या है और उसे आपकी मदद कैसे करनी है, उसके बाद आपका पूरा डेटा होता है।",
+      purpose: "कोई डेटा फ़ाइल यहाँ छोड़ें और किसी भी AI असिस्टेंट के लिए Markdown प्रॉम्प्ट पाएँ। DataBrief आपकी फ़ाइल को आपके ब्राउज़र में पढ़ता है और एक परिचय लिखता है, जो AI को बताता है कि फ़ाइल में क्या है और आपकी मदद कैसे करनी है। अपना डेटा शामिल करें, या गोपनीय फ़ाइलों की सुरक्षा के लिए केवल उसका ढाँचा।",
       privacy: "100% ऑफ़लाइन · आपकी फ़ाइल कभी इस ब्राउज़र से बाहर नहीं जाती",
       accepted: "समर्थित फ़ॉर्मैट",
       dropTitle: "फ़ाइल यहाँ छोड़ें",
@@ -1648,7 +1666,7 @@ window.DB_I18N = {
     },
     ar: {
       tagline: "حوِّل أي ملف بيانات إلى موجّه جاهز للذكاء الاصطناعي.",
-      purpose: "أفلِت ملف بيانات لتحصل على ملف Markdown يناسب أي مساعد ذكاء اصطناعي. يحتوي الملف على مقدّمة تشرح للذكاء الاصطناعي محتوى الملف وكيف يساعدك، تليها جميع بياناتك.",
+      purpose: "أفلِت ملف بيانات لتحصل على موجّه (Prompt) بصيغة Markdown يناسب أي مساعد ذكاء اصطناعي. يقرأ DataBrief ملفك في متصفحك ويكتب مقدّمة تشرح للذكاء الاصطناعي ما يحتويه الملف وكيف يساعدك. أضِف بياناتك، أو بنيتها فقط لحماية الملفات السرّية.",
       privacy: "يعمل دون اتصال بنسبة 100% · لا يغادر ملفك هذا المتصفح أبدًا",
       accepted: "الصيغ المدعومة",
       dropTitle: "أفلِت ملفًا هنا",
@@ -3088,6 +3106,31 @@ window.DB_I18N = {
   for (const [lang, vals] of Object.entries(U)) KEYS.forEach((k, i) => { window.DB_I18N.ui[lang][k] = vals[i]; });
 })();
 </script>
+<script>/* DataBrief - translations for the titles of the result sections (summary, output), the hint under the format chips
+ * and the link to the project page under the introduction. GPL-3.0-or-later. UI order: see KEYS. */
+'use strict';
+(function () {
+  const KEYS = ['secSummary', 'secOutput', 'chipsHint', 'purposeMore'];
+  const U = {
+    en: ["Summary", "Output", "Click a format to see what DataBrief reads and the best file to give.", "Learn more on GitHub"],
+    fr: ["Résumé", "Sortie", "Cliquez sur un format pour voir ce que DataBrief en lit et le meilleur fichier à fournir.", "En savoir plus sur GitHub"],
+    es: ["Resumen", "Salida", "Haz clic en un formato para ver qué lee DataBrief y cuál es el mejor archivo que puedes dar.", "Más información en GitHub"],
+    de: ["Zusammenfassung", "Ausgabe", "Klicken Sie auf ein Format, um zu sehen, was DataBrief liest und welche Datei am besten geeignet ist.", "Mehr auf GitHub erfahren"],
+    it: ["Riepilogo", "Output", "Fai clic su un formato per vedere cosa legge DataBrief e qual è il file migliore da fornire.", "Scopri di più su GitHub"],
+    pt: ["Resumo", "Saída", "Clique em um formato para ver o que o DataBrief lê e qual é o melhor arquivo a fornecer.", "Saiba mais no GitHub"],
+    nl: ["Samenvatting", "Uitvoer", "Klik op een formaat om te zien wat DataBrief leest en welk bestand het best werkt.", "Meer weten op GitHub"],
+    pl: ["Podsumowanie", "Wynik", "Kliknij format, aby zobaczyć, co odczytuje DataBrief i jaki plik najlepiej podać.", "Dowiedz się więcej na GitHubie"],
+    ru: ["Сводка", "Результат", "Нажмите на формат, чтобы узнать, что читает DataBrief и какой файл лучше всего передать.", "Подробнее на GitHub"],
+    tr: ["Özet", "Çıktı", "DataBrief'in neyi okuduğunu ve hangi dosyanın en iyisi olduğunu görmek için bir biçime tıklayın.", "GitHub'da daha fazla bilgi"],
+    zh: ["摘要", "输出", "点击某个格式，了解 DataBrief 会读取什么，以及最适合提供的文件。", "在 GitHub 上了解更多"],
+    ja: ["概要", "出力", "形式をクリックすると、DataBrief が何を読み取るか、どんなファイルが最適かが分かります。", "GitHub で詳しく見る"],
+    ko: ["요약", "출력", "형식을 클릭하면 DataBrief가 무엇을 읽는지, 어떤 파일이 가장 좋은지 볼 수 있습니다.", "GitHub에서 더 알아보기"],
+    hi: ["सारांश", "आउटपुट", "किसी फ़ॉर्मैट पर क्लिक करें और देखें कि DataBrief क्या पढ़ता है और कौन-सी फ़ाइल देना सबसे अच्छा है।", "GitHub पर और जानें"],
+    ar: ["ملخّص", "المخرجات", "انقر على صيغة لمعرفة ما يقرؤه DataBrief وأفضل ملف يمكن تقديمه.", "اعرف المزيد على GitHub"],
+  };
+  for (const [lang, vals] of Object.entries(U)) KEYS.forEach((k, i) => { window.DB_I18N.ui[lang][k] = vals[i]; });
+})();
+</script>
 <script>/* DataBrief - shared helpers. GPL-3.0-or-later. */
 'use strict';
 (function () {
@@ -3815,8 +3858,9 @@ window.DB_I18N = {
  *   <script id="databrief-config" type="application/json">{ ... }<\/script>
  *   {
  *     "lang": "fr", "promptLang": "en", "mode": "inline|files", "layout": "auto|table|csv", "theme": "system|light|dark", "share": "yes|no",
+ *     "profile": "yes|no",
  *     "sampleRows": 5, "warnTokens": 150000,
- *     "lock": ["lang", "promptLang", "mode", "layout", "theme", "limit", "edit", "view", "share"],
+ *     "lock": ["lang", "promptLang", "mode", "layout", "theme", "limit", "edit", "view", "share", "profile"],
  *     "promptIntro": "...", "promptRespond": "...", "promptRespondFiles": "..."
  *   }
  */
@@ -3831,8 +3875,9 @@ window.DB_I18N = {
     layout: (v) => v === 'auto' || v === 'table' || v === 'csv',
     theme: (v) => v === 'system' || v === 'light' || v === 'dark',
     share: (v) => v === 'yes' || v === 'no', // 'no' = "Do not share data"
+    profile: (v) => v === 'yes' || v === 'no', // the data profile (statistics of every column): on by default
   };
-  DB.LOCKABLE = ['lang', 'promptLang', 'mode', 'layout', 'theme', 'limit', 'edit', 'view', 'share'];
+  DB.LOCKABLE = ['lang', 'promptLang', 'mode', 'layout', 'theme', 'limit', 'edit', 'view', 'share', 'profile'];
 
   function str(v) { return typeof v === 'string' && v.trim() ? v.replace(/\r\n?/g, '\n') : ''; }
   function int(v, d, min, max) { const n = parseInt(v, 10); return Number.isFinite(n) && n >= min && n <= max ? n : d; }
@@ -3852,7 +3897,7 @@ window.DB_I18N = {
     const out = {};
     let p;
     try { p = new URLSearchParams(window.location.search); } catch (e) { return out; }
-    const names = { lang: 'lang', prompt: 'promptLang', promptLang: 'promptLang', mode: 'mode', layout: 'layout', theme: 'theme', share: 'share' };
+    const names = { lang: 'lang', prompt: 'promptLang', promptLang: 'promptLang', mode: 'mode', layout: 'layout', theme: 'theme', share: 'share', profile: 'profile' };
     for (const [param, key] of Object.entries(names)) {
       const v = p.get(param);
       if (v) out[key] = v.trim().toLowerCase().replace(/^promptlang$/, 'promptLang');
@@ -5538,7 +5583,7 @@ window.DB_I18N = {
     limitOn: false, limitN: null, fullParts: [], fullMd: '', fullTokens: 0, parts: [], md: '', tokens: 0,
     lastErr: null, busy: false,
     mode: 'inline',  // 'inline': data inside the prompt, 'files': data in separate CSV files
-    profile: false,  // add the optional data profile (statistics of every column)
+    profile: true,   // add the data profile (statistics of every column); on by default, the user can switch it off
     // "Do not share data": share 'no' = the prompt describes the file without any record. Then state.doc is null
     // (the parsed rows are dropped) and state.ns holds the record-free copy (noshare.js); `file` lets the page
     // read the file again if the user decides to share after all.
@@ -5569,11 +5614,13 @@ window.DB_I18N = {
   // link never switches back to sharing behind the user's back. Only an explicit "Include my data" does.
   if (state.share === 'no' && !CFG.locked('share')) store.set('share', 'no');
   state.nsSw = Object.assign({}, DB.NS_DEFAULTS);
+  // The data profile is on unless the team or a link switches it off (a locked setting hides the checkbox).
+  state.profile = DB.setting('profile', null, 'yes') === 'yes';
 
   /* Settings locked by the team are hidden. */
   const LOCK_TARGETS = {
     lang: ['uiLangWrap'], promptLang: ['promptLangOpt'], mode: ['modeBox'], layout: ['layoutOpt', 'layoutHint'],
-    theme: ['themeBtn'], limit: ['limitRow'], edit: ['editBtn'], view: ['viewBtn'], share: ['nsToggleWrap'],
+    theme: ['themeBtn'], limit: ['limitRow'], edit: ['editBtn'], view: ['viewBtn'], share: ['nsOn'], profile: ['profileOpt'],
   };
   for (const [key, ids] of Object.entries(LOCK_TARGETS)) {
     if (CFG.locked(key)) for (const id of ids) { const el = $(id); if (el) el.classList.add('locked-hidden'); }
@@ -5611,6 +5658,7 @@ window.DB_I18N = {
     $('fmtGood').textContent = tu('fc' + k + 'Good');
     $('fmtGuide').setAttribute('href', 'https://github.com/Arfo-du-blo/DataBrief/blob/main/docs/formats/' + GUIDE[k] + '.md');
     const dlg = $('fmtDialog');
+    dlg.classList.toggle('wide', ['Excel', 'Json', 'Xml', 'Spss', 'Parquet', 'Sqlite'].includes(k)); // the complex formats get a larger card
     if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
   }
   for (const f of DB.FORMATS) {
@@ -5953,6 +6001,7 @@ window.DB_I18N = {
     const ns = noShare();
     $('result').classList.toggle('ns-on', ns);
     $('nsOn').checked = ns;
+    $('secShare').classList.toggle('hidden', CFG.locked('share') && !ns); // locked to sharing: nothing to show
     $('shareBox').classList.toggle('hidden', !ns);
     $('nsBanner').classList.toggle('hidden', !ns);
     $('nsOptions').classList.toggle('hidden', !ns);

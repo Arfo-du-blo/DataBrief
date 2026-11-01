@@ -44,6 +44,7 @@
     </h1>
     <p class="tagline" data-i18n="tagline">Turn any data file into an AI-ready prompt.</p>
     <p class="purpose" data-i18n="purpose"></p>
+    <a class="more" href="https://github.com/Arfo-du-blo/DataBrief#readme" target="_blank" rel="noopener noreferrer" data-i18n="purposeMore">Learn more on GitHub</a>
     <div class="privacy">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
       <span data-i18n="privacy"></span>
@@ -53,6 +54,7 @@
   <section class="formats" aria-labelledby="formatsTitle">
     <div class="formats-title" id="formatsTitle" data-i18n="accepted">Accepted formats</div>
     <div class="chips" id="chips"></div>
+    <div class="hint chips-hint" data-i18n="chipsHint">Click a format to see what DataBrief reads and the best file to give.</div>
   </section>
 
   <label class="drop" id="drop" for="fileInput">
@@ -61,12 +63,6 @@
     <span class="drop-title" id="dropTitle" data-i18n="dropTitle">Drop a file here</span>
     <span class="drop-sub" id="dropSub" data-i18n="dropSub">or click to browse</span>
   </label>
-
-  <!-- Before any file is read: in "Do not share data" the parsed rows are never kept nor shown -->
-  <div class="ns-pre" id="nsToggleWrap">
-    <label class="check ns-toggle"><input type="checkbox" id="nsOn"> <span data-i18n="nsToggle">Do not share data</span></label>
-    <div class="hint" data-i18n="nsToggleHint"></div>
-  </div>
 
   <section class="card error hidden" id="errorBox" role="alert">
     <div class="card-body">
@@ -87,8 +83,26 @@
         <button class="link-btn" type="button" id="anotherBtn" data-i18n="another">Choose another file</button>
       </div>
 
-      <div class="hint found" id="foundLine"></div>
+      <div class="sec" id="secSummary">
+        <h2 class="sec-title" data-i18n="secSummary">Summary</h2>
+        <div class="hint found" id="foundLine"></div>
+        <div class="stats">
+          <div class="stat"><div class="stat-label" data-i18n="sFormat">Format</div><div class="stat-value" id="stFormat"></div></div>
+          <div class="stat"><div class="stat-label" data-i18n="sSections">Sections</div><div class="stat-value" id="stSections"></div></div>
+          <div class="stat"><div class="stat-label" data-i18n="sRows">Rows</div><div class="stat-value" id="stRows"></div></div>
+          <div class="stat"><div class="stat-label" data-i18n="sColumns">Columns</div><div class="stat-value" id="stCols"></div></div>
+          <div class="stat tokens">
+            <div class="stat-label"><span data-i18n="tokens">Estimated size</span>
+              <button class="info-btn" type="button" id="infoBtn" data-i18n-aria="infoBtn" aria-label="How is this estimated?"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
+            </div>
+            <div class="stat-value"><span id="stTokens"></span> <span class="stat-unit" id="stTokensUnit"></span></div>
+          </div>
+        </div>
+      </div>
 
+      <div class="sec" id="secShare">
+        <h2 class="sec-title" id="nsToggleWrap"><label class="check ns-toggle"><input type="checkbox" id="nsOn"> <span data-i18n="nsToggle">Do not share data</span></label></h2>
+        <div class="hint" data-i18n="nsToggleHint"></div>
       <div class="share-box hidden" id="shareBox">
         <div class="ns-banner hidden" id="nsBanner" role="status"><strong data-i18n="nsBanner"></strong> <span class="hidden" id="nsTeam" data-i18n="nsTeamLock"></span></div>
         <div class="ns-options hidden" id="nsOptions">
@@ -110,7 +124,10 @@
           </details>
         </div>
       </div>
+      </div>
 
+      <div class="sec" id="secOutput">
+        <h2 class="sec-title" data-i18n="secOutput">Output</h2>
       <div class="mode" id="modeBox">
         <div class="opt-label" data-i18n="modeQ">How will you give the data to the AI?</div>
         <div class="segmented" role="group" id="modeGroup">
@@ -118,19 +135,6 @@
           <button type="button" data-mode="files" aria-pressed="false" data-i18n="modeFiles">As separate CSV files</button>
         </div>
         <div class="hint hidden" id="modeHint"></div>
-      </div>
-
-      <div class="stats">
-        <div class="stat"><div class="stat-label" data-i18n="sFormat">Format</div><div class="stat-value" id="stFormat"></div></div>
-        <div class="stat"><div class="stat-label" data-i18n="sSections">Sections</div><div class="stat-value" id="stSections"></div></div>
-        <div class="stat"><div class="stat-label" data-i18n="sRows">Rows</div><div class="stat-value" id="stRows"></div></div>
-        <div class="stat"><div class="stat-label" data-i18n="sColumns">Columns</div><div class="stat-value" id="stCols"></div></div>
-        <div class="stat tokens">
-          <div class="stat-label"><span data-i18n="tokens">Estimated size</span>
-            <button class="info-btn" type="button" id="infoBtn" data-i18n-aria="infoBtn" aria-label="How is this estimated?"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
-          </div>
-          <div class="stat-value"><span id="stTokens"></span> <span class="stat-unit" id="stTokensUnit"></span></div>
-        </div>
       </div>
 
       <div class="warn hidden" id="warnBox">
@@ -181,6 +185,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8"/><path d="M1 3h22v5H1zM10 12h4"/></svg>
           <span data-i18n="downloadAll">Download all (.zip)</span>
         </button>
+      </div>
       </div>
     </div>
     <div class="preview-head">
@@ -284,6 +289,7 @@
 <script>/*@inline src/i18n-profile.js*/</script>
 <script>/*@inline src/i18n-noshare.js*/</script>
 <script>/*@inline src/i18n-formats.js*/</script>
+<script>/*@inline src/i18n-sections.js*/</script>
 <script>/*@inline src/util.js*/</script>
 <script>/*@inline src/relationships.js*/</script>
 <script>/*@inline src/profile.js*/</script>

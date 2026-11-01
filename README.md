@@ -539,9 +539,10 @@ An empty value means "not set".
 | `DATABRIEF_LAYOUT` | `--layout` | `-Layout` | `auto` | `auto`, `table` or `csv` |
 | `DATABRIEF_THEME` | `--theme` | `-Theme` | `system` | `system`, `light` or `dark` |
 | `DATABRIEF_SHARE` | `--share` | `-Share` | `yes` | `no` = "Do not share data": the prompt describes the file without any of its records. Lock it (`share`) to impose it |
+| `DATABRIEF_PROFILE` | `--profile` | `-DataProfile` | `yes` | `no` = the statistics about each column ("data profile") are off by default; users can switch them on. Lock it (`profile`) to fix the value and hide the checkbox |
 | `DATABRIEF_SAMPLE_ROWS` | `--sample-rows` | `-SampleRows` | `5` | Sample rows per section in CSV-files mode (1–100) |
 | `DATABRIEF_WARN_TOKENS` | `--warn-tokens` | `-WarnTokens` | `150000` | Large-file warning threshold |
-| `DATABRIEF_LOCK` | `--lock` | `-Lock` | *(none)* | Comma-separated: `lang`, `promptLang`, `mode`, `layout`, `theme`, `share` (value fixed, control hidden); `limit`, `edit`, `view` (row-limit control / Edit / View formatted hidden) |
+| `DATABRIEF_LOCK` | `--lock` | `-Lock` | *(none)* | Comma-separated: `lang`, `promptLang`, `mode`, `layout`, `theme`, `share`, `profile` (value fixed, control hidden); `limit`, `edit`, `view` (row-limit control / Edit / View formatted hidden) |
 | `DATABRIEF_PROMPT_INTRO` | `--prompt-intro` | `-PromptIntro` | *(DataBrief's text)* | Your introduction (under the title) |
 | `DATABRIEF_PROMPT_RESPOND` | `--prompt-respond` | `-PromptRespond` | *(DataBrief's text)* | Your "How to respond" part, data inside the prompt |
 | `DATABRIEF_PROMPT_RESPOND_FILES` | `--prompt-respond-files` | `-PromptRespondFiles` | *(DataBrief's text)* | Same, CSV-files mode |
@@ -596,7 +597,7 @@ For settings that are **not locked**, a link can choose them: `?lang=fr`, `?prom
   one-to-one, junction tables as many-to-many) and **inferred candidates** for files that declare none: the column names
   must correspond, the parent column must be unique and the values must agree. Inferred relationships are always
   labelled as candidates to validate, with their evidence; a name alone is never enough.
-- **Optional data profile** ("Add statistics about each column"): missing and distinct values, the kind of each column
+- **Data profile**, on by default and optional ("Add statistics about each column"): missing and distinct values, the kind of each column
   (identifier, categorical, continuous, date), category frequencies, minimum, maximum, mean, standard deviation,
   median and outliers, duplicate rows. Numbers in an ambiguous format are reported as such, never guessed.
 - **Click a format** at the top of the page for what DataBrief reads from it and the best file to give, and see
@@ -708,7 +709,7 @@ src/
   util.js                     type detection, flattening, CSV parsing, token estimate
   parsers.js                  format detection and readers (CSV…SQLite)
   relationships.js            declared and inferred relationships between sections
-  profile.js                  the optional data profile (statistics of every column)
+  profile.js                  the data profile (statistics of every column; on by default, can be switched off)
   noshare.js                  "Do not share data": the record-free copy of a file
   spss.js                     SPSS .sav / .zsav reader (original code)
   markdown.js                 builds the prompt (locked parts and editable regions) and the no-share prompt

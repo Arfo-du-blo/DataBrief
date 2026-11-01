@@ -76,6 +76,9 @@ main { width: 100%; max-width: 780px; margin: 0 auto; padding: 8px 16px 32px; fl
 .brand-mark svg { width: 20px; height: 20px; }
 .tagline { margin: 10px 0 6px; font-size: 18px; font-weight: 500; color: var(--text); }
 .purpose { margin: 0 auto; max-width: 600px; color: var(--text-2); }
+.more { display: block; width: fit-content; margin: 6px auto 12px; font-size: 14px; color: var(--accent); text-decoration: none; }
+.more:hover, .more:focus-visible { text-decoration: underline; }
+.more::after { content: " \2197"; } /* arrow: opens another page */
 .privacy { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; padding: 4px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 500; }
 .privacy svg { width: 14px; height: 14px; }
 
@@ -154,10 +157,20 @@ main { width: 100%; max-width: 780px; margin: 0 auto; padding: 8px 16px 32px; fl
 
 /* "Do not share data" */
 .share-box { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
-.ns-pre { margin-top: 12px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
-.ns-toggle { font-weight: 600; }
+.ns-toggle { font-weight: 600; font-size: 15px; }
+/* The result is cut into titled sections: summary, "Do not share data", output (then the prompt below) */
+.sec { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+.sec-title { margin: 0 0 2px; font-size: 15px; font-weight: 600; }
+.sec .hint { margin-top: 4px; }
+.sec .stats { margin-top: 10px; }
+#secSummary .found { margin-top: 2px; }
+#fmtDialog { max-height: calc(100vh - 32px); overflow: auto; }
+#fmtDialog.wide { width: min(780px, calc(100vw - 32px)); max-width: min(780px, calc(100vw - 32px)); }
+#fmtDialog.wide .dialog-body { padding: 24px 28px 10px; }
+#fmtDialog.wide .dialog-body p { font-size: 15px; line-height: 1.55; }
 .ns-banner { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--accent); color: #fff; font-size: 14px; }
 .ns-options { margin-top: 12px; }
+#nsLevelGroup { flex-wrap: wrap; max-width: 100%; } /* long translations wrap on a phone instead of overflowing */
 .ns-warn { margin-top: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--warn-border); font-size: 13px; }
 .ns-switches { margin-top: 10px; font-size: 14px; }
 .ns-switches summary { cursor: pointer; color: var(--muted); }
@@ -190,7 +203,7 @@ main { width: 100%; max-width: 780px; margin: 0 auto; padding: 8px 16px 32px; fl
 }
 .preview-head h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .preview-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
-.preview-actions { display: flex; align-items: center; gap: 8px; margin-inline-start: auto; flex: none; }
+.preview-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-inline-start: auto; flex: 0 1 auto; max-width: 100%; }
 .btn-sm { height: 32px; padding: 0 12px; font-size: 13px; border-radius: 8px; }
 .btn-sm svg { width: 14px; height: 14px; }
 .btn-ghost { background: transparent; color: var(--text-2); }

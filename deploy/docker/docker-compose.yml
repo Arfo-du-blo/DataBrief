@@ -18,6 +18,7 @@ x-databrief-settings: &settings
   DATABRIEF_LAYOUT: "auto"        # auto | table | csv
   DATABRIEF_THEME: "system"       # system | light | dark
   DATABRIEF_SHARE: "yes"          # yes | no ("Do not share data": structure only, no records)
+  DATABRIEF_PROFILE: "yes"        # yes | no (statistics about each column in the prompt)
   DATABRIEF_SAMPLE_ROWS: "5"      # sample rows per section in CSV-files mode (1-100)
   DATABRIEF_WARN_TOKENS: "150000" # large-file warning threshold (tokens)
   DATABRIEF_LOCK: ""              # locked + hidden: lang,promptLang,mode,layout,theme,limit,edit,view,share

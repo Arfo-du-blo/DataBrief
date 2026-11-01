@@ -26,7 +26,7 @@ window.DB_I18N = {
   ui: {
     en: {
       tagline: "Turn any data file into an AI-ready prompt.",
-      purpose: "Drop a data file to get a Markdown file for any AI assistant. It contains an introduction that tells the AI what the file holds and how to help you, followed by all of your data.",
+      purpose: "Drop a data file to get a Markdown prompt for any AI assistant. DataBrief reads your file in your browser and writes an introduction that tells the AI what it holds and how to help you. Include your data, or only its structure to keep confidential files private.",
       privacy: "100% offline · your file never leaves this browser",
       accepted: "Accepted formats",
       dropTitle: "Drop a file here",
@@ -80,7 +80,7 @@ window.DB_I18N = {
     },
     fr: {
       tagline: "Transformez n'importe quel fichier de données en prompt prêt pour l'IA.",
-      purpose: "Déposez un fichier de données pour obtenir un fichier Markdown destiné à n'importe quel assistant IA. Il contient une introduction qui explique à l'IA ce que contient le fichier et comment vous aider, suivie de toutes vos données.",
+      purpose: "Déposez un fichier de données pour obtenir un prompt Markdown pour n'importe quel assistant IA. DataBrief lit votre fichier dans votre navigateur et rédige une introduction qui explique à l'IA ce qu'il contient et comment vous aider. Incluez vos données, ou seulement leur structure pour garder vos fichiers confidentiels.",
       privacy: "100 % hors ligne · votre fichier ne quitte jamais ce navigateur",
       accepted: "Formats acceptés",
       dropTitle: "Déposez un fichier ici",
@@ -134,7 +134,7 @@ window.DB_I18N = {
     },
     es: {
       tagline: "Convierte cualquier archivo de datos en un prompt listo para la IA.",
-      purpose: "Suelta un archivo de datos y obtén un archivo Markdown para cualquier asistente de IA. Contiene una introducción que le explica a la IA qué hay en el archivo y cómo ayudarte, seguida de todos tus datos.",
+      purpose: "Suelta un archivo de datos y obtén un prompt en Markdown para cualquier asistente de IA. DataBrief lee tu archivo en tu navegador y escribe una introducción que le explica a la IA qué contiene y cómo ayudarte. Incluye tus datos, o solo su estructura para proteger archivos confidenciales.",
       privacy: "100 % sin conexión · tu archivo nunca sale de este navegador",
       accepted: "Formatos aceptados",
       dropTitle: "Suelta un archivo aquí",
@@ -188,7 +188,7 @@ window.DB_I18N = {
     },
     de: {
       tagline: "Verwandeln Sie jede Datendatei in einen KI-fertigen Prompt.",
-      purpose: "Legen Sie eine Datendatei ab und erhalten Sie eine Markdown-Datei für jeden KI-Assistenten. Sie enthält eine Einleitung, die der KI erklärt, was die Datei enthält und wie sie Ihnen helfen soll, gefolgt von all Ihren Daten.",
+      purpose: "Legen Sie eine Datendatei ab und erhalten Sie einen Markdown-Prompt für jeden KI-Assistenten. DataBrief liest Ihre Datei in Ihrem Browser und schreibt eine Einleitung, die der KI erklärt, was die Datei enthält und wie sie Ihnen helfen soll. Fügen Sie Ihre Daten bei – oder nur deren Struktur, um vertrauliche Dateien zu schützen.",
       privacy: "100 % offline · Ihre Datei verlässt diesen Browser nie",
       accepted: "Unterstützte Formate",
       dropTitle: "Datei hier ablegen",
@@ -242,7 +242,7 @@ window.DB_I18N = {
     },
     it: {
       tagline: "Trasforma qualsiasi file di dati in un prompt pronto per l'IA.",
-      purpose: "Trascina un file di dati per ottenere un file Markdown per qualsiasi assistente IA. Contiene un'introduzione che spiega all'IA cosa contiene il file e come aiutarti, seguita da tutti i tuoi dati.",
+      purpose: "Trascina un file di dati per ottenere un prompt Markdown per qualsiasi assistente IA. DataBrief legge il tuo file nel browser e scrive un'introduzione che spiega all'IA cosa contiene e come aiutarti. Includi i tuoi dati, oppure solo la loro struttura per proteggere i file riservati.",
       privacy: "100% offline · il tuo file non lascia mai questo browser",
       accepted: "Formati accettati",
       dropTitle: "Trascina qui un file",
@@ -296,7 +296,7 @@ window.DB_I18N = {
     },
     pt: {
       tagline: "Transforme qualquer arquivo de dados em um prompt pronto para IA.",
-      purpose: "Solte um arquivo de dados para obter um arquivo Markdown para qualquer assistente de IA. Ele contém uma introdução que explica à IA o que o arquivo contém e como ajudar você, seguida de todos os seus dados.",
+      purpose: "Solte um arquivo de dados para obter um prompt em Markdown para qualquer assistente de IA. O DataBrief lê seu arquivo no navegador e escreve uma introdução que explica à IA o que ele contém e como ajudar você. Inclua seus dados, ou apenas a estrutura deles para proteger arquivos confidenciais.",
       privacy: "100% offline · seu arquivo nunca sai deste navegador",
       accepted: "Formatos aceitos",
       dropTitle: "Solte um arquivo aqui",
@@ -350,7 +350,7 @@ window.DB_I18N = {
     },
     nl: {
       tagline: "Maak van elk databestand een prompt die klaar is voor AI.",
-      purpose: "Sleep een databestand hierheen en krijg een Markdown-bestand voor elke AI-assistent. Het bevat een inleiding die de AI vertelt wat er in het bestand staat en hoe hij je kan helpen, gevolgd door al je gegevens.",
+      purpose: "Sleep een databestand hierheen en krijg een Markdown-prompt voor elke AI-assistent. DataBrief leest je bestand in je browser en schrijft een inleiding die de AI vertelt wat erin staat en hoe hij je kan helpen. Neem je gegevens op, of alleen de structuur om vertrouwelijke bestanden te beschermen.",
       privacy: "100% offline · je bestand verlaat deze browser nooit",
       accepted: "Ondersteunde formaten",
       dropTitle: "Sleep een bestand hierheen",
@@ -404,7 +404,7 @@ window.DB_I18N = {
     },
     pl: {
       tagline: "Zamień dowolny plik z danymi w prompt gotowy dla AI.",
-      purpose: "Upuść plik z danymi, aby otrzymać plik Markdown dla dowolnego asystenta AI. Zawiera wstęp, który wyjaśnia AI, co jest w pliku i jak ma Ci pomóc, a po nim wszystkie Twoje dane.",
+      purpose: "Upuść plik z danymi, aby otrzymać prompt w Markdown dla dowolnego asystenta AI. DataBrief odczytuje Twój plik w przeglądarce i pisze wstęp, który wyjaśnia AI, co zawiera plik i jak ma Ci pomóc. Dołącz swoje dane albo tylko ich strukturę, by chronić poufne pliki.",
       privacy: "100% offline · Twój plik nigdy nie opuszcza tej przeglądarki",
       accepted: "Obsługiwane formaty",
       dropTitle: "Upuść plik tutaj",
@@ -458,7 +458,7 @@ window.DB_I18N = {
     },
     ru: {
       tagline: "Превратите любой файл с данными в готовый промпт для ИИ.",
-      purpose: "Перетащите файл с данными и получите файл Markdown для любого ИИ-ассистента. В нём есть вступление, которое объясняет ИИ, что содержит файл и как вам помочь, а за ним — все ваши данные.",
+      purpose: "Перетащите файл с данными и получите промпт в формате Markdown для любого ИИ-ассистента. DataBrief читает файл в вашем браузере и пишет вступление, которое объясняет ИИ, что в нём содержится и как вам помочь. Включите свои данные или только их структуру, чтобы защитить конфиденциальные файлы.",
       privacy: "100% офлайн · ваш файл никогда не покидает этот браузер",
       accepted: "Поддерживаемые форматы",
       dropTitle: "Перетащите файл сюда",
@@ -512,7 +512,7 @@ window.DB_I18N = {
     },
     tr: {
       tagline: "Her veri dosyasını yapay zekâya hazır bir prompta dönüştürün.",
-      purpose: "Bir veri dosyası bırakın ve herhangi bir yapay zekâ asistanı için bir Markdown dosyası alın. Dosyada, yapay zekâya dosyanın içeriğini ve size nasıl yardım edeceğini anlatan bir giriş ve ardından tüm verileriniz bulunur.",
+      purpose: "Bir veri dosyası bırakın ve herhangi bir yapay zekâ asistanı için Markdown biçiminde bir istem alın. DataBrief dosyanızı tarayıcınızda okur ve yapay zekâya dosyanın içeriğini ve size nasıl yardım edeceğini anlatan bir giriş yazar. Verilerinizi ya da gizli dosyaları korumak için yalnızca yapılarını ekleyin.",
       privacy: "%100 çevrimdışı · dosyanız bu tarayıcıdan asla çıkmaz",
       accepted: "Desteklenen biçimler",
       dropTitle: "Dosyayı buraya bırakın",
@@ -566,7 +566,7 @@ window.DB_I18N = {
     },
     zh: {
       tagline: "把任何数据文件变成可直接交给 AI 的提示词。",
-      purpose: "拖入一个数据文件，即可得到一份可用于任何 AI 助手的 Markdown 文件。文件开头的介绍会告诉 AI 文件里有什么、应如何帮助你，后面附上你的全部数据。",
+      purpose: "拖入一个数据文件，即可得到适用于任何 AI 助手的 Markdown 提示词。DataBrief 在你的浏览器中读取文件，并写出一段介绍，告诉 AI 文件里有什么、该如何帮助你。可以包含你的数据，或只包含结构，以保护机密文件。",
       privacy: "100% 离线 · 你的文件永远不会离开此浏览器",
       accepted: "支持的格式",
       dropTitle: "将文件拖到这里",
@@ -620,7 +620,7 @@ window.DB_I18N = {
     },
     ja: {
       tagline: "あらゆるデータファイルを、AI にそのまま渡せるプロンプトに。",
-      purpose: "データファイルをドロップすると、どの AI アシスタントにも使える Markdown ファイルができます。冒頭の導入文で AI にファイルの内容と手伝い方を伝え、その後にすべてのデータが続きます。",
+      purpose: "データファイルをドロップすると、どの AI アシスタントにも使える Markdown のプロンプトができます。DataBrief はファイルをブラウザー内で読み取り、AI にファイルの内容と手伝い方を伝える導入文を書きます。データを含めることも、機密ファイルを守るために構造だけにすることもできます。",
       privacy: "100% オフライン · ファイルがこのブラウザの外に出ることはありません",
       accepted: "対応フォーマット",
       dropTitle: "ここにファイルをドロップ",
@@ -674,7 +674,7 @@ window.DB_I18N = {
     },
     ko: {
       tagline: "어떤 데이터 파일이든 AI에 바로 쓸 수 있는 프롬프트로 바꿔 보세요.",
-      purpose: "데이터 파일을 끌어다 놓으면 어떤 AI 어시스턴트에서도 쓸 수 있는 Markdown 파일이 만들어집니다. 파일에는 AI에게 파일 내용과 도와줄 방법을 알려 주는 소개 글과 함께 모든 데이터가 들어 있습니다.",
+      purpose: "데이터 파일을 끌어다 놓으면 어떤 AI 어시스턴트에서도 쓸 수 있는 Markdown 프롬프트가 만들어집니다. DataBrief는 브라우저 안에서 파일을 읽고, AI에게 파일 내용과 도와줄 방법을 알려 주는 소개글을 작성합니다. 데이터를 넣거나, 기밀 파일 보호를 위해 구조만 넣을 수 있습니다.",
       privacy: "100% 오프라인 · 파일이 이 브라우저 밖으로 나가지 않습니다",
       accepted: "지원 형식",
       dropTitle: "여기에 파일을 놓으세요",
@@ -728,7 +728,7 @@ window.DB_I18N = {
     },
     hi: {
       tagline: "किसी भी डेटा फ़ाइल को AI के लिए तैयार प्रॉम्प्ट में बदलें।",
-      purpose: "कोई डेटा फ़ाइल यहाँ छोड़ें और किसी भी AI असिस्टेंट के लिए एक Markdown फ़ाइल पाएँ। इसमें एक परिचय होता है जो AI को बताता है कि फ़ाइल में क्या है और उसे आपकी मदद कैसे करनी है, उसके बाद आपका पूरा डेटा होता है।",
+      purpose: "कोई डेटा फ़ाइल यहाँ छोड़ें और किसी भी AI असिस्टेंट के लिए Markdown प्रॉम्प्ट पाएँ। DataBrief आपकी फ़ाइल को आपके ब्राउज़र में पढ़ता है और एक परिचय लिखता है, जो AI को बताता है कि फ़ाइल में क्या है और आपकी मदद कैसे करनी है। अपना डेटा शामिल करें, या गोपनीय फ़ाइलों की सुरक्षा के लिए केवल उसका ढाँचा।",
       privacy: "100% ऑफ़लाइन · आपकी फ़ाइल कभी इस ब्राउज़र से बाहर नहीं जाती",
       accepted: "समर्थित फ़ॉर्मैट",
       dropTitle: "फ़ाइल यहाँ छोड़ें",
@@ -782,7 +782,7 @@ window.DB_I18N = {
     },
     ar: {
       tagline: "حوِّل أي ملف بيانات إلى موجّه جاهز للذكاء الاصطناعي.",
-      purpose: "أفلِت ملف بيانات لتحصل على ملف Markdown يناسب أي مساعد ذكاء اصطناعي. يحتوي الملف على مقدّمة تشرح للذكاء الاصطناعي محتوى الملف وكيف يساعدك، تليها جميع بياناتك.",
+      purpose: "أفلِت ملف بيانات لتحصل على موجّه (Prompt) بصيغة Markdown يناسب أي مساعد ذكاء اصطناعي. يقرأ DataBrief ملفك في متصفحك ويكتب مقدّمة تشرح للذكاء الاصطناعي ما يحتويه الملف وكيف يساعدك. أضِف بياناتك، أو بنيتها فقط لحماية الملفات السرّية.",
       privacy: "يعمل دون اتصال بنسبة 100% · لا يغادر ملفك هذا المتصفح أبدًا",
       accepted: "الصيغ المدعومة",
       dropTitle: "أفلِت ملفًا هنا",

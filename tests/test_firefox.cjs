@@ -1,7 +1,7 @@
 /* DataBrief smoke test in Firefox (Puppeteer over WebDriver BiDi). The main suite (run_tests.cjs) uses Chrome-only features
  * (DevTools protocol for downloads, clipboard), so this one covers what differs between engines: reading every kind of
  * format (SheetJS, SQLite/WebAssembly, Parquet, SPSS), the interface (dialogs, right-to-left, editing in a contenteditable
- * area), "Do not share data" and its canary values, the optional profile, and zero external requests.
+ * area), "Do not share data" and its canary values, the data profile (on by default), and zero external requests.
  *   NODE_PATH=<node_modules> node test_firefox.cjs <databrief.html> <fixtures dir>
  * Needs Firefox for Puppeteer:  npx puppeteer browsers install firefox */
 'use strict';
@@ -77,10 +77,10 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms || 200));
     check('Arabic is right-to-left', await p.evaluate(() => document.documentElement.dir === 'rtl' && document.documentElement.lang === 'ar'));
     await p.evaluate(() => { const s = document.getElementById('uiLang'); s.value = 'en'; s.dispatchEvent(new Event('change', { bubbles: true })); });
     await wait(300);
+    check('data profile (on by default)', (await md(p)).includes('## Data profile'));
     await click(p, '#profileOn');
     await wait(300);
-    check('data profile', (await md(p)).includes('## Data profile'));
-    await click(p, '#profileOn');
+    check('data profile switches off', !(await md(p)).includes('## Data profile'));
     // editing: the editable parts accept typing (plaintext-only, or the fallback for engines without it)
     await click(p, '#editBtn');
     await wait(300);
@@ -100,9 +100,10 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms || 200));
   {
     const CANARIES = ['CONFIDENTIAL_CUSTOMER_74291', 'ana.secret@example.com', 'CONFIDENTIAL_SEGMENT_X', 'CONFIDENTIAL_NOTE_123'];
     const p = await open();
-    await click(p, '#nsOn');
+    await load(p, F('confidential.csv'));
+    await click(p, '#nsOn'); // the switch is in the "Do not share data" section of the result
     await wait(300);
-    const r = await load(p, F('confidential.csv'));
+    const r = { md: await md(p) };
     check('no-share: structure present, no record (level 1)', r.md.includes('(data not shared)') && r.md.includes('| `customer` |') && !CANARIES.some((c) => r.md.includes(c)));
     await click(p, '#nsLevelGroup button[data-level="3"]');
     // (Puppeteer's waitForFunction needs Function(), which the page's policy forbids in Firefox: poll instead)

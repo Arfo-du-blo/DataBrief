@@ -13,6 +13,8 @@ case "$PORT$MAXCONN" in *[!0-9]*) echo "DataBrief: DATABRIEF_PORT and DATABRIEF_
 # "Do not share data" is a privacy setting: a value that is not understood stops the container instead of sharing.
 SHARE="$(printf '%s' "${DATABRIEF_SHARE:-}" | tr 'A-Z' 'a-z')"
 case "$SHARE" in ""|yes|no) ;; *) echo "DataBrief: DATABRIEF_SHARE must be yes or no (got '${DATABRIEF_SHARE}')" >&2; exit 1 ;; esac
+PROFILE="$(printf '%s' "${DATABRIEF_PROFILE:-}" | tr 'A-Z' 'a-z')"
+case "$PROFILE" in ""|yes|no) ;; *) echo "DataBrief: DATABRIEF_PROFILE must be yes or no (got '${DATABRIEF_PROFILE}')" >&2; exit 1 ;; esac
 
 # ---- page settings -> JSON config block (only values that differ from the built-in defaults)
 # -s: read the whole value as one string, so an empty DATABRIEF_LOCK gives [] (without -s, jq outputs nothing).
@@ -25,6 +27,7 @@ jq -n \
   --arg layout "${DATABRIEF_LAYOUT:-}" \
   --arg theme "${DATABRIEF_THEME:-}" \
   --arg share "$SHARE" \
+  --arg profile "$PROFILE" \
   --arg sample "${DATABRIEF_SAMPLE_ROWS:-}" \
   --arg warn "${DATABRIEF_WARN_TOKENS:-}" \
   --arg intro "${DATABRIEF_PROMPT_INTRO:-}" \
@@ -33,7 +36,7 @@ jq -n \
   --argjson lock "$LOCK_JSON" '
   def set(k; v; skip): if v != "" and v != skip then {(k): v} else {} end;
   set("lang"; $lang; "") + set("promptLang"; $promptLang; "") + set("mode"; $mode; "inline")
-  + set("layout"; $layout; "auto") + set("theme"; $theme; "system") + set("share"; $share; "yes")
+  + set("layout"; $layout; "auto") + set("theme"; $theme; "system") + set("share"; $share; "yes") + set("profile"; $profile; "yes")
   + (if $sample != "" and $sample != "5" then {sampleRows: ($sample | tonumber)} else {} end)
   + (if $warn != "" and $warn != "150000" then {warnTokens: ($warn | tonumber)} else {} end)
   + (if ($lock | length) > 0 then {lock: $lock} else {} end)
