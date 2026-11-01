@@ -13,8 +13,9 @@ You'll learn a habit that works for any website: **check before you trust.**
 3. [Hands-on 1: the real page sends nothing](#3-hands-on-1-the-real-page-sends-nothing)
 4. [Hands-on 2: catch a tampered page in the act](#4-hands-on-2-catch-a-tampered-page-in-the-act)
 5. [Hands-on 3: watch the security policy block it](#5-hands-on-3-watch-the-security-policy-block-it)
-6. [Spot tampering without running anything](#6-spot-tampering-without-running-anything)
-7. [Limits and good habits](#7-limits-and-good-habits)
+6. [Hands-on 4: what the policy cannot block](#6-hands-on-4-what-the-policy-cannot-block)
+7. [Spot tampering without running anything](#7-spot-tampering-without-running-anything)
+8. [Limits and good habits](#8-limits-and-good-habits)
 
 [← Back to the README](../README.md) · [Learning path](learn.md)
 
@@ -28,16 +29,20 @@ Two things protect your data.
 the prompt, right there in your browser tab. There is no "upload" step and no server doing the work. The server (or
 GitHub Pages, Cloudflare, an ESP32…) only delivers the page, once. After that, it's out of the picture.
 
-**The page forbids itself from using the network.** The page starts with a *Content Security Policy* (CSP), a set
-of rules the browser enforces on the page:
+**The page forbids itself from loading or sending anything.** The page starts with a *Content Security Policy* (CSP), a
+set of rules the browser enforces on the page:
 
 ```html
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; ... connect-src 'none'; ...">
 ```
 
-`connect-src 'none'` means **"this page may not open any network connection"**: no `fetch`, no `XMLHttpRequest`,
-no WebSocket. Even if some code inside the page *tried* to send your data somewhere, the browser would refuse.
+`connect-src 'none'` means **"this page may not make any request"**: no `fetch`, no `XMLHttpRequest`, no WebSocket, no
+beacon. Even if some code inside the page *tried* to send your data somewhere that way, the browser would refuse.
 The other rules forbid loading external scripts, images, fonts or frames.
+
+> **What a policy cannot do:** forbid the page from *navigating*, that is, sending your browser tab to another address.
+> A request is blocked; a navigation is not. [Section 6](#6-hands-on-4-what-the-policy-cannot-block) shows it live,
+> and why it does not weaken the checks below: a navigation is visible.
 
 So wherever DataBrief is hosted (your computer, GitHub or GitLab Pages, Cloudflare, your own server, a Raspberry Pi,
 an ESP32), **an unmodified page keeps your data private.**
@@ -82,10 +87,11 @@ and a tiny "attacker's server" to receive what it sends. Everything runs on your
 |---|---|
 | `corrupted_databrief.html` | DataBrief with injected code that sends the **name** of the file you open (never its content), and a loosened security policy so the request can leave |
 | `corrupted_databrief_blocked.html` | The same injected code, but the security policy left untouched (for [section 5](#5-hands-on-3-watch-the-security-policy-block-it)) |
-| `injected_code.js` | The injected code on its own, to read |
+| `corrupted_databrief_navigation.html` | Policy untouched, but the injected code **navigates** the tab instead of making a request (for [section 6](#6-hands-on-4-what-the-policy-cannot-block)) |
+| `injected_code.js`, `injected_navigation.js` | The injected code on its own, to read |
 | `receiver.py` | The "attacker's server": serves both pages and prints whatever they send |
 
-Both pages carry a big red **"DEMO: deliberately TAMPERED copy"** banner, so nobody uses them by mistake. They're
+All three pages carry a big red **"DEMO: deliberately TAMPERED copy"** banner, so nobody uses them by mistake. They're
 never published: GitHub/GitLab Pages, the releases and the Docker images only contain the real files.
 
 ### The injected code
@@ -131,7 +137,7 @@ The second change is in the security policy at the top of the page:
 ```
 
 Without that change, the browser would block the request (see [section 5](#5-hands-on-3-watch-the-security-policy-block-it)).
-**An attacker has to remove the protection first**, and that change is visible too ([section 6](#6-spot-tampering-without-running-anything)).
+**An attacker has to remove the protection first**, and that change is visible too ([section 7](#7-spot-tampering-without-running-anything)).
 
 ### The receiver
 
@@ -203,7 +209,37 @@ What if an attacker injected the code but **left the security policy alone**? Th
 This is DataBrief's second line of defence at work: even code that *wants* to send data out can't, as long as the
 policy is in place. To cheat, an attacker has to change the policy too, and that is exactly what you can check.
 
-## 6. Spot tampering without running anything
+## 6. Hands-on 4: what the policy cannot block
+
+A Content Security Policy governs what a page can **load and request**. It does **not** govern where the page can
+**send the tab**. So a tampered page can keep DataBrief's policy fully intact and still leak a file name, by
+navigating to an address that carries it.
+
+The repository contains a third tampered page for this: `corrupted_databrief_navigation.html`, with the security policy
+**untouched**. With the receiver running (see [section 4](#try-it)):
+
+1. Open <http://127.0.0.1:8765/navigation>, then press **F12** and the **Network** tab, and tick **Preserve log**.
+2. Drop any data file.
+3. **What happens:** the page disappears and the tab shows "The page navigated away", with your file name in the
+   address: `http://127.0.0.1:8765/navigated?name=sales_2026.xlsx`. The receiver's terminal prints
+   `RECEIVED by navigation: file name = 'sales_2026.xlsx'`. The Console reports **no** policy violation: the policy did
+   not stop it.
+4. **How you would see it in real life:** the Network tab lists a request of type **document**, the address bar
+   changes, and the page you were using is gone. A real attacker would send you straight back to hide it, but you
+   would still see the extra document request in the log.
+
+The injected code is [`injected_navigation.js`](../examples/tampered/injected_navigation.js), a few lines using
+`window.location.assign(...)`.
+
+**What this changes for you:**
+- The README says the policy "stops the page from loading or sending anything (requests, scripts, images, frames…)",
+  not "from any network connection": navigation is the exception, and a modified page could use it.
+- It does not weaken the checks in this guide. The **Network tab** shows navigations as well as requests, the
+  **fingerprint** (section 7) shows that the file was modified, and the **diff** shows the code.
+- For an unmodified page, none of this applies: the official `databrief.html` contains no code that navigates anywhere
+  (its only link is the "Powered by" link in the footer, which does nothing until you click it).
+
+## 7. Spot tampering without running anything
 
 The Network tab catches a page **while it runs**. These two checks catch it **before you even open it**.
 
@@ -246,7 +282,7 @@ git diff --no-index databrief.html examples/tampered/corrupted_databrief.html | 
 The output shows the changed title, the loosened `connect-src` rule, the banner, and the injected `<script>`, line
 by line. Any text-comparison tool (VS Code's *Compare Selected*, WinMerge, Meld…) works too.
 
-## 7. Limits and good habits
+## 8. Limits and good habits
 
 **Be honest about what the Network tab proves.** It shows what a page does **during your session**. A cleverly
 modified page could behave differently some other time: only on certain days, only for certain files, only after a

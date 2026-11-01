@@ -20,13 +20,13 @@ const sha = (f) => crypto.createHash('sha256').update(fs.readFileSync(f)).digest
 (async () => {
   // ---- static checks
   const real = fs.readFileSync(path.join(root, 'databrief.html'), 'utf8');
-  for (const f of ['corrupted_databrief.html', 'corrupted_databrief_blocked.html']) {
+  for (const [f, code] of [['corrupted_databrief.html', 'injected_code.js'], ['corrupted_databrief_blocked.html', 'injected_code.js'], ['corrupted_databrief_navigation.html', 'injected_navigation.js']]) {
     const html = fs.readFileSync(path.join(dir, f), 'utf8');
     check(`${f}: marked as a demo (banner, title, comment)`,
       html.includes('DEMO: deliberately TAMPERED copy') && html.includes('<title>TAMPERED DEMO - DataBrief</title>') &&
       html.startsWith('<!doctype html>\n<!-- DEMO ONLY'));
     check(`${f}: fingerprint differs from databrief.html`, sha(path.join(dir, f)) !== sha(path.join(root, 'databrief.html')));
-    check(`${f}: contains the injected code`, html.includes(fs.readFileSync(path.join(dir, 'injected_code.js'), 'utf8')));
+    check(`${f}: contains the injected code`, html.includes(fs.readFileSync(path.join(dir, code), 'utf8')));
   }
   const leaky = fs.readFileSync(path.join(dir, 'corrupted_databrief.html'), 'utf8');
   const blocked = fs.readFileSync(path.join(dir, 'corrupted_databrief_blocked.html'), 'utf8');
@@ -76,6 +76,26 @@ const sha = (f) => crypto.createHash('sha256').update(fs.readFileSync(f)).digest
   check('blocked copy: the tool still works normally', b.md && b.md.length > 100);
   check('blocked copy: the browser reports a security-policy violation', b.csp.some((v) => v.startsWith('connect-src') && v.includes('127.0.0.1:8765')), JSON.stringify(b.csp));
   check('blocked copy: nothing reaches the receiver', (out.match(/RECEIVED/g) || []).length === before, out);
+
+  // 3. navigation copy: the policy is intact, yet a page can still send the tab to an address that carries the file name.
+  //    This is why the README says the policy stops requests, not navigation (and why the Network tab matters).
+  const nav = fs.readFileSync(path.join(dir, 'corrupted_databrief_navigation.html'), 'utf8');
+  check('navigation copy keeps the policy', nav.includes("connect-src 'none'") && !nav.includes('connect-src http'));
+  {
+    const page = await browser.newPage();
+    const docs = [];
+    page.on('request', (r) => { if (r.resourceType() === 'document') docs.push(r.url()); });
+    await page.evaluateOnNewDocument(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', (e) => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI)); });
+    await page.goto('http://127.0.0.1:8765/navigation', { waitUntil: 'load' });
+    const nowNav = page.waitForNavigation({ waitUntil: 'load', timeout: 20000 });
+    await (await page.$('#fileInput')).uploadFile(fixture);
+    await nowNav;
+    const here = page.url();
+    check('navigation copy: the tab is sent to the receiver with the file name in the address', here === 'http://127.0.0.1:8765/navigated?name=' + encodeURIComponent(name), here);
+    check('navigation copy: visible as a "document" request (Network tab)', docs.some((u) => u.includes('/navigated?name=')), JSON.stringify(docs));
+    check('navigation copy: the receiver got the file name', out.includes(`RECEIVED by navigation: file name = '${name}'`), out);
+    await page.close();
+  }
 
   await browser.close();
   rx.kill();

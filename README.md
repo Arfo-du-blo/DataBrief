@@ -1,12 +1,14 @@
 # DataBrief
 
-**Turn any data file into an AI-ready prompt. 100% offline, in your browser.**
+**Give AI the data context it is missing. 100% offline, in your browser.**
 
 This repository is two things at once:
 
 - 📊 **A tool you can use today.** One private, self-contained page that turns your data into a prompt any AI
-  assistant understands. It works everywhere, on any computer, with no installation, and is easy to share with your
-  whole team. Your files never leave your browser.
+  assistant understands: not just the values, but the structure, the metadata and the **relationships** that give them
+  meaning. It works everywhere, on any computer, with no installation, and is easy to share with your whole team. Your
+  files never leave your browser. And when your data **cannot be shared even with an AI**, it can describe it
+  without a single record: [Do not share data](#do-not-share-data).
 - 🎓 **A complete deployment tutorial built on that tool.** Because DataBrief is a single file with no backend, it's
   the perfect real-world example for learning how a web app gets from your laptop to the world: GitHub/GitLab Pages,
   local servers, Docker, reverse proxies and HTTPS, a Raspberry Pi, an ESP32, Kubernetes, and Cloudflare Zero Trust.
@@ -28,8 +30,21 @@ paste into, or upload to, any AI assistant (Claude, ChatGPT, Gemini, Mistral, lo
 2. **All of the data**, formatted for the AI to read reliably (or, if you prefer, a short sample plus separate CSV files).
 
 **100% offline and private:** everything happens in your browser. Your data never leaves your computer, even when the
-page is hosted on a server: the page itself forbids every network connection.
+page is hosted on a server, and it works with no internet at all: the page's security policy stops it from loading or
+sending anything (requests, scripts, images, frames…), and you can check it yourself.
 [Check it yourself →](docs/verify-privacy.md)
+
+### Why a layer between your data and the AI?
+
+The same AI model can give very different answers depending on the application around it: a mainstream assistant may
+have a sophisticated way of reading files, while the same model reached through a basic integration may have almost
+none. DataBrief prepares the information the AI receives, whatever the AI is. It does **not** claim to improve every
+case: when an assistant already handles your file well, the original file may be enough.
+
+- **Mainstream assistants** (Claude, ChatGPT, Gemini…): when your format is not accepted, or when the structure,
+  metadata and relationships of the file add something the assistant would not see.
+- **Local AI** (small context windows, no file handling, no database connectors): a compact, structured prompt.
+- **Company AI** (custom applications and API calls): better data preparation than a plain file upload.
 
 ---
 
@@ -37,10 +52,11 @@ page is hosted on a server: the page itself forbids every network connection.
 
 - [Choose how to use DataBrief](#choose-how-to-use-databrief)
 - [Learn deployment with DataBrief](#learn-deployment-with-databrief): the tutorial, from a single file to an ESP32
+- [Do not share data](#do-not-share-data): describe your data to an AI **without its records**
 - [Guides](#guides), one per way of using it
 - [Expose it outside your network](#expose-it-outside-your-network-cloudflare-tunnel) (Cloudflare Tunnel)
 - [Settings](#settings): every setting, for every method
-- [Features](#features) · [Supported formats](#supported-formats) · [The generated prompt](#the-generated-prompt) · [Token estimate](#about-the-token-estimate) · [Privacy](#privacy-and-security) · [Limits](#limits)
+- [Features](#features) · [Supported formats](#supported-formats) (one guide per format) · [The generated prompt](#the-generated-prompt) · [Token estimate](#about-the-token-estimate) · [Privacy](#privacy-and-security) · [Limits](#limits)
 - [For developers](#for-developers): project structure, building, tests
 - [License](#license)
 
@@ -99,6 +115,29 @@ and points to its guide. Stop wherever you like.
 | **★** | [Check it yourself](docs/verify-privacy.md) | Prove the page sends nothing, and catch a tampered copy |
 
 **→ The full tutorial, with the concepts behind each level: [docs/learn.md](docs/learn.md)**
+
+---
+
+## Do not share data
+
+Your data cannot leave your computer, and sometimes it cannot even be shared with an AI. DataBrief can still help.
+
+Tick **Do not share data** to get an AI-ready **description** of your file: its structure, its metadata and, if you
+allow it, aggregate statistics, **without a single record**. Then ask the AI how to analyse your data, which
+statistical methods to use, which relationships to investigate and which questions to ask, without giving it access to
+the underlying observations.
+
+- **Three levels:** structure only (default) → + counts → + summaries (opt-in, with a warning; groups of fewer than 5
+  records are hidden).
+- **You choose what to include:** table and column names (or neutral ones), labels, relationships, file name, free
+  text from the file, SQL definitions.
+- **A different prompt, not the normal one with rows removed:** it tells the AI it has **not** received the data, not
+  to invent values or conclusions, and asks for an analysis *plan* and code you run locally.
+- **Built so a record cannot slip in:** the parsed rows are released and a separate builder only sees a record-free
+  copy. Canary tests check every format, every level and every switch, and an independent review tried to break it.
+- **Honest limits:** it reduces the risk, it does not anonymise. Read the prompt before you send it.
+
+**→ The full guide: [docs/no-share.md](docs/no-share.md)** · Team setting: `DATABRIEF_SHARE=no`, lock `share`, link `?share=no`.
 
 ---
 
@@ -176,7 +215,7 @@ team: the site can be **private**, visible only to members of the project.
    to open DataBrief.
 5. Own domain: **Deploy → Pages → New Domain**, then create the DNS records GitLab shows you.
 
-On a version tag (`git tag v1.1.0 && git push origin v1.1.0`), the same file also creates a GitLab release with both
+On a version tag (`git tag v1.2.0 && git push origin v1.2.0`), the same file also creates a GitLab release with both
 HTML files (stored in the project's **Package Registry**) and pushes the Docker images to the project's
 **Container Registry**: `registry.gitlab.com/<group>/<project>:latest`, `:nginx`, `:python`, `:<tag>`…
 These images work exactly like the [Docker](#docker-nginx-image) ones.
@@ -275,7 +314,7 @@ docker run -d --name databrief -p 8080:8080 \
   ghcr.io/arfo-du-blo/databrief:latest
 ```
 
-- Tags: `latest` and `nginx` (same image), and one per version (`v1.1.0`, `v1.1.0-nginx`).
+- Tags: `latest` and `nginx` (same image), and one per version (`v1.2.0`, `v1.2.0-nginx`).
 - Multi-architecture: every tag works on PCs and servers (`amd64`) and on ARM boards such as the Raspberry Pi
   (`arm64`); Docker picks the right one.
 - Every setting is a `DATABRIEF_*` variable ([Settings](#settings)); they are applied at each container start.
@@ -553,6 +592,15 @@ For settings that are **not locked**, a link can choose them: `?lang=fr`, `?prom
   columns, the data and the closing line. The token estimate updates live. When a setting change would regenerate
   text you edited, DataBrief asks **Keep my text** or **Regenerate**. Each data mode keeps its own edits.
 - **View formatted:** the prompt rendered as a document (headings, bold, tables…) in a large window.
+- **Relationships between tables or sheets:** declared ones (SQLite foreign keys, composite and self-referencing keys,
+  one-to-one, junction tables as many-to-many) and **inferred candidates** for files that declare none: the column names
+  must correspond, the parent column must be unique and the values must agree. Inferred relationships are always
+  labelled as candidates to validate, with their evidence; a name alone is never enough.
+- **Optional data profile** ("Add statistics about each column"): missing and distinct values, the kind of each column
+  (identifier, categorical, continuous, date), category frequencies, minimum, maximum, mean, standard deviation,
+  median and outliers, duplicate rows. Numbers in an ambiguous format are reported as such, never guessed.
+- **Click a format** at the top of the page for what DataBrief reads from it and the best file to give, and see
+  **what it found** in your file (sections, columns, relationships).
 - **Format notes** in the prompt ("How this file is formatted": sections, CSV rules, empty cells, flattened columns,
   truncation) so the AI reads the data correctly.
 - **15 languages** for the page and the prompt: English, French, Spanish, German, Italian, Portuguese, Dutch, Polish,
@@ -562,26 +610,33 @@ For settings that are **not locked**, a link can choose them: `?lang=fr`, `?prom
 
 ## Supported formats
 
-| Category | Formats |
-|---|---|
-| Delimited text | CSV, TSV, TXT (delimiter auto-detected: `,` `;` tab `\|`) |
-| Spreadsheets | XLSX, XLSM, XLS, ODS (**all sheets**) |
-| Structured | JSON, NDJSON / JSONL, XML, YAML (nested data is flattened, e.g. `address.city`) |
-| Web | HTML (**every** `<table>` on the page) |
-| Statistics | SPSS `.sav` and `.zsav` |
-| Data engineering | Parquet |
-| Databases | SQLite (`.db`, `.sqlite`, `.sqlite3`; **all tables**) |
+Click a format in the page for a short card, or read its **guide**: what DataBrief extracts, the best file to give,
+how to export it, and its limits.
+
+| Category | Formats | Guide |
+|---|---|---|
+| Delimited text | CSV, TSV, TXT (delimiter auto-detected: `,` `;` tab `\|`) | [CSV, TSV, TXT](docs/formats/csv.md) |
+| Spreadsheets | XLSX, XLSM, XLS, ODS (**all sheets**) | [Excel and OpenDocument](docs/formats/excel.md) |
+| Structured | JSON, NDJSON / JSONL | [JSON](docs/formats/json.md) |
+| | XML | [XML](docs/formats/xml.md) |
+| | YAML (several documents = one row each) | [YAML](docs/formats/yaml.md) |
+| Web | HTML (**every** `<table>` on the page) | [HTML tables](docs/formats/html.md) |
+| Statistics | SPSS `.sav` and `.zsav` | [SPSS](docs/formats/spss.md) |
+| Data engineering | Parquet | [Parquet](docs/formats/parquet.md) |
+| Databases | SQLite (`.db`, `.sqlite`, `.sqlite3`; **all tables**) | [SQLite](docs/formats/sqlite.md) |
 
 When a file holds several sheets or tables, each one becomes its own section, and the AI is told that they are separate.
 
-**Metadata** added to the prompt when the format provides it:
-- **SPSS:** variable labels, value labels (`1 = Male`, shown as words in the data), type and format, measurement level,
-  missing values, file label, notes.
-- **SQLite:** column types, primary and foreign keys, NOT NULL constraints, views.
-- **Parquet:** schema types and embedded metadata.
-- **Excel / ODS:** sheet names, hidden sheets, cell comments, detected column types.
-- **JSON / XML / YAML:** the original path of each flattened field; XML attributes.
-- **CSV / TSV / HTML:** the detected type of each column; table captions for HTML.
+**What is extracted** (when the format provides it):
+
+| Format | Beyond the values |
+|---|---|
+| SPSS | variable labels, **value labels** (`1 = Male`, shown as words in the data), type and format, measurement level, missing-value definitions, file label, notes |
+| SQLite | types, primary keys (in order), **foreign keys** (composite, with `ON DELETE`), unique constraints, indexes, `CREATE TABLE`, views with their SQL, **relationships**, generated columns, exact 64-bit integers |
+| Parquet | the **type of every nested field** (`STRUCT`, `LIST`, `MAP`), required fields, decimals, timestamp units, pandas metadata, row groups, compression |
+| Excel / ODS | sheet names, hidden sheets, cell comments, **merged cells, hidden rows and columns, defined names**, the number of formulas (those without a stored result are counted, not lost) |
+| JSON / XML / YAML | the original path of each flattened field; XML attributes; YAML documents |
+| CSV / TSV / HTML | the detected type of each column; table captions and merged cells for HTML |
 
 ## The generated prompt
 
@@ -605,8 +660,10 @@ from about 128k to 200k+ tokens, depending on the model.
 ## Privacy and security
 
 - The page processes files **only in the browser**. No upload, no analytics, no external fonts or scripts.
-- A Content-Security-Policy inside the page blocks every network connection (`connect-src 'none'`, no external
-  scripts, styles, fonts, images or frames). Even a faulty library could not send data out.
+- A Content-Security-Policy inside the page stops it from loading or sending anything: requests (`connect-src 'none'`),
+  external scripts, styles, fonts, images and frames. Even a faulty library could not send data out that way.
+  A security policy cannot stop a page from *navigating* to another address, which is why the checks below matter:
+  a modified page that did so would still show up in your browser's Network tab.
 - The servers in this repository only send the page; they never receive the data. They add `frame-ancestors`,
   `X-Content-Type-Options` and `Referrer-Policy` headers.
 - In **View formatted**, HTML found in the data is shown as text, never executed, and images are never loaded.
@@ -621,10 +678,12 @@ both, and lets you catch a deliberately tampered copy in the act:
 ## Limits
 
 - Encrypted or password-protected files (Excel, SQLite) cannot be read: save a copy without the password first.
+- JSON and YAML numbers above 2^53 may lose precision (they are read as floating-point numbers); quote very large
+  identifiers. SQLite and Parquet 64-bit integers are exact.
 - Parquet: Snappy, Gzip, Zstd and LZ4 (raw) compression are supported; Brotli and Hadoop-LZ4 are not.
 - Everything happens in the browser's memory: files of a few hundred MB may be slow, depending on the computer.
 - The settings page and the interactive setups are in English (the tool itself has 15 languages).
-- Tested automatically: the page (Chrome), the privacy demo, the Python, Node.js and PowerShell servers, both Docker
+- Tested automatically: the page (Chrome and Firefox), the privacy demo and "Do not share data", the Python, Node.js and PowerShell servers, both Docker
   images (`amd64`, and `arm64` under emulation), the Raspberry Pi setup script (ShellCheck and a dry run on Ubuntu
   26.04), the ESP32 firmware (compiled for three boards), and the nginx, Apache and Caddy files (syntax). Checked for
   syntax only: IIS `web.config`, Kubernetes manifest, systemd units, `.gitlab-ci.yml`, GitHub workflows. Not tested on
@@ -644,12 +703,15 @@ src/
   template.html               page markup and build directives
   setdefault.html/.css/.js    the settings page
   styles.css                  light/dark theme
-  i18n*.js                    15 languages (interface + prompt; i18n-modes, i18n-structure add keys)
+  i18n*.js                    15 languages (interface + prompt; one file per feature)
   config.js                   settings: config block, URL parameters, locks
   util.js                     type detection, flattening, CSV parsing, token estimate
   parsers.js                  format detection and readers (CSV…SQLite)
+  relationships.js            declared and inferred relationships between sections
+  profile.js                  the optional data profile (statistics of every column)
+  noshare.js                  "Do not share data": the record-free copy of a file
   spss.js                     SPSS .sav / .zsav reader (original code)
-  markdown.js                 builds the prompt (locked parts and editable regions)
+  markdown.js                 builds the prompt (locked parts and editable regions) and the no-share prompt
   app.js                      page logic
 deploy/
   databrief.conf              shared configuration file (every setting commented)
@@ -660,9 +722,10 @@ deploy/
   nginx/ apache/ iis/ caddy/ systemd/ kubernetes/
   raspberry-pi/               setup.sh (one-command setup), low-port.conf, docker-compose.yml
   esp32/                      DataBrief/DataBrief.ino (firmware), platformio.ini, make_header.ps1/.py
-docs/                         learn.md (tutorial), raspberry-pi.md, esp32-arduino.md, verify-privacy.md
+docs/                         learn.md (tutorial), no-share.md, verify-privacy.md, raspberry-pi.md, esp32-arduino.md
+  formats/                    one guide per format (what is extracted, the best file, limits)
 examples/tampered/            the privacy demo: tampered copies + receiver.py (never published)
-.github/workflows/            pages.yml (GitHub Pages), release.yml (release + Docker images)
+.github/workflows/            pages.yml (GitHub Pages), release.yml (release + Docker images), tests.yml (tests on every push)
 .gitlab-ci.yml                the same for GitLab: Pages, release, Docker images (Container Registry)
 vendor/                       third-party libraries and their licenses
 tests/                        test suites
@@ -680,7 +743,7 @@ pwsh ./build.ps1                                          # PowerShell 7 (Window
 ### Releasing
 
 ```bash
-git tag v1.1.0 && git push origin v1.1.0
+git tag v1.2.0 && git push origin v1.2.0
 ```
 
 `.github/workflows/release.yml` creates the GitHub release (with both HTML files and `SHA256SUMS.txt`, their
@@ -692,7 +755,7 @@ On GitLab, the same tag runs `.gitlab-ci.yml`: GitLab release, HTML files and `S
 Registry, multi-architecture Docker images in the Container Registry ([guide](#your-own-gitlab-pages)).
 
 Versions follow [semantic versioning](https://semver.org/): `vMAJOR.MINOR.PATCH`. New features or deployment options
-→ minor (`v1.1.0`); fixes only → patch (`v1.0.1`); changes that break existing settings or URLs → major (`v2.0.0`).
+→ minor (`v1.2.0`); fixes only → patch (`v1.2.1`); changes that break existing settings or URLs → major (`v2.0.0`).
 
 ### Tests
 
@@ -710,8 +773,16 @@ powershell -ExecutionPolicy Bypass -File tests\test_powershell.ps1   # PowerShel
 
 - **Browser** (`run.sh`): every format (three SPSS compression modes, five Parquet codecs), errors, the 15 languages,
   large files, layouts, downloads, CSV-files mode, formatted view (HTML/script/image injection), prompt editing,
-  team settings and locks, the settings page, mobile layout, and **zero network requests**. Also the privacy demo
-  (`test_privacy_demo.cjs`): the tampered copy leaks only the file name, the blocked copy triggers a CSP violation.
+  team settings and locks, the settings page, mobile layout, relationships, the data profile, the format cards, and
+  **zero network requests**. **"Do not share data"**: canary values placed in every format must never appear in the
+  prompt, preview or page state, at every level and for every switch, plus one test per finding of an independent
+  review. Also the privacy demo (`test_privacy_demo.cjs`): the tampered copy leaks only the file name, the blocked
+  copy triggers a CSP violation, and the navigation copy shows what a policy cannot stop.
+- **Firefox** (`test_firefox.cjs`, run by `run.sh` when Firefox is installed): every reader (including the WebAssembly
+  SQLite one), the interface (dialogs, right-to-left, editing), "Do not share data" with its canaries, and zero requests.
+- **On every push** (`.github/workflows/tests.yml`): browser and server tests on Linux, the PowerShell server on Windows,
+  and a check that the committed `databrief.html` is exactly what `build.ps1` produces. The Docker and ESP32 suites run
+  on version tags and on demand.
 - **Servers** (`test_servers.sh`, `test_powershell.ps1`): settings priority, page settings, gzip, headers, health
   check, base path, 404, parallel requests, invalid values, interactive setup.
 - **Docker** (`test_docker.sh`): both images (settings, non-root, health check, interactive setup saved to `/config`),

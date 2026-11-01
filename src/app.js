@@ -80,11 +80,27 @@
   fillLangSelect($('promptLang'));
 
   const chips = $('chips');
+  // One card per family of formats (what is read / the best file / good to know), opened by clicking a format.
+  const CARD = { csv: 'Csv', tsv: 'Csv', txt: 'Csv', xlsx: 'Excel', xlsm: 'Excel', xls: 'Excel', ods: 'Excel', json: 'Json', ndjson: 'Json',
+    xml: 'Xml', yaml: 'Yaml', html: 'Html', sav: 'Spss', parquet: 'Parquet', sqlite: 'Sqlite' };
+  const GUIDE = { Csv: 'csv', Excel: 'excel', Json: 'json', Xml: 'xml', Yaml: 'yaml', Html: 'html', Spss: 'spss', Parquet: 'parquet', Sqlite: 'sqlite' };
+  function openCard(f) {
+    const k = CARD[f.key];
+    $('fmtTitle').textContent = (f.key === 'sav' ? 'SPSS .sav / .zsav' : f.label) + ' · ' + f.exts.map((e) => '.' + e).join(' ');
+    $('fmtReads').textContent = tu('fc' + k + 'Reads');
+    $('fmtBest').textContent = tu('fc' + k + 'Best');
+    $('fmtGood').textContent = tu('fc' + k + 'Good');
+    $('fmtGuide').setAttribute('href', 'https://github.com/Arfo-du-blo/DataBrief/blob/main/docs/formats/' + GUIDE[k] + '.md');
+    const dlg = $('fmtDialog');
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+  }
   for (const f of DB.FORMATS) {
-    const c = document.createElement('span');
+    const c = document.createElement('button');
+    c.type = 'button';
     c.className = 'chip';
     c.textContent = f.key === 'sav' ? 'SPSS .sav' : f.label;
     c.title = f.exts.map((e) => '.' + e).join(' ');
+    c.addEventListener('click', () => openCard(f));
     chips.appendChild(c);
   }
   $('fileInput').setAttribute('accept', DB.ACCEPT);
@@ -407,6 +423,12 @@
     $('stCols').textContent = fmt(d.sections.reduce((a, s) => a + s.columns.length, 0));
     $('stTokens').textContent = '~' + fmt(state.tokens);
     $('stTokensUnit').textContent = tu('tokensUnit');
+    // What was found: the user sees at a glance what DataBrief extracted (and what it did not find)
+    const rels = (state.doc ? state.doc.relationships : state.ns.relationships) || [];
+    $('foundLine').textContent = tu('foundLine', {
+      s: fmt(d.sections.length), c: fmt(d.sections.reduce((a, s) => a + s.columns.length, 0)), r: fmt(rels.length),
+      d: fmt(rels.filter((r) => r.source === 'declared').length), i: fmt(rels.filter((r) => r.source === 'inferred').length),
+    });
 
     // "Do not share data": the data-bearing controls are not shown (and their actions refuse to run, see below)
     const ns = noShare();
@@ -678,6 +700,8 @@
   $('mdClose').addEventListener('click', () => $('mdDialog').close());
   $('mdDialog').addEventListener('click', (e) => { if (e.target === $('mdDialog')) $('mdDialog').close(); });
 
+  $('fmtClose').addEventListener('click', () => $('fmtDialog').close());
+  $('fmtDialog').addEventListener('click', (e) => { if (e.target === $('fmtDialog')) $('fmtDialog').close(); });
   $('infoBtn').addEventListener('click', () => { const dlg = $('infoDialog'); if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', ''); });
   $('infoClose').addEventListener('click', () => { const dlg = $('infoDialog'); if (dlg.close) dlg.close(); else dlg.removeAttribute('open'); });
   $('infoDialog').addEventListener('click', (e) => { if (e.target === $('infoDialog') && e.target.close) e.target.close(); });

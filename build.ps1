@@ -83,6 +83,12 @@ function Build-Tampered([string]$real) {
   Write-Output-File 'examples/tampered/corrupted_databrief.html' (Replace-Once $page "connect-src 'none'" 'connect-src http://127.0.0.1:8765')
   # 2. Same injected code, policy left untouched: the browser blocks the request.
   Write-Output-File 'examples/tampered/corrupted_databrief_blocked.html' $page
+  # 3. Policy left untouched, but the code navigates the tab to another address instead of making a request:
+  #    a content security policy cannot stop that (it shows in the Network tab and in the address bar).
+  $nav = Read-Text 'examples/tampered/injected_navigation.js'
+  $page3 = Replace-Once $page $code $nav
+  $page3 = Replace-Once $page3 'see examples/tampered/injected_code.js' 'see examples/tampered/injected_navigation.js'
+  Write-Output-File 'examples/tampered/corrupted_databrief_navigation.html' $page3
 }
 
 Add-Type -AssemblyName System.IO.Compression

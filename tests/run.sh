@@ -10,3 +10,10 @@ node "$HERE/run_tests.cjs" "$HERE/../databrief.html" "$E/fixtures" "$E/out"
 echo
 echo "=== Privacy demo (tampered copies)"
 node "$HERE/test_privacy_demo.cjs" "$HERE/.." "$E/venv/bin/python" "$E/fixtures/ventes.csv"
+# Second engine: Firefox (skipped when it is not installed)
+if [ -d "$E/puppeteer-cache/firefox" ]; then
+  echo; echo "=== Firefox"
+  node "$HERE/test_firefox.cjs" "$HERE/../databrief.html" "$E/fixtures"
+else
+  echo; echo "SKIP Firefox: not installed (npx puppeteer browsers install firefox)"
+fi

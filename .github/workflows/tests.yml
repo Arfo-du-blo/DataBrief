@@ -1,0 +1,78 @@
+# Tests, on every push to main and on every pull request (and on demand).
+#   browser-and-servers  the page in headless Chrome (formats, relationships, profile, "Do not share data" canaries,
+#                        15 languages, the privacy demo) and the Python and Node.js servers; also checks that the
+#                        committed databrief.html is exactly what build.ps1 produces from the sources
+#   powershell           the PowerShell server, on Windows
+#   docker               both Docker images (amd64 and arm64 under emulation), Compose, the Raspberry Pi script and the
+#                        web server configuration files: on version tags and on demand (heavy)
+#   esp32                the ESP32 firmware compiled for three boards: on demand only (downloads the toolchains, several GB)
+name: Tests
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-and-servers:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+
+      # databrief.html (and the demo pages made from it) must be reproducible. The settings page embeds a gzip copy whose
+      # bytes depend on the compressor of the platform, so it is not compared.
+      - name: The committed HTML matches the sources
+        shell: pwsh
+        run: |
+          ./build.ps1
+          git diff --exit-code -- databrief.html examples/tampered
+
+      - name: Test environment (Node, Puppeteer with Chrome, Python)
+        run: bash tests/setup_testenv.sh
+
+      - name: Browser tests (formats, relationships, profile, Do not share data, languages, privacy demo)
+        run: bash tests/run.sh
+
+      - name: Server tests (Python and Node.js)
+        run: bash tests/test_servers.sh
+
+  powershell:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: PowerShell server tests
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tests\test_powershell.ps1
+
+  docker:
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - name: Test environment
+        run: bash tests/setup_testenv.sh
+      - name: Docker tests (images, Compose, Raspberry Pi script, web server configuration)
+        run: bash tests/test_docker.sh
+
+  esp32:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - name: PlatformIO
+        run: |
+          python3 -m venv "$HOME/databrief-esp-testenv/venv"
+          "$HOME/databrief-esp-testenv/venv/bin/pip" install platformio
+      - name: ESP32 tests (header generators, firmware for three boards)
+        run: bash tests/test_esp32.sh

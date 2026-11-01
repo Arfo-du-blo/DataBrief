@@ -83,7 +83,11 @@ main { width: 100%; max-width: 780px; margin: 0 auto; padding: 8px 16px 32px; fl
 .formats { text-align: center; margin: 4px 0 14px; }
 .formats-title { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 8px; }
 .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
-.chip { font-family: var(--mono); font-size: 12px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); }
+.chip { font-family: var(--mono); font-size: 12px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); cursor: pointer; }
+.chip:hover, .chip:focus-visible { border-color: var(--accent); color: var(--accent); }
+.dialog-body h3 { margin: 12px 0 2px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.dialog-body a { color: var(--accent); }
+.found { margin-top: 10px; }
 
 /* dropzone */
 .drop {

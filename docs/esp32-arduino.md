@@ -211,7 +211,7 @@ browser, at full speed. The board isn't involved any more, even for huge files.
 
 **Check what the board serves.** The `SHA-256 of the page` printed at startup is the fingerprint of the
 `databrief.html` compiled into the firmware. Compare it with `SHA256SUMS.txt` from the release: identical means the
-board serves the official page, byte for byte. See [Check it yourself](verify-privacy.md#6-spot-tampering-without-running-anything).
+board serves the official page, byte for byte. See [Check it yourself](verify-privacy.md#7-spot-tampering-without-running-anything).
 
 **Health check:** `http://databrief.local/healthz` answers `ok`. That's handy for monitoring tools.
 

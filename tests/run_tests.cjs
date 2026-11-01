@@ -617,6 +617,43 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     else pass('do not share data: review findings', 'headerless files, few values, dates with text, page state per level, embedded metadata, data keys, subtraction, fail-closed settings, team default, relationships per level, switch before reading');
   }
 
+  // ---------- format cards (click a format) and the "what was found" line ----------
+  {
+    const checks = [];
+    const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
+    const page = await newPage();
+    const chips = await page.$$eval('#chips button.chip', (els) => els.length);
+    if (chips !== 15) checks.push('expected 15 clickable formats, got ' + chips);
+    for (let i = 0; i < chips; i++) {
+      await page.evaluate((n) => document.querySelectorAll('#chips button.chip')[n].click(), i); await wait(60);
+      const r = await page.evaluate(() => ({
+        open: document.getElementById('fmtDialog').open, title: document.getElementById('fmtTitle').textContent,
+        reads: document.getElementById('fmtReads').textContent, best: document.getElementById('fmtBest').textContent,
+        good: document.getElementById('fmtGood').textContent, href: document.getElementById('fmtGuide').getAttribute('href'),
+      }));
+      if (!r.open || !r.reads || !r.best || !r.good || !/\/docs\/formats\/[a-z]+\.md$/.test(r.href || '')) checks.push('card ' + i + ' (' + r.title + ') incomplete: ' + JSON.stringify(r).slice(0, 150));
+      await page.evaluate(() => document.getElementById('fmtDialog').close());
+    }
+    // every card in every language, with the guide link
+    const miss = await page.evaluate(() => {
+      const I = window.DB_I18N, out = [];
+      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
+      return out;
+    });
+    if (miss.length) checks.push('missing card texts: ' + miss.join(','));
+    // the guides the cards link to exist in the repository
+    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite']) {
+      if (!fs.existsSync(path.join(path.dirname(htmlPath), 'docs', 'formats', g + '.md'))) checks.push('guide docs/formats/' + g + '.md is missing');
+    }
+    // "what was found"
+    await load(page, F('relations.xlsx'));
+    const found = await page.$eval('#foundLine', (el) => el.textContent);
+    if (found !== 'Found: 7 sections · 16 columns · 5 relationships (0 declared, 5 inferred)') checks.push('found line: ' + found);
+    await page.close();
+    if (checks.length) fail('format cards', checks.join(' | '));
+    else pass('format cards', '15 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
+  }
+
   // ---------- "Do not share data": the same promise in all 15 languages, and the strings are really translated ----------
   {
     const checks = [];

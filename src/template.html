@@ -87,6 +87,8 @@
         <button class="link-btn" type="button" id="anotherBtn" data-i18n="another">Choose another file</button>
       </div>
 
+      <div class="hint found" id="foundLine"></div>
+
       <div class="share-box hidden" id="shareBox">
         <div class="ns-banner hidden" id="nsBanner" role="status"><strong data-i18n="nsBanner"></strong> <span class="hidden" id="nsTeam" data-i18n="nsTeamLock"></span></div>
         <div class="ns-options hidden" id="nsOptions">
@@ -232,6 +234,17 @@
   </div>
 </dialog>
 
+<dialog id="fmtDialog" aria-labelledby="fmtTitle">
+  <div class="dialog-body">
+    <h2 id="fmtTitle"></h2>
+    <h3 data-i18n="fcReads">What DataBrief reads</h3><p id="fmtReads"></p>
+    <h3 data-i18n="fcBest">Best file to give</h3><p id="fmtBest"></p>
+    <h3 data-i18n="fcGood">Good to know</h3><p id="fmtGood"></p>
+    <p><a id="fmtGuide" target="_blank" rel="noopener noreferrer" data-i18n="fcGuide">Read the full guide</a></p>
+  </div>
+  <div class="dialog-foot"><button class="btn btn-outline" type="button" id="fmtClose" data-i18n="close">Close</button></div>
+</dialog>
+
 <dialog id="nsLeaveDialog" aria-labelledby="nsLeaveTitle">
   <div class="dialog-body">
     <h2 id="nsLeaveTitle" data-i18n="nsLeaveTitle">Include your data again?</h2>
@@ -270,6 +283,7 @@
 <script>/*@inline src/i18n-relations.js*/</script>
 <script>/*@inline src/i18n-profile.js*/</script>
 <script>/*@inline src/i18n-noshare.js*/</script>
+<script>/*@inline src/i18n-formats.js*/</script>
 <script>/*@inline src/util.js*/</script>
 <script>/*@inline src/relationships.js*/</script>
 <script>/*@inline src/profile.js*/</script>

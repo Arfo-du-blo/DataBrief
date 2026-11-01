@@ -12,6 +12,8 @@ export PATH="$E/node/bin:$PATH" PUPPETEER_CACHE_DIR="$E/puppeteer-cache" npm_con
 mkdir -p js && cd js
 [ -f package.json ] || npm init -y >/dev/null
 npm i -s puppeteer@23.9.0 xlsx@https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz sql.js@1.14.2 >/dev/null 2>&1
+# Firefox too (tests/test_firefox.cjs): the page is also checked in a second engine
+npx puppeteer browsers install firefox > /dev/null 2>&1 || echo "Firefox not installed: its tests will be skipped"
 echo "node packages ok"
 cd "$E"
 [ -d venv ] || python3 -m venv venv
