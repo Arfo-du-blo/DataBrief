@@ -619,18 +619,26 @@
     if (f === '\\N') return null;
     if (f.indexOf('\\') < 0) return f;
     let out = '', i = 0;
+    let bytes = [];                                    // \303\251 = the two bytes of "é": decoded together, as UTF-8
+    const flush = () => { if (bytes.length) { out += bytesText(bytes); bytes = []; } };
     for (;;) {
       const k = f.indexOf('\\', i);
-      if (k < 0) return out + f.slice(i);
-      out += f.slice(i, k);
+      if (k < 0) { flush(); return out + f.slice(i); }
+      if (k > i) { flush(); out += f.slice(i, k); }
       const c = f[k + 1];
-      const map = { b: '\b', f: '\f', n: '\n', r: '\r', t: '\t', v: '\v' };
-      if (c in map) { out += map[c]; i = k + 2; continue; }
-      if (c === 'x') { const m = /^[0-9a-fA-F]{1,2}/.exec(f.slice(k + 2, k + 4)); if (m) { out += String.fromCharCode(parseInt(m[0], 16)); i = k + 2 + m[0].length; continue; } }
+      if (c === 'x') { const m = /^[0-9a-fA-F]{1,2}/.exec(f.slice(k + 2, k + 4)); if (m) { bytes.push(parseInt(m[0], 16)); i = k + 2 + m[0].length; continue; } }
       const o = /^[0-7]{1,3}/.exec(f.slice(k + 1, k + 4));
-      if (o) { out += String.fromCharCode(parseInt(o[0], 8)); i = k + 1 + o[0].length; continue; }
+      if (o) { bytes.push(parseInt(o[0], 8) & 0xff); i = k + 1 + o[0].length; continue; }
+      flush();
+      if (c in COPY_ESC) { out += COPY_ESC[c]; i = k + 2; continue; }
       out += c === undefined ? '' : c; i = k + 2;
     }
+  }
+  const COPY_ESC = { b: '\b', f: '\f', n: '\n', r: '\r', t: '\t', v: '\v' };
+  const UTF8 = new TextDecoder('utf-8', { fatal: true });
+  // bytes given as escapes: UTF-8 when they are valid UTF-8, else one character per byte (as before)
+  function bytesText(b) {
+    try { return UTF8.decode(new Uint8Array(b)); } catch (e) { let s = ''; for (const x of b) s += String.fromCharCode(x); return s; }
   }
   // COPY ... WITH (FORMAT csv): one line per record (pg_dump never writes it; hand-written dumps sometimes do)
   function csvLine(line, sep, nullStr) {

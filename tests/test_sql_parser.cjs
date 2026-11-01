@@ -480,5 +480,35 @@ ok('archives recognised by their content', DB.isPgArchive(readBin('pg16-custom.d
   ok('review: rows growing wider in linear time, every row as wide as the table', ms < 8000 && sec(r, 't').rows.every((x) => x.length === 1500), ms + ' ms');
 }
 
+/* ---- v1.3.1: COPY byte escapes, and the size limit of archive data ---- */
+{
+  // \303\251 is the UTF-8 of "é" written byte by byte (octal); \xc3\xa9 the same in hex; \377 alone is not UTF-8
+  const r = parse('-- PostgreSQL database dump\nCREATE TABLE t (a text, b text, c text);\nCOPY t (a, b, c) FROM stdin;\ncaf\\303\\251\t\\xc3\\xa9t\\xc3\\xa9\t\\377x\\tz\n\\.\n');
+  ok('v1.3.1 (synthetic): COPY octal and hex escapes are UTF-8 bytes', same(sec(r, 't').rows[0], ['café', 'été', 'ÿx\tz']), JSON.stringify(sec(r, 't').rows[0]));
+}
+{
+  const zlib = require('zlib');
+  // a stream of many steps comes back whole and identical
+  const data = Buffer.alloc(30e6);
+  for (let i = 0; i < data.length; i++) data[i] = (i * 7919 >>> 3) & 255;
+  const back = DB.pgStreamed(ctx.fflate.Unzlib, new Uint8Array(zlib.deflateSync(data)));
+  ok('v1.3.1: zlib data decoded step by step is identical (30 MB)', Buffer.from(back.buffer, back.byteOffset, back.length).equals(data), back.length);
+  if (zlib.zstdCompressSync) {
+    const z = DB.pgStreamed(ctx.fzstd.Decompress, new Uint8Array(zlib.zstdCompressSync(data)));
+    ok('v1.3.1: zstd data decoded step by step is identical (30 MB)', Buffer.from(z.buffer, z.byteOffset, z.length).equals(data), z.length);
+  }
+  // the limit: every kind of real archive skips (and names) a table larger than the limit, and reads the rest
+  ctx.DB.PG_ARCHIVE_LIMIT = 300;      // bytes, for the test (1 GB in the page)
+  const bad = [];
+  for (const f of ['pg16-custom.dump', 'pg16-custom-lz4.dump', 'pg16-custom-zstd.dump', 'pg17-custom.dump']) {
+    let a;
+    try { a = DB.parsePgArchive(readBin(f)).info.archive; } catch (e) { bad.push(f + ' threw ' + e.message); continue; }
+    if (!a.skipped.length || !a.problems.some((p) => p.includes('larger than 1 GB'))) bad.push(f + ': ' + JSON.stringify(a.problems));
+  }
+  ctx.DB.PG_ARCHIVE_LIMIT = 0;
+  const after = DB.parsePgArchive(readBin('pg16-custom-zstd.dump')).info.archive;
+  ok('v1.3.1: archive data over the limit is skipped and named, not decompressed whole', !bad.length && !after.skipped.length, bad.join(' | '));
+}
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

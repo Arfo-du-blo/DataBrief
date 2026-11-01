@@ -697,7 +697,8 @@ both, and lets you catch a deliberately tampered copy in the act:
 - Encrypted or password-protected files (Excel, SQLite, Access) cannot be read: save a copy without the password first.
 - Files DataBrief recognises but cannot read (a DuckDB database, HDF5, Arrow / Feather, ORC, Avro, PDF, a SQL Server `.bak`, an Oracle `.dmp`) are
   recognised by their content, whatever their name, and answered with what to do instead. `.gz` files (`dump.sql.gz`, `data.csv.gz`) are unpacked and read.
-- SQL dumps are read up to 250,000 rows per table (the counts stay exact). PostgreSQL's directory format (`pg_dump -Fd`)
+- SQL dumps are read up to 250,000 rows per table (the counts stay exact). A `.gz` file, a zipped DuckDB export or one
+  table of a PostgreSQL archive larger than 1 GB once decompressed is not read (the table is named as skipped). PostgreSQL's directory format (`pg_dump -Fd`)
   is not read: use `-Fc` or a plain dump. SQL Server and Oracle scripts are tested with hand-written examples only;
   PostgreSQL, MySQL, MariaDB, SQLite, ClickHouse and DuckDB with real dumps of each engine. Access files used in the tests
   were written by Jackcess, not by Microsoft Access, and there is no Access 97 file among them.

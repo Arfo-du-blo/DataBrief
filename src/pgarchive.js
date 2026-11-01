@@ -101,8 +101,8 @@
   /* ---------------------------------------------------------------- decompression ---------- */
   // LZ4 frame format (what pg_dump writes): blocks may refer to earlier blocks, so all go into one output buffer.
   function lz4Frames(src) {
-    let out = new Uint8Array(Math.max(1024, src.length * 4)), op = 0;
-    const ensure = (n) => { if (op + n <= out.length) return; let size = out.length * 2; while (size < op + n) size *= 2; const o = new Uint8Array(size); o.set(out.subarray(0, op)); out = o; };
+    let out = new Uint8Array(Math.max(1024, Math.min(src.length * 4, LIMIT))), op = 0;
+    const ensure = (n) => { if (op + n > LIMIT) throw tooLarge(); if (op + n <= out.length) return; let size = out.length * 2; while (size < op + n) size *= 2; size = Math.min(size, LIMIT); const o = new Uint8Array(size); o.set(out.subarray(0, op)); out = o; };
     let p = 0;
     const u32 = (q) => (src[q] | (src[q + 1] << 8) | (src[q + 2] << 16) | (src[q + 3] << 24)) >>> 0;
     while (p + 4 <= src.length) {
@@ -148,12 +148,30 @@
     }
     return out.subarray(0, op);
   }
+  /* One table's data at most 1 GB once decompressed (the same limit as .gz files): a larger one, or a "bomb", is skipped
+     and named, instead of filling the memory. Decoded step by step, so the limit is checked while it grows. */
+  const LIMIT_DEFAULT = 1024 * 1024 * 1024;
+  let LIMIT = LIMIT_DEFAULT;   // DB.PG_ARCHIVE_LIMIT (tests) is read at the start of each archive
+  const tooLarge = () => { const e = fail('pgArchiveTooLarge', 'larger than 1 GB once decompressed'); e.tooLarge = true; return e; };
+  function streamed(Ctor, bytes) {
+    const parts = [];
+    let size = 0;
+    const s = new Ctor((chunk) => { size += chunk.length; if (size > LIMIT) throw tooLarge(); parts.push(chunk); });
+    for (let i = 0; i < bytes.length; i += 1 << 20) s.push(bytes.subarray(i, Math.min(bytes.length, i + (1 << 20))), false);
+    s.push(new Uint8Array(0), true);
+    if (parts.length === 1) return parts[0];
+    const out = new Uint8Array(size);
+    let at = 0;
+    for (const p of parts) { out.set(p, at); at += p.length; }
+    return out;
+  }
+  DB.pgStreamed = streamed;   // for the tests
   function decompress(algo, bytes) {
     switch (algo) {
       case 0: return bytes;
-      case 1: return window.fflate.unzlibSync(bytes);
+      case 1: return streamed(window.fflate.Unzlib, bytes);
       case 2: return lz4Frames(bytes);
-      case 3: return window.fzstd.decompress(bytes);
+      case 3: return streamed(window.fzstd.Decompress, bytes);
       default: throw fail('pgArchiveCompression', 'unknown compression ' + algo);
     }
   }
@@ -227,6 +245,7 @@
     KOI8U: 'koi8-u', EUC_JP: 'euc-jp', SJIS: 'shift_jis', EUC_KR: 'euc-kr', GBK: 'gbk', GB18030: 'gb18030', BIG5: 'big5', EUC_CN: 'gb2312' };
 
   DB.parsePgArchive = function (u8, opts) {
+    LIMIT = DB.PG_ARCHIVE_LIMIT || LIMIT_DEFAULT;
     const kind = DB.isPgArchive(u8);
     if (!kind) throw fail('pgArchiveCorrupt', 'not a pg_dump archive');
     const problems = [], skipped = [];
@@ -275,10 +294,10 @@
           const name = text(te.file);
           const f = name && (files.get(name) || files.get(name + '.gz'));
           if (!f) { if (desc === 'TABLE DATA') { problems.push('data file of ' + text(te.tag) + ' missing'); skipped.push(text(te.tag)); } continue; }
-          raw = files.has(name) ? f : window.fflate.gunzipSync(f);
+          raw = files.has(name) ? f : streamed(window.fflate.Gunzip, f);
         }
       } catch (e) {
-        problems.push('data of ' + text(te.tag) + ' could not be decompressed');
+        problems.push('data of ' + text(te.tag) + (e && e.tooLarge ? ' is larger than 1 GB once decompressed: not read' : ' could not be decompressed'));
         skipped.push(text(te.tag));
         continue;
       }
