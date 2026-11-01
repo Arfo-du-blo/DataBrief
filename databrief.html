@@ -3458,6 +3458,80 @@ window.DB_I18N = {
   for (const [lang, vals] of Object.entries(U)) UK.forEach((k, i) => { window.DB_I18N.ui[lang][k] = vals[i]; });
 })();
 </script>
+<script>/* DataBrief - translations for DBF files (dBase, FoxPro, Visual FoxPro). GPL-3.0-or-later.
+ * Prompt order: mDbVersion, mMemo, mDeleted, mCutRecords. UI order: fcDbfReads, fcDbfBest, fcDbfGood */
+'use strict';
+(function () {
+  const PK = ['mDbVersion', 'mMemo', 'mDeleted', 'mCutRecords'];
+  const UK = ['fcDbfReads', 'fcDbfBest', 'fcDbfGood'];
+  const P = {
+    en: ["DBF version", "Memo fields (text stored in a separate file, not read)", "Deleted records (not read)", "Records announced by the header but missing from the file (the file is cut)"],
+    fr: ["Version du DBF", "Champs mémo (texte stocké dans un fichier séparé, non lu)", "Enregistrements supprimés (non lus)", "Enregistrements annoncés par l'en-tête mais absents du fichier (le fichier est tronqué)"],
+    es: ["Versión del DBF", "Campos memo (texto guardado en un archivo aparte, no leído)", "Registros eliminados (no leídos)", "Registros anunciados por el encabezado pero ausentes del archivo (el archivo está cortado)"],
+    de: ["DBF-Version", "Memofelder (Text in einer separaten Datei, nicht gelesen)", "Gelöschte Datensätze (nicht gelesen)", "Im Kopf angekündigte, in der Datei aber fehlende Datensätze (die Datei ist abgeschnitten)"],
+    it: ["Versione del DBF", "Campi memo (testo salvato in un file separato, non letto)", "Record eliminati (non letti)", "Record annunciati dall'intestazione ma assenti dal file (il file è troncato)"],
+    pt: ["Versão do DBF", "Campos memo (texto guardado em um arquivo separado, não lido)", "Registros excluídos (não lidos)", "Registros anunciados pelo cabeçalho mas ausentes do arquivo (o arquivo está cortado)"],
+    nl: ["DBF-versie", "Memovelden (tekst in een apart bestand, niet gelezen)", "Verwijderde records (niet gelezen)", "Records die de header aankondigt maar die in het bestand ontbreken (het bestand is afgekapt)"],
+    pl: ["Wersja DBF", "Pola memo (tekst w osobnym pliku, nieodczytany)", "Usunięte rekordy (nieodczytane)", "Rekordy zapowiedziane w nagłówku, których brakuje w pliku (plik jest ucięty)"],
+    ru: ["Версия DBF", "Поля memo (текст хранится в отдельном файле, не прочитан)", "Удалённые записи (не прочитаны)", "Записи, объявленные в заголовке, но отсутствующие в файле (файл обрезан)"],
+    tr: ["DBF sürümü", "Not alanları (metin ayrı bir dosyada, okunmadı)", "Silinmiş kayıtlar (okunmadı)", "Başlıkta bildirilen ama dosyada eksik kayıtlar (dosya kesilmiş)"],
+    zh: ["DBF 版本", "备注字段（文本存放在单独文件中，未读取）", "已删除的记录（未读取）", "文件头声明但文件中缺失的记录（文件被截断）"],
+    ja: ["DBF のバージョン", "メモフィールド（テキストは別ファイルにあり、未読み取り）", "削除済みレコード（未読み取り）", "ヘッダーでは宣言されているがファイルにないレコード（ファイルが途中で切れています）"],
+    ko: ["DBF 버전", "메모 필드(텍스트가 별도 파일에 있어 읽지 않음)", "삭제된 레코드(읽지 않음)", "헤더에는 있지만 파일에 없는 레코드(파일이 잘려 있음)"],
+    hi: ["DBF संस्करण", "मेमो फ़ील्ड (टेक्स्ट अलग फ़ाइल में, पढ़ा नहीं गया)", "हटाए गए रिकॉर्ड (पढ़े नहीं गए)", "हेडर में बताए गए लेकिन फ़ाइल में अनुपस्थित रिकॉर्ड (फ़ाइल कटी हुई है)"],
+    ar: ["إصدار DBF", "حقول المذكرة (النص مخزّن في ملف منفصل، لم يُقرأ)", "السجلات المحذوفة (لم تُقرأ)", "سجلات أعلن عنها الترويس لكنها غائبة عن الملف (الملف مقطوع)"],
+  };
+  const U = {
+    en: ["The one table of a dBase, FoxPro or Visual FoxPro file: field names and types, and every record that is not deleted. The text encoding is taken from the file's code page (DOS and Windows code pages, Cyrillic, Greek, Turkish, Japanese, Chinese, Korean...).",
+      "The .dbf file itself. Shapefile attribute tables (a .dbf next to a .shp) are DBF files too.",
+      "Memo fields are stored in a separate .dbt or .fpt file, which is not read: they are listed as not read. Deleted records are skipped and counted. A file cut short is read as far as it goes. Only the first 250,000 records are kept (the counts stay exact)."],
+    fr: ["L'unique table d'un fichier dBase, FoxPro ou Visual FoxPro : noms et types des champs, et chaque enregistrement non supprimé. L'encodage du texte est déduit de la page de code du fichier (pages DOS et Windows, cyrillique, grec, turc, japonais, chinois, coréen...).",
+      "Le fichier .dbf lui-même. Les tables d'attributs des shapefiles (.dbf à côté d'un .shp) sont aussi des fichiers DBF.",
+      "Les champs mémo sont stockés dans un fichier .dbt ou .fpt à part, qui n'est pas lu : ils sont signalés comme non lus. Les enregistrements supprimés sont ignorés et comptés. Un fichier tronqué est lu jusqu'où il va. Seuls les 250 000 premiers enregistrements sont conservés (les nombres restent exacts)."],
+    es: ["La única tabla de un archivo dBase, FoxPro o Visual FoxPro: nombres y tipos de los campos y cada registro no eliminado. La codificación del texto se toma de la página de códigos del archivo (páginas DOS y Windows, cirílico, griego, turco, japonés, chino, coreano...).",
+      "El propio archivo .dbf. Las tablas de atributos de los shapefiles (.dbf junto a un .shp) también son archivos DBF.",
+      "Los campos memo se guardan en un archivo .dbt o .fpt aparte, que no se lee: se indican como no leídos. Los registros eliminados se omiten y se cuentan. Un archivo cortado se lee hasta donde llega. Solo se conservan los primeros 250 000 registros (los recuentos siguen siendo exactos)."],
+    de: ["Die eine Tabelle einer dBase-, FoxPro- oder Visual-FoxPro-Datei: Feldnamen und -typen sowie jeder nicht gelöschte Datensatz. Die Textkodierung wird aus der Codepage der Datei abgeleitet (DOS- und Windows-Codepages, Kyrillisch, Griechisch, Türkisch, Japanisch, Chinesisch, Koreanisch ...).",
+      "Die .dbf-Datei selbst. Attributtabellen von Shapefiles (.dbf neben einer .shp) sind ebenfalls DBF-Dateien.",
+      "Memofelder liegen in einer separaten .dbt- oder .fpt-Datei, die nicht gelesen wird: Sie werden als nicht gelesen aufgeführt. Gelöschte Datensätze werden übersprungen und gezählt. Eine abgeschnittene Datei wird so weit gelesen, wie sie reicht. Nur die ersten 250.000 Datensätze bleiben erhalten (die Zahlen bleiben exakt)."],
+    it: ["L'unica tabella di un file dBase, FoxPro o Visual FoxPro: nomi e tipi dei campi e ogni record non eliminato. La codifica del testo si ricava dalla tabella codici del file (tabelle DOS e Windows, cirillico, greco, turco, giapponese, cinese, coreano...).",
+      "Il file .dbf stesso. Le tabelle degli attributi degli shapefile (.dbf accanto a un .shp) sono anch'esse file DBF.",
+      "I campi memo sono salvati in un file .dbt o .fpt a parte, che non viene letto: sono indicati come non letti. I record eliminati vengono saltati e contati. Un file troncato viene letto fin dove arriva. Si conservano solo i primi 250.000 record (i conteggi restano esatti)."],
+    pt: ["A única tabela de um arquivo dBase, FoxPro ou Visual FoxPro: nomes e tipos dos campos e cada registro não excluído. A codificação do texto vem da página de código do arquivo (páginas DOS e Windows, cirílico, grego, turco, japonês, chinês, coreano...).",
+      "O próprio arquivo .dbf. As tabelas de atributos de shapefiles (.dbf ao lado de um .shp) também são arquivos DBF.",
+      "Campos memo ficam em um arquivo .dbt ou .fpt separado, que não é lido: são indicados como não lidos. Registros excluídos são ignorados e contados. Um arquivo cortado é lido até onde vai. Só os primeiros 250.000 registros são mantidos (as contagens continuam exatas)."],
+    nl: ["De ene tabel van een dBase-, FoxPro- of Visual FoxPro-bestand: veldnamen en -typen en elk niet-verwijderd record. De tekencodering komt uit de codepagina van het bestand (DOS- en Windows-codepagina's, Cyrillisch, Grieks, Turks, Japans, Chinees, Koreaans...).",
+      "Het .dbf-bestand zelf. Attributentabellen van shapefiles (.dbf naast een .shp) zijn ook DBF-bestanden.",
+      "Memovelden staan in een apart .dbt- of .fpt-bestand, dat niet wordt gelezen: ze worden als niet gelezen vermeld. Verwijderde records worden overgeslagen en geteld. Een afgekapt bestand wordt gelezen zo ver het gaat. Alleen de eerste 250.000 records blijven bewaard (de aantallen blijven exact)."],
+    pl: ["Jedyna tabela pliku dBase, FoxPro lub Visual FoxPro: nazwy i typy pól oraz każdy nieusunięty rekord. Kodowanie tekstu wynika ze strony kodowej pliku (strony kodowe DOS i Windows, cyrylica, greka, turecki, japoński, chiński, koreański...).",
+      "Sam plik .dbf. Tabele atrybutów shapefile (.dbf obok .shp) to także pliki DBF.",
+      "Pola memo są w osobnym pliku .dbt lub .fpt, który nie jest odczytywany: są wymienione jako nieodczytane. Usunięte rekordy są pomijane i liczone. Ucięty plik jest czytany tak daleko, jak sięga. Zachowywane jest tylko pierwsze 250 000 rekordów (liczby pozostają dokładne)."],
+    ru: ["Единственная таблица файла dBase, FoxPro или Visual FoxPro: имена и типы полей и каждая неудалённая запись. Кодировка текста берётся из кодовой страницы файла (кодовые страницы DOS и Windows, кириллица, греческая, турецкая, японская, китайская, корейская...).",
+      "Сам файл .dbf. Таблицы атрибутов shapefile (.dbf рядом с .shp) — тоже файлы DBF.",
+      "Поля memo хранятся в отдельном файле .dbt или .fpt, который не читается: они указываются как непрочитанные. Удалённые записи пропускаются и подсчитываются. Обрезанный файл читается, насколько хватает. Сохраняются только первые 250 000 записей (числа остаются точными)."],
+    tr: ["Bir dBase, FoxPro veya Visual FoxPro dosyasının tek tablosu: alan adları ve türleri ile silinmemiş her kayıt. Metin kodlaması dosyanın kod sayfasından alınır (DOS ve Windows kod sayfaları, Kiril, Yunanca, Türkçe, Japonca, Çince, Korece...).",
+      "Doğrudan .dbf dosyası. Shapefile öznitelik tabloları (bir .shp yanındaki .dbf) de DBF dosyalarıdır.",
+      "Not alanları ayrı bir .dbt veya .fpt dosyasında saklanır ve okunmaz: okunmadı olarak listelenir. Silinmiş kayıtlar atlanır ve sayılır. Kesilmiş bir dosya gittiği yere kadar okunur. Yalnızca ilk 250.000 kayıt tutulur (sayılar kesin kalır)."],
+    zh: ["dBase、FoxPro 或 Visual FoxPro 文件中的唯一一张表：字段名称和类型，以及每条未删除的记录。文本编码取自文件的代码页（DOS 和 Windows 代码页、西里尔文、希腊文、土耳其文、日文、中文、韩文等）。",
+      "直接提供 .dbf 文件。Shapefile 的属性表（.shp 旁边的 .dbf）也是 DBF 文件。",
+      "备注字段存放在单独的 .dbt 或 .fpt 文件中，不会被读取：它们会被列为未读取。已删除的记录会被跳过并计数。被截断的文件会读取到可读的位置。只保留前 250,000 条记录（计数保持准确）。"],
+    ja: ["dBase、FoxPro、Visual FoxPro ファイルの唯一のテーブル：フィールド名と型、そして削除されていないすべてのレコード。文字コードはファイルのコードページから判断します（DOS・Windows のコードページ、キリル文字、ギリシャ文字、トルコ語、日本語、中国語、韓国語など）。",
+      ".dbf ファイルそのもの。シェープファイルの属性テーブル（.shp の隣の .dbf）も DBF ファイルです。",
+      "メモフィールドは別の .dbt または .fpt ファイルに保存されており、読み取りません。未読み取りとして記載します。削除済みレコードはスキップして数えます。途中で切れたファイルは読める所まで読みます。先頭の 250,000 レコードだけを保持します（件数は正確なままです）。"],
+    ko: ["dBase, FoxPro 또는 Visual FoxPro 파일의 하나뿐인 테이블: 필드 이름과 형식, 그리고 삭제되지 않은 모든 레코드. 텍스트 인코딩은 파일의 코드 페이지에서 알아냅니다(DOS·Windows 코드 페이지, 키릴 문자, 그리스어, 터키어, 일본어, 중국어, 한국어 등).",
+      ".dbf 파일 자체. 셰이프파일의 속성 테이블(.shp 옆의 .dbf)도 DBF 파일입니다.",
+      "메모 필드는 별도의 .dbt 또는 .fpt 파일에 저장되며 읽지 않습니다. 읽지 않은 것으로 표시됩니다. 삭제된 레코드는 건너뛰고 개수를 셉니다. 잘린 파일은 읽을 수 있는 곳까지 읽습니다. 처음 250,000개 레코드만 보관합니다(개수는 정확하게 유지됩니다)."],
+    hi: ["dBase, FoxPro या Visual FoxPro फ़ाइल की एकमात्र तालिका: फ़ील्ड के नाम और प्रकार, और हर न हटाया गया रिकॉर्ड। टेक्स्ट एन्कोडिंग फ़ाइल के कोड पेज से ली जाती है (DOS और Windows कोड पेज, सिरिलिक, यूनानी, तुर्की, जापानी, चीनी, कोरियाई...)।",
+      "स्वयं .dbf फ़ाइल। शेपफ़ाइल की एट्रिब्यूट तालिकाएँ (.shp के पास की .dbf) भी DBF फ़ाइलें हैं।",
+      "मेमो फ़ील्ड एक अलग .dbt या .fpt फ़ाइल में रहते हैं, जिसे पढ़ा नहीं जाता: उन्हें न पढ़े गए के रूप में सूचीबद्ध किया जाता है। हटाए गए रिकॉर्ड छोड़ दिए जाते हैं और गिने जाते हैं। कटी हुई फ़ाइल जहाँ तक जाती है वहाँ तक पढ़ी जाती है। केवल पहले 250,000 रिकॉर्ड रखे जाते हैं (गिनती सटीक रहती है)।"],
+    ar: ["الجدول الوحيد في ملف dBase أو FoxPro أو Visual FoxPro: أسماء الحقول وأنواعها وكل سجل غير محذوف. يُستنتج ترميز النص من صفحة رموز الملف (صفحات DOS وWindows، السيريلية، اليونانية، التركية، اليابانية، الصينية، الكورية...).",
+      "ملف ‎.dbf نفسه. وجداول السمات في ملفات shapefile (ملف ‎.dbf المجاور لملف ‎.shp) هي أيضًا ملفات DBF.",
+      "تُخزَّن حقول المذكرة في ملف ‎.dbt أو ‎.fpt منفصل لا يُقرأ: يُشار إليها على أنها لم تُقرأ. تُتخطّى السجلات المحذوفة وتُحصى. يُقرأ الملف المقطوع بقدر ما يصل. يُحتفَظ فقط بأول 250,000 سجل (وتبقى الأعداد دقيقة)."],
+  };
+  for (const [lang, vals] of Object.entries(P)) PK.forEach((k, i) => { window.DB_I18N.prompt[lang][k] = vals[i]; });
+  for (const [lang, vals] of Object.entries(U)) UK.forEach((k, i) => { window.DB_I18N.ui[lang][k] = vals[i]; });
+})();
+</script>
 <script>/* DataBrief - shared helpers. GPL-3.0-or-later. */
 'use strict';
 (function () {
@@ -4080,7 +4154,7 @@ window.DB_I18N = {
   // File metadata that is free text written by people (it may hold anything): shown only when the user allows it.
   const FREE_TEXT_META = new Set(['mFileLabel', 'mDocs', 'mEmbedded']);
   // File metadata made of names: hidden when names are replaced. Embedded pandas / Spark metadata lists the columns.
-  const NAME_META = new Set(['mViews', 'mSkipped', 'mNames', 'mRoot', 'mWeight', 'mEmbedded', 'mExternal']);
+  const NAME_META = new Set(['mViews', 'mSkipped', 'mNames', 'mRoot', 'mWeight', 'mEmbedded', 'mExternal', 'mMemo']);
   const copy = (v) => (v == null ? v : JSON.parse(JSON.stringify(v)));
   const baseOf = (name) => (name || 'data').replace(/\.[^.]+$/, '') || 'data';
   // Excel defined names: keep only references to cells ("Sheet!$A$1:$B$9"), not constants (="Smith" is a value).
@@ -4647,6 +4721,228 @@ window.DB_I18N = {
       fileMeta,
       notes: { valueLabels: vars.some((v) => v.labels && v.labels.size), isoDates },
     };
+  };
+})();
+</script>
+<script>/* DataBrief - DOS code pages for DBF files: the characters of bytes 128-255. GENERATED by tests/make_dbf_fixtures.py from Python's
+ * codecs: do not edit by hand. GPL-3.0-or-later. */
+'use strict';
+window.DB = window.DB || {};
+window.DB.DBF_CODEPAGES = {
+  437: "\u00c7\u00fc\u00e9\u00e2\u00e4\u00e0\u00e5\u00e7\u00ea\u00eb\u00e8\u00ef\u00ee\u00ec\u00c4\u00c5\u00c9\u00e6\u00c6\u00f4\u00f6\u00f2\u00fb\u00f9\u00ff\u00d6\u00dc\u00a2\u00a3\u00a5\u20a7\u0192\u00e1\u00ed\u00f3\u00fa\u00f1\u00d1\u00aa\u00ba\u00bf\u2310\u00ac\u00bd\u00bc\u00a1\u00ab\u00bb\u2591\u2592\u2593\u2502\u2524\u2561\u2562\u2556\u2555\u2563\u2551\u2557\u255d\u255c\u255b\u2510\u2514\u2534\u252c\u251c\u2500\u253c\u255e\u255f\u255a\u2554\u2569\u2566\u2560\u2550\u256c\u2567\u2568\u2564\u2565\u2559\u2558\u2552\u2553\u256b\u256a\u2518\u250c\u2588\u2584\u258c\u2590\u2580\u03b1\u00df\u0393\u03c0\u03a3\u03c3\u00b5\u03c4\u03a6\u0398\u03a9\u03b4\u221e\u03c6\u03b5\u2229\u2261\u00b1\u2265\u2264\u2320\u2321\u00f7\u2248\u00b0\u2219\u00b7\u221a\u207f\u00b2\u25a0\u00a0",
+  850: "\u00c7\u00fc\u00e9\u00e2\u00e4\u00e0\u00e5\u00e7\u00ea\u00eb\u00e8\u00ef\u00ee\u00ec\u00c4\u00c5\u00c9\u00e6\u00c6\u00f4\u00f6\u00f2\u00fb\u00f9\u00ff\u00d6\u00dc\u00f8\u00a3\u00d8\u00d7\u0192\u00e1\u00ed\u00f3\u00fa\u00f1\u00d1\u00aa\u00ba\u00bf\u00ae\u00ac\u00bd\u00bc\u00a1\u00ab\u00bb\u2591\u2592\u2593\u2502\u2524\u00c1\u00c2\u00c0\u00a9\u2563\u2551\u2557\u255d\u00a2\u00a5\u2510\u2514\u2534\u252c\u251c\u2500\u253c\u00e3\u00c3\u255a\u2554\u2569\u2566\u2560\u2550\u256c\u00a4\u00f0\u00d0\u00ca\u00cb\u00c8\u0131\u00cd\u00ce\u00cf\u2518\u250c\u2588\u2584\u00a6\u00cc\u2580\u00d3\u00df\u00d4\u00d2\u00f5\u00d5\u00b5\u00fe\u00de\u00da\u00db\u00d9\u00fd\u00dd\u00af\u00b4\u00ad\u00b1\u2017\u00be\u00b6\u00a7\u00f7\u00b8\u00b0\u00a8\u00b7\u00b9\u00b3\u00b2\u25a0\u00a0",
+  852: "\u00c7\u00fc\u00e9\u00e2\u00e4\u016f\u0107\u00e7\u0142\u00eb\u0150\u0151\u00ee\u0179\u00c4\u0106\u00c9\u0139\u013a\u00f4\u00f6\u013d\u013e\u015a\u015b\u00d6\u00dc\u0164\u0165\u0141\u00d7\u010d\u00e1\u00ed\u00f3\u00fa\u0104\u0105\u017d\u017e\u0118\u0119\u00ac\u017a\u010c\u015f\u00ab\u00bb\u2591\u2592\u2593\u2502\u2524\u00c1\u00c2\u011a\u015e\u2563\u2551\u2557\u255d\u017b\u017c\u2510\u2514\u2534\u252c\u251c\u2500\u253c\u0102\u0103\u255a\u2554\u2569\u2566\u2560\u2550\u256c\u00a4\u0111\u0110\u010e\u00cb\u010f\u0147\u00cd\u00ce\u011b\u2518\u250c\u2588\u2584\u0162\u016e\u2580\u00d3\u00df\u00d4\u0143\u0144\u0148\u0160\u0161\u0154\u00da\u0155\u0170\u00fd\u00dd\u0163\u00b4\u00ad\u02dd\u02db\u02c7\u02d8\u00a7\u00f7\u00b8\u00b0\u00a8\u02d9\u0171\u0158\u0159\u25a0\u00a0",
+  857: "\u00c7\u00fc\u00e9\u00e2\u00e4\u00e0\u00e5\u00e7\u00ea\u00eb\u00e8\u00ef\u00ee\u0131\u00c4\u00c5\u00c9\u00e6\u00c6\u00f4\u00f6\u00f2\u00fb\u00f9\u0130\u00d6\u00dc\u00f8\u00a3\u00d8\u015e\u015f\u00e1\u00ed\u00f3\u00fa\u00f1\u00d1\u011e\u011f\u00bf\u00ae\u00ac\u00bd\u00bc\u00a1\u00ab\u00bb\u2591\u2592\u2593\u2502\u2524\u00c1\u00c2\u00c0\u00a9\u2563\u2551\u2557\u255d\u00a2\u00a5\u2510\u2514\u2534\u252c\u251c\u2500\u253c\u00e3\u00c3\u255a\u2554\u2569\u2566\u2560\u2550\u256c\u00a4\u00ba\u00aa\u00ca\u00cb\u00c8\ufffd\u00cd\u00ce\u00cf\u2518\u250c\u2588\u2584\u00a6\u00cc\u2580\u00d3\u00df\u00d4\u00d2\u00f5\u00d5\u00b5\ufffd\u00d7\u00da\u00db\u00d9\u00ec\u00ff\u00af\u00b4\u00ad\u00b1\ufffd\u00be\u00b6\u00a7\u00f7\u00b8\u00b0\u00a8\u00b7\u00b9\u00b3\u00b2\u25a0\u00a0",
+  737: "\u0391\u0392\u0393\u0394\u0395\u0396\u0397\u0398\u0399\u039a\u039b\u039c\u039d\u039e\u039f\u03a0\u03a1\u03a3\u03a4\u03a5\u03a6\u03a7\u03a8\u03a9\u03b1\u03b2\u03b3\u03b4\u03b5\u03b6\u03b7\u03b8\u03b9\u03ba\u03bb\u03bc\u03bd\u03be\u03bf\u03c0\u03c1\u03c3\u03c2\u03c4\u03c5\u03c6\u03c7\u03c8\u2591\u2592\u2593\u2502\u2524\u2561\u2562\u2556\u2555\u2563\u2551\u2557\u255d\u255c\u255b\u2510\u2514\u2534\u252c\u251c\u2500\u253c\u255e\u255f\u255a\u2554\u2569\u2566\u2560\u2550\u256c\u2567\u2568\u2564\u2565\u2559\u2558\u2552\u2553\u256b\u256a\u2518\u250c\u2588\u2584\u258c\u2590\u2580\u03c9\u03ac\u03ad\u03ae\u03ca\u03af\u03cc\u03cd\u03cb\u03ce\u0386\u0388\u0389\u038a\u038c\u038e\u038f\u00b1\u2265\u2264\u03aa\u03ab\u00f7\u2248\u00b0\u2219\u00b7\u221a\u207f\u00b2\u25a0\u00a0",
+  860: "\u00c7\u00fc\u00e9\u00e2\u00e3\u00e0\u00c1\u00e7\u00ea\u00ca\u00e8\u00cd\u00d4\u00ec\u00c3\u00c2\u00c9\u00c0\u00c8\u00f4\u00f5\u00f2\u00da\u00f9\u00cc\u00d5\u00dc\u00a2\u00a3\u00d9\u20a7\u00d3\u00e1\u00ed\u00f3\u00fa\u00f1\u00d1\u00aa\u00ba\u00bf\u00d2\u00ac\u00bd\u00bc\u00a1\u00ab\u00bb\u2591\u2592\u2593\u2502\u2524\u2561\u2562\u2556\u2555\u2563\u2551\u2557\u255d\u255c\u255b\u2510\u2514\u2534\u252c\u251c\u2500\u253c\u255e\u255f\u255a\u2554\u2569\u2566\u2560\u2550\u256c\u2567\u2568\u2564\u2565\u2559\u2558\u2552\u2553\u256b\u256a\u2518\u250c\u2588\u2584\u258c\u2590\u2580\u03b1\u00df\u0393\u03c0\u03a3\u03c3\u00b5\u03c4\u03a6\u0398\u03a9\u03b4\u221e\u03c6\u03b5\u2229\u2261\u00b1\u2265\u2264\u2320\u2321\u00f7\u2248\u00b0\u2219\u00b7\u221a\u207f\u00b2\u25a0\u00a0",
+  861: "\u00c7\u00fc\u00e9\u00e2\u00e4\u00e0\u00e5\u00e7\u00ea\u00eb\u00e8\u00d0\u00f0\u00de\u00c4\u00c5\u00c9\u00e6\u00c6\u00f4\u00f6\u00fe\u00fb\u00dd\u00fd\u00d6\u00dc\u00f8\u00a3\u00d8\u20a7\u0192\u00e1\u00ed\u00f3\u00fa\u00c1\u00cd\u00d3\u00da\u00bf\u2310\u00ac\u00bd\u00bc\u00a1\u00ab\u00bb\u2591\u2592\u2593\u2502\u2524\u2561\u2562\u2556\u2555\u2563\u2551\u2557\u255d\u255c\u255b\u2510\u2514\u2534\u252c\u251c\u2500\u253c\u255e\u255f\u255a\u2554\u2569\u2566\u2560\u2550\u256c\u2567\u2568\u2564\u2565\u2559\u2558\u2552\u2553\u256b\u256a\u2518\u250c\u2588\u2584\u258c\u2590\u2580\u03b1\u00df\u0393\u03c0\u03a3\u03c3\u00b5\u03c4\u03a6\u0398\u03a9\u03b4\u221e\u03c6\u03b5\u2229\u2261\u00b1\u2265\u2264\u2320\u2321\u00f7\u2248\u00b0\u2219\u00b7\u221a\u207f\u00b2\u25a0\u00a0",
+  863: "\u00c7\u00fc\u00e9\u00e2\u00c2\u00e0\u00b6\u00e7\u00ea\u00eb\u00e8\u00ef\u00ee\u2017\u00c0\u00a7\u00c9\u00c8\u00ca\u00f4\u00cb\u00cf\u00fb\u00f9\u00a4\u00d4\u00dc\u00a2\u00a3\u00d9\u00db\u0192\u00a6\u00b4\u00f3\u00fa\u00a8\u00b8\u00b3\u00af\u00ce\u2310\u00ac\u00bd\u00bc\u00be\u00ab\u00bb\u2591\u2592\u2593\u2502\u2524\u2561\u2562\u2556\u2555\u2563\u2551\u2557\u255d\u255c\u255b\u2510\u2514\u2534\u252c\u251c\u2500\u253c\u255e\u255f\u255a\u2554\u2569\u2566\u2560\u2550\u256c\u2567\u2568\u2564\u2565\u2559\u2558\u2552\u2553\u256b\u256a\u2518\u250c\u2588\u2584\u258c\u2590\u2580\u03b1\u00df\u0393\u03c0\u03a3\u03c3\u00b5\u03c4\u03a6\u0398\u03a9\u03b4\u221e\u03c6\u03b5\u2229\u2261\u00b1\u2265\u2264\u2320\u2321\u00f7\u2248\u00b0\u2219\u00b7\u221a\u207f\u00b2\u25a0\u00a0",
+  865: "\u00c7\u00fc\u00e9\u00e2\u00e4\u00e0\u00e5\u00e7\u00ea\u00eb\u00e8\u00ef\u00ee\u00ec\u00c4\u00c5\u00c9\u00e6\u00c6\u00f4\u00f6\u00f2\u00fb\u00f9\u00ff\u00d6\u00dc\u00f8\u00a3\u00d8\u20a7\u0192\u00e1\u00ed\u00f3\u00fa\u00f1\u00d1\u00aa\u00ba\u00bf\u2310\u00ac\u00bd\u00bc\u00a1\u00ab\u00a4\u2591\u2592\u2593\u2502\u2524\u2561\u2562\u2556\u2555\u2563\u2551\u2557\u255d\u255c\u255b\u2510\u2514\u2534\u252c\u251c\u2500\u253c\u255e\u255f\u255a\u2554\u2569\u2566\u2560\u2550\u256c\u2567\u2568\u2564\u2565\u2559\u2558\u2552\u2553\u256b\u256a\u2518\u250c\u2588\u2584\u258c\u2590\u2580\u03b1\u00df\u0393\u03c0\u03a3\u03c3\u00b5\u03c4\u03a6\u0398\u03a9\u03b4\u221e\u03c6\u03b5\u2229\u2261\u00b1\u2265\u2264\u2320\u2321\u00f7\u2248\u00b0\u2219\u00b7\u221a\u207f\u00b2\u25a0\u00a0",
+};
+</script>
+<script>/* DataBrief - DBF reader (dBase III / IV, FoxBase, FoxPro, Visual FoxPro). GPL-3.0-or-later.
+ *
+ * A .dbf file is one table: a header, the field descriptions, then fixed-size records. Memo texts live in another file
+ * (.dbt / .fpt) that is not read: memo fields are listed, never filled. Deleted records are skipped and counted.
+ *
+ *   DB.looksLikeDbf(u8) -> boolean          (a .dbf has no signature: version byte, header and record length must agree)
+ *   DB.parseDbf(u8, { maxRows }) -> { sections: [one], fileMeta, notes }
+ *   DB.DBF_LANG: language-driver byte -> decoder, exported so tests can compare it with another implementation's table.
+ * Throws DB.UserError('errCorrupt') for a file that is not a DBF. A file cut short is read as far as it goes (fileMeta says so). */
+'use strict';
+(function () {
+  const DB = window.DB;
+
+  const VERSIONS = {
+    0x02: 'FoxBase', 0x03: 'dBase III / FoxPro 2.x', 0x04: 'dBase IV', 0x05: 'dBase V', 0x30: 'Visual FoxPro', 0x31: 'Visual FoxPro (autoincrement)',
+    0x32: 'Visual FoxPro (varchar)', 0x43: 'dBase IV SQL system', 0x63: 'dBase IV SQL system', 0x83: 'dBase III with memo', 0x8b: 'dBase IV with memo',
+    0x8e: 'dBase IV with SQL table', 0xcb: 'dBase IV SQL table with memo', 0xf5: 'FoxPro 2.x with memo', 0xfb: 'FoxBase',
+  };
+
+  /* Language-driver byte (offset 29) -> how the text is written. "dos:N" = a DOS code page from DB.DBF_CODEPAGES (generated from Python's
+     codecs); the others are names TextDecoder knows. The same table as the dbf library's, checked by tests/test_dbf.cjs. */
+  const GROUPS = [
+    ['dos:437', [0x01, 0x09, 0x0b, 0x0d, 0x0f, 0x11, 0x15, 0x18, 0x19, 0x1b]], ['dos:850', [0x02, 0x0a, 0x0e, 0x10, 0x12, 0x14, 0x16, 0x1a, 0x1d, 0x25, 0x37]],
+    ['dos:852', [0x1f, 0x22, 0x23, 0x40, 0x64, 0x87]], ['dos:857', [0x6b]], ['dos:737', [0x6a]], ['dos:860', [0x24]], ['dos:861', [0x67]], ['dos:863', [0x1c]],
+    ['dos:865', [0x08, 0x17, 0x66]], ['ibm866', [0x26, 0x65]],
+    ['windows-1250', [0xc8]], ['windows-1251', [0xc9]], ['windows-1252', [0x03, 0x57, 0x58, 0x59]], ['windows-1253', [0xcb]], ['windows-1254', [0xca]],
+    ['windows-1255', [0x7d]], ['windows-1256', [0x7e]], ['windows-1257', [0xcc]], ['windows-874', [0x50, 0x7c]],
+    ['macintosh', [0x04]], ['x-mac-cyrillic', [0x96]], ['shift_jis', [0x13, 0x7b]], ['gbk', [0x4d, 0x7a]], ['euc-kr', [0x4e, 0x79]], ['big5', [0x4f, 0x78]], ['utf-8', [0xf0]],
+  ];
+  const LANG = {};
+  for (const [spec, ids] of GROUPS) for (const id of ids) LANG[id] = spec;
+  DB.DBF_LANG = LANG;
+
+  function makeDecoder(spec) {
+    if (spec && spec.startsWith('dos:')) {
+      const high = DB.DBF_CODEPAGES[spec.slice(4)];
+      return { name: 'cp' + spec.slice(4), decode(b) { let s = ''; for (let i = 0; i < b.length; i++) s += b[i] < 128 ? String.fromCharCode(b[i]) : high[b[i] - 128]; return s; } };
+    }
+    const td = new TextDecoder(spec);
+    return { name: spec, decode: (b) => td.decode(b) };
+  }
+
+  const ascii = (b, a, e) => { let s = ''; for (let i = a; i < e; i++) s += String.fromCharCode(b[i]); return s; };
+
+  /* The field descriptions: from byte 32, 32 bytes each, up to a 0x0D. Returns null when the header does not hold together. */
+  function readFields(u8, hdr) {
+    const fields = [];
+    let p = 32;
+    while (p + 32 <= hdr && u8[p] !== 0x0d) {
+      fields.push({ at: p, type: String.fromCharCode(u8[p + 11]), len: u8[p + 16], dec: u8[p + 17], flags: u8[p + 18] });
+      p += 32;
+    }
+    if (u8[p] !== 0x0d || !fields.length) return null;
+    return fields;
+  }
+  DB.looksLikeDbf = function (u8) {
+    if (u8.length < 66 || !(u8[0] in VERSIONS)) return false;
+    const hdr = u8[8] | (u8[9] << 8), rec = u8[10] | (u8[11] << 8);
+    if (hdr < 33 || hdr > u8.length || rec < 2) return false;
+    const fields = readFields(u8, hdr);
+    return !!fields && fields.reduce((a, f) => a + f.len, 1) === rec;
+  };
+
+  const pad2 = (n) => String(n).padStart(2, '0');
+  // Julian day number -> "YYYY-MM-DD" (proleptic Gregorian, the algorithm of Fliegel and Van Flandern)
+  function fromJulian(jd) {
+    let l = jd + 68569;
+    const n = Math.floor((4 * l) / 146097);
+    l -= Math.floor((146097 * n + 3) / 4);
+    const i = Math.floor((4000 * (l + 1)) / 1461001);
+    l = l - Math.floor((1461 * i) / 4) + 31;
+    const j = Math.floor((80 * l) / 2447);
+    const d = l - Math.floor((2447 * j) / 80);
+    l = Math.floor(j / 11);
+    const m = j + 2 - 12 * l;
+    const y = 100 * (n - 49) + i + l;
+    return String(y).padStart(4, '0') + '-' + pad2(m) + '-' + pad2(d);
+  }
+  function currency(dv, o) {
+    const v = dv.getBigInt64(o, true);
+    const neg = v < 0n;
+    const s = String(neg ? -v : v).padStart(5, '0');
+    const frac = s.slice(-4).replace(/0+$/, '');
+    return (neg ? '-' : '') + s.slice(0, -4) + (frac ? '.' + frac : '');
+  }
+
+  function sqlTypeOf(f) {
+    switch (f.type) {
+      case 'C': return 'CHAR(' + f.len + ')';
+      case 'V': return 'VARCHAR(' + f.len + ')';
+      case 'N': return f.dec ? 'NUMERIC(' + f.len + ',' + f.dec + ')' : 'NUMERIC(' + f.len + ')';
+      case 'F': return 'FLOAT(' + f.len + ',' + f.dec + ')';
+      case 'D': return 'DATE';
+      case 'L': return 'BOOLEAN';
+      case 'M': return 'MEMO';
+      case 'G': return 'GENERAL (OLE)';
+      case 'P': return 'PICTURE';
+      case 'I': return 'INTEGER';
+      case '+': return 'AUTOINCREMENT';
+      case 'Y': return 'CURRENCY';
+      case 'B': return f.len === 8 ? 'DOUBLE' : 'MEMO (binary)';
+      case 'O': return 'DOUBLE';
+      case 'T': case '@': return 'DATETIME';
+      default: return f.type;
+    }
+  }
+
+  DB.parseDbf = function (u8, opts) {
+    const maxRows = (opts && opts.maxRows) || 0;
+    if (!DB.looksLikeDbf(u8)) throw new DB.UserError('errCorrupt', { ext: '.dbf' });
+    const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+    const version = u8[0];
+    const nRec = dv.getUint32(4, true), hdr = dv.getUint16(8, true), rec = dv.getUint16(10, true), lang = u8[29];
+    const fields = readFields(u8, hdr);
+
+    // the text encoding: the language driver byte, else UTF-8 when it fits, else Windows-1252
+    let spec = LANG[lang];
+    let encNote = spec ? '' : ' (no code page in the file)';
+    const have = Math.min(nRec, Math.floor((u8.length - hdr) / rec));
+    if (!spec) {
+      spec = 'utf-8';
+      try {
+        const td = new TextDecoder('utf-8', { fatal: true });
+        for (let i = 0; i < Math.min(have, 2000) && spec === 'utf-8'; i++) td.decode(u8.subarray(hdr + i * rec + 1, hdr + (i + 1) * rec));
+      } catch (e) { spec = 'windows-1252'; }
+    }
+    const dec = makeDecoder(spec);
+
+    // columns (the hidden _NullFlags field is not one)
+    let off = 1;
+    const cols = [];
+    let nullAt = -1;
+    for (const f of fields) {
+      f.off = off; off += f.len;
+      const nb = u8.subarray(f.at, f.at + 11), z = nb.indexOf(0);
+      f.name = dec.decode(z < 0 ? nb : nb.subarray(0, z)).trim();
+      if (f.type === '0') { nullAt = f.off; continue; }
+      f.index = cols.length;
+      cols.push({ name: f.name || 'column_' + (cols.length + 1), meta: { sqlType: sqlTypeOf(f) } });
+    }
+    // VFP: one bit per nullable field in the _NullFlags bytes (varchar / varbinary fields add bits of their own: then it is not used)
+    const nullable = fields.filter((f) => f.type !== '0' && (f.flags & 0x02));
+    const useNull = nullAt >= 0 && nullable.length && !fields.some((f) => f.type === 'V' || f.type === 'Q');
+    nullable.forEach((f, k) => { f.nullBit = k; });
+
+    const rows = [];
+    let deleted = 0, total = 0, truncatedAt = false;
+    const memo = fields.filter((f) => f.type === 'M' || f.type === 'G' || f.type === 'P' || (f.type === 'B' && f.len !== 8)).map((f) => f.name);
+    for (let i = 0; i < have; i++) {
+      const o = hdr + i * rec;
+      if (u8[o] === 0x1a) break;                          // end-of-file marker inside the record area
+      if (u8[o] === 0x2a) { deleted++; continue; }        // deleted record
+      total++;
+      if (maxRows && rows.length >= maxRows) { truncatedAt = true; continue; }
+      const row = new Array(cols.length);
+      for (const f of fields) {
+        if (f.type === '0') continue;
+        const a = o + f.off, e = a + f.len;
+        let v = '';
+        if (useNull && f.nullBit !== undefined && (u8[o + nullAt + (f.nullBit >> 3)] >> (f.nullBit & 7)) & 1) { row[f.index] = ''; continue; }
+        switch (f.type) {
+          case 'C': case 'V': {
+            if (f.flags & 0x04) { v = '[binary ' + f.len + ' bytes]'; break; }
+            let z = e;
+            while (z > a && (u8[z - 1] === 0x20 || u8[z - 1] === 0)) z--;
+            v = z > a ? dec.decode(u8.subarray(a, z)) : '';
+            break;
+          }
+          case 'N': case 'F': {
+            const t = ascii(u8, a, e).trim();
+            v = /\d/.test(t) && !t.includes('*') ? t : '';
+            break;
+          }
+          case 'D': {
+            const t = ascii(u8, a, e);
+            v = /^\d{8}$/.test(t) && t !== '00000000' ? t.slice(0, 4) + '-' + t.slice(4, 6) + '-' + t.slice(6) : '';
+            break;
+          }
+          case 'L': { const c = String.fromCharCode(u8[a]); v = 'TtYy'.includes(c) ? 'true' : 'FfNn'.includes(c) ? 'false' : ''; break; }
+          case 'I': case '+': v = f.len === 4 ? String(dv.getInt32(a, true)) : ''; break;
+          case 'Y': v = f.len === 8 ? currency(dv, a) : ''; break;
+          case 'B': case 'O': if (f.len === 8) v = DB.str(dv.getFloat64(a, true)); break;
+          case 'T': case '@': {
+            if (f.len !== 8) break;
+            const jd = dv.getInt32(a, true), ms = dv.getInt32(a + 4, true);
+            if (!jd) break;
+            const s = Math.floor(ms / 1000), r = ms % 1000;
+            v = fromJulian(jd) + ' ' + pad2(Math.floor(s / 3600)) + ':' + pad2(Math.floor((s % 3600) / 60)) + ':' + pad2(s % 60) + (r ? '.' + String(r).padStart(3, '0') : '');
+            break;
+          }
+          default: break;                                  // memo and general fields: the text is in another file
+        }
+        row[f.index] = v;
+      }
+      rows.push(row);
+    }
+
+    const fileMeta = [['mDbVersion', VERSIONS[version] + ' (0x' + version.toString(16).padStart(2, '0') + ')'], ['mEncoding', dec.name + encNote]];
+    if (memo.length) fileMeta.push(['mMemo', memo.map((x) => '`' + x + '`').join(', ')]);
+    if (deleted) fileMeta.push(['mDeleted', String(deleted)]);
+    if (have < nRec) fileMeta.push(['mCutRecords', String(nRec - have)]);
+    if (truncatedAt) fileMeta.push(['mRowsCut', String(maxRows)]);
+    return { sections: [{ name: '', columns: cols, rows, rowsTotal: total }], fileMeta, notes: {} };
   };
 })();
 </script>
@@ -6175,12 +6471,13 @@ window.DB_I18N = {
     { key: 'sqlite', label: 'SQLite', exts: ['sqlite', 'sqlite3', 'db', 'db3'] },
     { key: 'sql', label: 'SQL', exts: ['sql'] },
     { key: 'pgdump', label: 'pg_dump', exts: ['dump', 'backup', 'pgdump', 'tar'] },
+    { key: 'dbf', label: 'DBF', exts: ['dbf'] },
   ];
   const FORMAT_NAMES = {
     csv: 'CSV', tsv: 'TSV', txt: 'TXT (CSV)', xlsx: 'Excel (XLSX)', xlsm: 'Excel (XLSM)',
     xls: 'Excel 97-2003 (XLS)', ods: 'OpenDocument (ODS)', json: 'JSON', ndjson: 'NDJSON / JSON Lines',
     xml: 'XML', yaml: 'YAML', html: 'HTML', sav: 'SPSS Statistics (.sav)', zsav: 'SPSS Statistics (.zsav)',
-    parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)',
+    parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)', dbf: 'dBase / FoxPro (DBF)',
   };
   DB.ACCEPT = DB.FORMATS.flatMap((f) => f.exts.map((e) => '.' + e)).concat(['.gz']).join(','); // .gz: a compressed file of any of these
 
@@ -6547,7 +6844,7 @@ window.DB_I18N = {
     t = t.replace(/^"?[\w$]+"?\./, '');
     if (/^(bool|boolean)\b|^tinyint\(1\)|^bit\(1\)|^bit$/.test(t)) return 'boolean';
     if (/^(u?int\d*|tinyint|smallint|mediumint|bigint|integer|serial|bigserial|smallserial|number\(\d+\))\b/.test(t) && !/^number\(\d+\s*,/.test(t)) return 'integer';
-    if (/^(numeric|decimal\d*|dec|number|float\d*|double|real|money|smallmoney|binary_float|binary_double)\b/.test(t)) return 'decimal';
+    if (/^(numeric|decimal\d*|dec|number|float\d*|double|real|money|smallmoney|currency|binary_float|binary_double)\b/.test(t)) return 'decimal';
     if (/^(timestamp|datetime|smalldatetime|datetimeoffset)/.test(t)) return 'datetime';
     if (/^date(32)?\b/.test(t)) return 'date';
     if (/^time\b|^timetz|^time\(/.test(t)) return 'time';
@@ -6808,6 +7105,7 @@ window.DB_I18N = {
       case 'sqlite': res = await parseSqlite(buf); break;
       case 'sql': res = parseSqlFile(buf, ext); break;
       case 'pgdump': res = parsePgFile(buf); break;
+      case 'dbf': res = DB.parseDbf(u8, { maxRows: DB.SQL_MAX_ROWS }); res.sections[0].name = baseOf(fileName); break;
       case 'parquet': res = await parseParquet(buf, ext, fileName); break;
       case 'sav': res = DB.parseSav(buf); res.sections[0].name = baseOf(fileName); break;
       default: throw new UserError('errUnsupported', { ext: '.' + ext });
@@ -6822,7 +7120,7 @@ window.DB_I18N = {
 
   function finalize(doc) {
     doc.sections = doc.sections.filter((s) => s && s.columns);
-    const fromSql = doc.formatKey === 'sql' || doc.formatKey === 'pgdump';
+    const fromSql = ['sql', 'pgdump', 'dbf'].includes(doc.formatKey);
     for (const s of doc.sections) {
       s.columns.forEach((c, i) => { c.type = DB.detectColumnType(s.rows, i); });
       // A dump of the structure only (or whose data is in other files): no row was read, the SQL type tells the kind
@@ -7586,8 +7884,8 @@ window.DB_I18N = {
   const chips = $('chips');
   // One card per family of formats (what is read / the best file / good to know), opened by clicking a format.
   const CARD = { csv: 'Csv', tsv: 'Csv', txt: 'Csv', xlsx: 'Excel', xlsm: 'Excel', xls: 'Excel', ods: 'Excel', json: 'Json', ndjson: 'Json',
-    xml: 'Xml', yaml: 'Yaml', html: 'Html', sav: 'Spss', parquet: 'Parquet', sqlite: 'Sqlite', sql: 'Sql', pgdump: 'Pgdump' };
-  const GUIDE = { Csv: 'csv', Excel: 'excel', Json: 'json', Xml: 'xml', Yaml: 'yaml', Html: 'html', Spss: 'spss', Parquet: 'parquet', Sqlite: 'sqlite', Sql: 'sql', Pgdump: 'pgdump' };
+    xml: 'Xml', yaml: 'Yaml', html: 'Html', sav: 'Spss', parquet: 'Parquet', sqlite: 'Sqlite', sql: 'Sql', pgdump: 'Pgdump', dbf: 'Dbf' };
+  const GUIDE = { Csv: 'csv', Excel: 'excel', Json: 'json', Xml: 'xml', Yaml: 'yaml', Html: 'html', Spss: 'spss', Parquet: 'parquet', Sqlite: 'sqlite', Sql: 'sql', Pgdump: 'pgdump', Dbf: 'dbf' };
   function openCard(f) {
     const k = CARD[f.key];
     $('fmtTitle').textContent = (f.key === 'sav' ? 'SPSS .sav / .zsav' : f.label) + ' · ' + f.exts.map((e) => '.' + e).join(' ');

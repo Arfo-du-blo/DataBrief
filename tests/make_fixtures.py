@@ -427,3 +427,10 @@ _sqlfix = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sql-fixtures
 for _f in sorted(os.listdir(_sqlfix)):
     if _f.endswith((".sql", ".dump", ".tar")) and os.path.isfile(os.path.join(_sqlfix, _f)):
         shutil.copy(os.path.join(_sqlfix, _f), P(_f))
+
+# --- DBF: real files of tests/dbf-fixtures (written by an independent library) and their canary (tests/make_dbf_fixtures.py) ---
+_dbf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dbf-fixtures")
+for _f in sorted(os.listdir(_dbf)):
+    if _f.endswith(".dbf"):
+        shutil.copy(os.path.join(_dbf, _f), P(_f))
+shutil.copy(os.path.join(_dbf, "canary", "CONFIDENTIAL_FILE_dbf.dbf"), Q("dbf", "dbf"))

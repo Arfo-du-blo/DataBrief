@@ -26,12 +26,13 @@
     { key: 'sqlite', label: 'SQLite', exts: ['sqlite', 'sqlite3', 'db', 'db3'] },
     { key: 'sql', label: 'SQL', exts: ['sql'] },
     { key: 'pgdump', label: 'pg_dump', exts: ['dump', 'backup', 'pgdump', 'tar'] },
+    { key: 'dbf', label: 'DBF', exts: ['dbf'] },
   ];
   const FORMAT_NAMES = {
     csv: 'CSV', tsv: 'TSV', txt: 'TXT (CSV)', xlsx: 'Excel (XLSX)', xlsm: 'Excel (XLSM)',
     xls: 'Excel 97-2003 (XLS)', ods: 'OpenDocument (ODS)', json: 'JSON', ndjson: 'NDJSON / JSON Lines',
     xml: 'XML', yaml: 'YAML', html: 'HTML', sav: 'SPSS Statistics (.sav)', zsav: 'SPSS Statistics (.zsav)',
-    parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)',
+    parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)', dbf: 'dBase / FoxPro (DBF)',
   };
   DB.ACCEPT = DB.FORMATS.flatMap((f) => f.exts.map((e) => '.' + e)).concat(['.gz']).join(','); // .gz: a compressed file of any of these
 
@@ -398,7 +399,7 @@
     t = t.replace(/^"?[\w$]+"?\./, '');
     if (/^(bool|boolean)\b|^tinyint\(1\)|^bit\(1\)|^bit$/.test(t)) return 'boolean';
     if (/^(u?int\d*|tinyint|smallint|mediumint|bigint|integer|serial|bigserial|smallserial|number\(\d+\))\b/.test(t) && !/^number\(\d+\s*,/.test(t)) return 'integer';
-    if (/^(numeric|decimal\d*|dec|number|float\d*|double|real|money|smallmoney|binary_float|binary_double)\b/.test(t)) return 'decimal';
+    if (/^(numeric|decimal\d*|dec|number|float\d*|double|real|money|smallmoney|currency|binary_float|binary_double)\b/.test(t)) return 'decimal';
     if (/^(timestamp|datetime|smalldatetime|datetimeoffset)/.test(t)) return 'datetime';
     if (/^date(32)?\b/.test(t)) return 'date';
     if (/^time\b|^timetz|^time\(/.test(t)) return 'time';
@@ -659,6 +660,7 @@
       case 'sqlite': res = await parseSqlite(buf); break;
       case 'sql': res = parseSqlFile(buf, ext); break;
       case 'pgdump': res = parsePgFile(buf); break;
+      case 'dbf': res = DB.parseDbf(u8, { maxRows: DB.SQL_MAX_ROWS }); res.sections[0].name = baseOf(fileName); break;
       case 'parquet': res = await parseParquet(buf, ext, fileName); break;
       case 'sav': res = DB.parseSav(buf); res.sections[0].name = baseOf(fileName); break;
       default: throw new UserError('errUnsupported', { ext: '.' + ext });
@@ -673,7 +675,7 @@
 
   function finalize(doc) {
     doc.sections = doc.sections.filter((s) => s && s.columns);
-    const fromSql = doc.formatKey === 'sql' || doc.formatKey === 'pgdump';
+    const fromSql = ['sql', 'pgdump', 'dbf'].includes(doc.formatKey);
     for (const s of doc.sections) {
       s.columns.forEach((c, i) => { c.type = DB.detectColumnType(s.rows, i); });
       // A dump of the structure only (or whose data is in other files): no row was read, the SQL type tells the kind

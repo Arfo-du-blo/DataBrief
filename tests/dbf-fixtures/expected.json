@@ -1,0 +1,203 @@
+{
+ "dbase3": {
+  "columns": [
+   "NAME",
+   "AMOUNT",
+   "QTY",
+   "DAY",
+   "OK",
+   "NOTE"
+  ],
+  "rows": [
+   [
+    "Alice Martin",
+    "12.50",
+    "3",
+    "2024-01-15",
+    "true",
+    ""
+   ],
+   [
+    "René Dupré",
+    "-7.25",
+    "0",
+    "2024-02-29",
+    "false",
+    ""
+   ],
+   [
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+   ],
+   [
+    "Zoë O'Brien",
+    "1000000.00",
+    "12345",
+    "1999-12-31",
+    "true",
+    ""
+   ]
+  ],
+  "deleted": 1,
+  "records": 5,
+  "codepage": "cp1252",
+  "type": "db3"
+ },
+ "dos437": {
+  "columns": [
+   "LABEL",
+   "N"
+  ],
+  "rows": [
+   [
+    "Café ñandú über",
+    "1.5"
+   ],
+   [
+    "£ ¥ ½ ¼ ± ÷ °",
+    "2.0"
+   ],
+   [
+    "æ Æ ô ö û ÿ",
+    "3.2"
+   ]
+  ],
+  "deleted": 0,
+  "records": 3,
+  "codepage": "cp437",
+  "type": "db3"
+ },
+ "cyrillic866": {
+  "columns": [
+   "CITY",
+   "POP"
+  ],
+  "rows": [
+   [
+    "Москва",
+    "12600000"
+   ],
+   [
+    "Санкт-Петербург",
+    "5600000"
+   ],
+   [
+    "Київ",
+    "2900000"
+   ]
+  ],
+  "deleted": 0,
+  "records": 3,
+  "codepage": "cp866",
+  "type": "db3"
+ },
+ "cyrillic1251": {
+  "columns": [
+   "CITY",
+   "POP"
+  ],
+  "rows": [
+   [
+    "Москва",
+    "12600000"
+   ],
+   [
+    "Новосибирск",
+    "1600000"
+   ]
+  ],
+  "deleted": 0,
+  "records": 2,
+  "codepage": "cp1251",
+  "type": "db3"
+ },
+ "foxpro": {
+  "columns": [
+   "TITLE",
+   "PRICE",
+   "ADDED",
+   "DESCR"
+  ],
+  "rows": [
+   [
+    "Widget",
+    "9.99",
+    "2023-05-01",
+    ""
+   ],
+   [
+    "Gadget",
+    "24.50",
+    "2023-06-15",
+    ""
+   ]
+  ],
+  "deleted": 0,
+  "records": 2,
+  "codepage": "cp1252",
+  "type": "fp"
+ },
+ "vfp": {
+  "columns": [
+   "ID",
+   "PRICE",
+   "RATIO",
+   "STAMP",
+   "NAME",
+   "FLAG",
+   "QTY",
+   "AMT"
+  ],
+  "rows": [
+   [
+    "1",
+    "12.34",
+    "3.14159",
+    "2024-03-09 14:30:05",
+    "alpha",
+    "true",
+    "7",
+    "1.5"
+   ],
+   [
+    "2",
+    "0.5",
+    "-2.5",
+    "2020-12-31 23:59:59",
+    "",
+    "false",
+    "0",
+    "0"
+   ],
+   [
+    "-3",
+    "1000",
+    "0",
+    "1999-01-01 00:00:00",
+    "",
+    "",
+    "0",
+    "0"
+   ]
+  ],
+  "deleted": 0,
+  "records": 3,
+  "codepage": "cp1252",
+  "type": "vfp"
+ },
+ "empty": {
+  "columns": [
+   "A",
+   "B"
+  ],
+  "rows": [],
+  "deleted": 0,
+  "records": 0,
+  "codepage": "cp1252",
+  "type": "db3"
+ }
+}

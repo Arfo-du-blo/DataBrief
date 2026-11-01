@@ -473,7 +473,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       { f: 'json.json' }, { f: 'ndjson.ndjson' }, { f: 'yaml.yaml' }, { f: 'xml.xml' }, { f: 'html.html', cap: true },
       { f: 'sav.sav', txt: true, lab: true }, { f: 'zsav.zsav', txt: true, lab: true },
       { f: 'parquet.parquet', txt: true }, { f: 'sqlite.sqlite', sql: true },
-      { f: 'sql.sql', txt: true, lab: true, sql: true }, { f: 'pgdump.dump', txt: true, lab: true, sql: true },
+      { f: 'sql.sql', txt: true, lab: true, sql: true }, { f: 'pgdump.dump', txt: true, lab: true, sql: true }, { f: 'dbf.dbf', names: 'CONF_COL' },
     ];
     const checks = [];
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
@@ -495,7 +495,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
         const s = await md(page);
         never(s, 'level ' + level); notByDefault(s, 'level ' + level);
         if (level === 1) {
-          if (!s.includes('CONFIDENTIAL_COL')) bad('names should be present at level 1 (control)');
+          if (!s.includes(c.names || 'CONFIDENTIAL_COL')) bad('names should be present at level 1 (control)');
           if (!s.includes('CONFIDENTIAL_FILE')) bad('file name should be present by default (control)');
           if (c.lab && !s.includes('CONFIDENTIAL_LABEL')) bad('labels should be present by default (control)');
         }
@@ -512,7 +512,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       await sw(page, 'names'); await wait();
       s = await md(page);
       never(s, 'names off'); notByDefault(s, 'names off');
-      if (s.includes('CONFIDENTIAL_COL')) bad('names should be replaced when off');
+      if (s.includes(c.names || 'CONFIDENTIAL_COL')) bad('names should be replaced when off');
       await sw(page, 'names');
       if (c.cap) { // a table named by its caption: the caption is a label
         await sw(page, 'labels'); await wait(); s = await md(page);
@@ -558,7 +558,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     {
       const p = await newPage();
       ok(await p.evaluate(() => document.getElementById('nsOn').offsetParent === null), '8: switch must not be visible before a file is read');
-      ok(await p.evaluate(() => document.getElementById('chips').children.length === 17 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
+      ok(await p.evaluate(() => document.getElementById('chips').children.length === 18 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
       const r0 = await load(p, F('confidential.csv'));
       ok(r0.md.includes('CONFIDENTIAL_CUSTOMER_74291') && await p.evaluate(() => document.getElementById('nsOn').offsetParent !== null && !document.getElementById('nsOn').checked), '8: after loading: data included, switch visible and off');
       const order = await p.evaluate(() => ['secSummary', 'secShare', 'secOutput'].map((id) => document.getElementById(id).getBoundingClientRect().top));
@@ -663,7 +663,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
     const page = await newPage();
     const chips = await page.$$eval('#chips button.chip', (els) => els.length);
-    if (chips !== 17) checks.push('expected 17 clickable formats, got ' + chips);
+    if (chips !== 18) checks.push('expected 18 clickable formats, got ' + chips);
     for (let i = 0; i < chips; i++) {
       await page.evaluate((n) => document.querySelectorAll('#chips button.chip')[n].click(), i); await wait(60);
       const r = await page.evaluate(() => ({
@@ -677,12 +677,12 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     // every card in every language, with the guide link
     const miss = await page.evaluate(() => {
       const I = window.DB_I18N, out = [];
-      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
+      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump', 'Dbf']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
       return out;
     });
     if (miss.length) checks.push('missing card texts: ' + miss.join(','));
     // the guides the cards link to exist in the repository
-    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump']) {
+    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump', 'dbf']) {
       if (!fs.existsSync(path.join(path.dirname(htmlPath), 'docs', 'formats', g + '.md'))) checks.push('guide docs/formats/' + g + '.md is missing');
     }
     // "what was found"
@@ -691,7 +691,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     if (found !== 'Found: 7 sections · 16 columns · 5 relationships (0 declared, 5 inferred)') checks.push('found line: ' + found);
     await page.close();
     if (checks.length) fail('format cards', checks.join(' | '));
-    else pass('format cards', '17 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
+    else pass('format cards', '18 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
   }
 
   // ---------- SQL dumps and PostgreSQL archives (real dumps of tests/sql-fixtures) ----------
@@ -798,6 +798,56 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
 
     if (checks.length) fail('SQL dumps and PostgreSQL archives', checks.join(' | '));
     else pass('SQL dumps and PostgreSQL archives', 'text dump, zstd archive recognised by content, structure-only types, cut archive, .dump that is text, binary .sql, large dump cut at 250,000 rows');
+  }
+
+  // ---------- DBF files (real files written by an independent library, tests/dbf-fixtures) ----------
+  {
+    const checks = [];
+    const bad = (m) => checks.push(m);
+    let p = await newPage();
+    let r = await load(p, F('dbase3.dbf'));
+    if (!r.ok || !r.md.includes("Zoë O'Brien") || !r.md.includes('**DBF version:** dBase III with memo (0x83)') || !r.md.includes('**Deleted records (not read):** 1') ||
+      !r.md.includes('**Memo fields (text stored in a separate file, not read):** `NOTE`') || r.md.includes('deleted row') || r.md.includes('a memo that is not read')) bad('dbase3.dbf: ' + (r.ok ? 'the prompt misses the version, the memo, the deleted count or has a deleted row / a memo text' : r.err));
+    if (r.ok) {
+      const info = await p.evaluate(() => { const d = window.DataBrief.getState().doc; return { k: d.formatKey, n: d.formatName, secs: d.sections.length, rows: d.sections[0].rows.length, s: d.sections[0].name }; });
+      if (info.k !== 'dbf' || info.secs !== 1 || info.rows !== 4 || info.s !== 'dbase3') bad('dbase3.dbf state: ' + JSON.stringify(info));
+      if ((await p.$eval('#stFormat', (el) => el.textContent)) !== 'DBF') bad('the Format stat should say DBF');
+    }
+    await p.close();
+    // Cyrillic text in a DOS code page, and a Visual FoxPro file
+    p = await newPage();
+    r = await load(p, F('cyrillic866.dbf'));
+    if (!r.ok || !r.md.includes('Санкт-Петербург') || !r.md.includes('ibm866')) bad('cyrillic866.dbf: the text should be read in code page 866');
+    await p.close();
+    p = await newPage();
+    r = await load(p, F('vfp.dbf'));
+    if (!r.ok || !r.md.includes('2024-03-09 14:30:05') || !r.md.includes('Visual FoxPro (0x30)')) bad('vfp.dbf: datetime or version missing');
+    await p.close();
+    // a cut file: read as far as it goes, and says so
+    p = await newPage();
+    r = await load(p, F('cut.dbf'));
+    if (!r.ok || !r.md.includes('missing from the file (the file is cut):** 2')) bad('cut.dbf: the missing records should be counted');
+    await p.close();
+    // a text file named .dbf: the clear error
+    fs.writeFileSync(path.join(outDir, 'fake.dbf'), 'a,b\n1,2\n');
+    p = await newPage();
+    r = await load(p, path.join(outDir, 'fake.dbf'));
+    if (r.ok || !r.err) bad('a text file named .dbf should be refused with a message');
+    await p.close();
+    // every text in all 15 languages
+    p = await newPage();
+    const miss = await p.evaluate(() => {
+      const I = window.DB_I18N, out = [];
+      for (const l of I.langs.map((x) => x.code)) {
+        for (const k of ['fcDbfReads', 'fcDbfBest', 'fcDbfGood']) if (!I.ui[l][k]) out.push(l + ':' + k);
+        for (const k of ['mDbVersion', 'mMemo', 'mDeleted', 'mCutRecords']) if (!I.prompt[l][k]) out.push(l + ':' + k);
+      }
+      return out;
+    });
+    if (miss.length) bad('missing texts: ' + miss.join(','));
+    await p.close();
+    if (checks.length) fail('DBF files', checks.join(' | '));
+    else pass('DBF files', 'dBase III with memo and a deleted record, DOS code page 866, Visual FoxPro, a cut file, a text file named .dbf, 15 languages');
   }
 
   // ---------- files recognised but not readable (clear message), and gzip ----------

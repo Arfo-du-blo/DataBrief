@@ -1,0 +1,73 @@
+/* DataBrief - translations for DBF files (dBase, FoxPro, Visual FoxPro). GPL-3.0-or-later.
+ * Prompt order: mDbVersion, mMemo, mDeleted, mCutRecords. UI order: fcDbfReads, fcDbfBest, fcDbfGood */
+'use strict';
+(function () {
+  const PK = ['mDbVersion', 'mMemo', 'mDeleted', 'mCutRecords'];
+  const UK = ['fcDbfReads', 'fcDbfBest', 'fcDbfGood'];
+  const P = {
+    en: ["DBF version", "Memo fields (text stored in a separate file, not read)", "Deleted records (not read)", "Records announced by the header but missing from the file (the file is cut)"],
+    fr: ["Version du DBF", "Champs mémo (texte stocké dans un fichier séparé, non lu)", "Enregistrements supprimés (non lus)", "Enregistrements annoncés par l'en-tête mais absents du fichier (le fichier est tronqué)"],
+    es: ["Versión del DBF", "Campos memo (texto guardado en un archivo aparte, no leído)", "Registros eliminados (no leídos)", "Registros anunciados por el encabezado pero ausentes del archivo (el archivo está cortado)"],
+    de: ["DBF-Version", "Memofelder (Text in einer separaten Datei, nicht gelesen)", "Gelöschte Datensätze (nicht gelesen)", "Im Kopf angekündigte, in der Datei aber fehlende Datensätze (die Datei ist abgeschnitten)"],
+    it: ["Versione del DBF", "Campi memo (testo salvato in un file separato, non letto)", "Record eliminati (non letti)", "Record annunciati dall'intestazione ma assenti dal file (il file è troncato)"],
+    pt: ["Versão do DBF", "Campos memo (texto guardado em um arquivo separado, não lido)", "Registros excluídos (não lidos)", "Registros anunciados pelo cabeçalho mas ausentes do arquivo (o arquivo está cortado)"],
+    nl: ["DBF-versie", "Memovelden (tekst in een apart bestand, niet gelezen)", "Verwijderde records (niet gelezen)", "Records die de header aankondigt maar die in het bestand ontbreken (het bestand is afgekapt)"],
+    pl: ["Wersja DBF", "Pola memo (tekst w osobnym pliku, nieodczytany)", "Usunięte rekordy (nieodczytane)", "Rekordy zapowiedziane w nagłówku, których brakuje w pliku (plik jest ucięty)"],
+    ru: ["Версия DBF", "Поля memo (текст хранится в отдельном файле, не прочитан)", "Удалённые записи (не прочитаны)", "Записи, объявленные в заголовке, но отсутствующие в файле (файл обрезан)"],
+    tr: ["DBF sürümü", "Not alanları (metin ayrı bir dosyada, okunmadı)", "Silinmiş kayıtlar (okunmadı)", "Başlıkta bildirilen ama dosyada eksik kayıtlar (dosya kesilmiş)"],
+    zh: ["DBF 版本", "备注字段（文本存放在单独文件中，未读取）", "已删除的记录（未读取）", "文件头声明但文件中缺失的记录（文件被截断）"],
+    ja: ["DBF のバージョン", "メモフィールド（テキストは別ファイルにあり、未読み取り）", "削除済みレコード（未読み取り）", "ヘッダーでは宣言されているがファイルにないレコード（ファイルが途中で切れています）"],
+    ko: ["DBF 버전", "메모 필드(텍스트가 별도 파일에 있어 읽지 않음)", "삭제된 레코드(읽지 않음)", "헤더에는 있지만 파일에 없는 레코드(파일이 잘려 있음)"],
+    hi: ["DBF संस्करण", "मेमो फ़ील्ड (टेक्स्ट अलग फ़ाइल में, पढ़ा नहीं गया)", "हटाए गए रिकॉर्ड (पढ़े नहीं गए)", "हेडर में बताए गए लेकिन फ़ाइल में अनुपस्थित रिकॉर्ड (फ़ाइल कटी हुई है)"],
+    ar: ["إصدار DBF", "حقول المذكرة (النص مخزّن في ملف منفصل، لم يُقرأ)", "السجلات المحذوفة (لم تُقرأ)", "سجلات أعلن عنها الترويس لكنها غائبة عن الملف (الملف مقطوع)"],
+  };
+  const U = {
+    en: ["The one table of a dBase, FoxPro or Visual FoxPro file: field names and types, and every record that is not deleted. The text encoding is taken from the file's code page (DOS and Windows code pages, Cyrillic, Greek, Turkish, Japanese, Chinese, Korean...).",
+      "The .dbf file itself. Shapefile attribute tables (a .dbf next to a .shp) are DBF files too.",
+      "Memo fields are stored in a separate .dbt or .fpt file, which is not read: they are listed as not read. Deleted records are skipped and counted. A file cut short is read as far as it goes. Only the first 250,000 records are kept (the counts stay exact)."],
+    fr: ["L'unique table d'un fichier dBase, FoxPro ou Visual FoxPro : noms et types des champs, et chaque enregistrement non supprimé. L'encodage du texte est déduit de la page de code du fichier (pages DOS et Windows, cyrillique, grec, turc, japonais, chinois, coréen...).",
+      "Le fichier .dbf lui-même. Les tables d'attributs des shapefiles (.dbf à côté d'un .shp) sont aussi des fichiers DBF.",
+      "Les champs mémo sont stockés dans un fichier .dbt ou .fpt à part, qui n'est pas lu : ils sont signalés comme non lus. Les enregistrements supprimés sont ignorés et comptés. Un fichier tronqué est lu jusqu'où il va. Seuls les 250 000 premiers enregistrements sont conservés (les nombres restent exacts)."],
+    es: ["La única tabla de un archivo dBase, FoxPro o Visual FoxPro: nombres y tipos de los campos y cada registro no eliminado. La codificación del texto se toma de la página de códigos del archivo (páginas DOS y Windows, cirílico, griego, turco, japonés, chino, coreano...).",
+      "El propio archivo .dbf. Las tablas de atributos de los shapefiles (.dbf junto a un .shp) también son archivos DBF.",
+      "Los campos memo se guardan en un archivo .dbt o .fpt aparte, que no se lee: se indican como no leídos. Los registros eliminados se omiten y se cuentan. Un archivo cortado se lee hasta donde llega. Solo se conservan los primeros 250 000 registros (los recuentos siguen siendo exactos)."],
+    de: ["Die eine Tabelle einer dBase-, FoxPro- oder Visual-FoxPro-Datei: Feldnamen und -typen sowie jeder nicht gelöschte Datensatz. Die Textkodierung wird aus der Codepage der Datei abgeleitet (DOS- und Windows-Codepages, Kyrillisch, Griechisch, Türkisch, Japanisch, Chinesisch, Koreanisch ...).",
+      "Die .dbf-Datei selbst. Attributtabellen von Shapefiles (.dbf neben einer .shp) sind ebenfalls DBF-Dateien.",
+      "Memofelder liegen in einer separaten .dbt- oder .fpt-Datei, die nicht gelesen wird: Sie werden als nicht gelesen aufgeführt. Gelöschte Datensätze werden übersprungen und gezählt. Eine abgeschnittene Datei wird so weit gelesen, wie sie reicht. Nur die ersten 250.000 Datensätze bleiben erhalten (die Zahlen bleiben exakt)."],
+    it: ["L'unica tabella di un file dBase, FoxPro o Visual FoxPro: nomi e tipi dei campi e ogni record non eliminato. La codifica del testo si ricava dalla tabella codici del file (tabelle DOS e Windows, cirillico, greco, turco, giapponese, cinese, coreano...).",
+      "Il file .dbf stesso. Le tabelle degli attributi degli shapefile (.dbf accanto a un .shp) sono anch'esse file DBF.",
+      "I campi memo sono salvati in un file .dbt o .fpt a parte, che non viene letto: sono indicati come non letti. I record eliminati vengono saltati e contati. Un file troncato viene letto fin dove arriva. Si conservano solo i primi 250.000 record (i conteggi restano esatti)."],
+    pt: ["A única tabela de um arquivo dBase, FoxPro ou Visual FoxPro: nomes e tipos dos campos e cada registro não excluído. A codificação do texto vem da página de código do arquivo (páginas DOS e Windows, cirílico, grego, turco, japonês, chinês, coreano...).",
+      "O próprio arquivo .dbf. As tabelas de atributos de shapefiles (.dbf ao lado de um .shp) também são arquivos DBF.",
+      "Campos memo ficam em um arquivo .dbt ou .fpt separado, que não é lido: são indicados como não lidos. Registros excluídos são ignorados e contados. Um arquivo cortado é lido até onde vai. Só os primeiros 250.000 registros são mantidos (as contagens continuam exatas)."],
+    nl: ["De ene tabel van een dBase-, FoxPro- of Visual FoxPro-bestand: veldnamen en -typen en elk niet-verwijderd record. De tekencodering komt uit de codepagina van het bestand (DOS- en Windows-codepagina's, Cyrillisch, Grieks, Turks, Japans, Chinees, Koreaans...).",
+      "Het .dbf-bestand zelf. Attributentabellen van shapefiles (.dbf naast een .shp) zijn ook DBF-bestanden.",
+      "Memovelden staan in een apart .dbt- of .fpt-bestand, dat niet wordt gelezen: ze worden als niet gelezen vermeld. Verwijderde records worden overgeslagen en geteld. Een afgekapt bestand wordt gelezen zo ver het gaat. Alleen de eerste 250.000 records blijven bewaard (de aantallen blijven exact)."],
+    pl: ["Jedyna tabela pliku dBase, FoxPro lub Visual FoxPro: nazwy i typy pól oraz każdy nieusunięty rekord. Kodowanie tekstu wynika ze strony kodowej pliku (strony kodowe DOS i Windows, cyrylica, greka, turecki, japoński, chiński, koreański...).",
+      "Sam plik .dbf. Tabele atrybutów shapefile (.dbf obok .shp) to także pliki DBF.",
+      "Pola memo są w osobnym pliku .dbt lub .fpt, który nie jest odczytywany: są wymienione jako nieodczytane. Usunięte rekordy są pomijane i liczone. Ucięty plik jest czytany tak daleko, jak sięga. Zachowywane jest tylko pierwsze 250 000 rekordów (liczby pozostają dokładne)."],
+    ru: ["Единственная таблица файла dBase, FoxPro или Visual FoxPro: имена и типы полей и каждая неудалённая запись. Кодировка текста берётся из кодовой страницы файла (кодовые страницы DOS и Windows, кириллица, греческая, турецкая, японская, китайская, корейская...).",
+      "Сам файл .dbf. Таблицы атрибутов shapefile (.dbf рядом с .shp) — тоже файлы DBF.",
+      "Поля memo хранятся в отдельном файле .dbt или .fpt, который не читается: они указываются как непрочитанные. Удалённые записи пропускаются и подсчитываются. Обрезанный файл читается, насколько хватает. Сохраняются только первые 250 000 записей (числа остаются точными)."],
+    tr: ["Bir dBase, FoxPro veya Visual FoxPro dosyasının tek tablosu: alan adları ve türleri ile silinmemiş her kayıt. Metin kodlaması dosyanın kod sayfasından alınır (DOS ve Windows kod sayfaları, Kiril, Yunanca, Türkçe, Japonca, Çince, Korece...).",
+      "Doğrudan .dbf dosyası. Shapefile öznitelik tabloları (bir .shp yanındaki .dbf) de DBF dosyalarıdır.",
+      "Not alanları ayrı bir .dbt veya .fpt dosyasında saklanır ve okunmaz: okunmadı olarak listelenir. Silinmiş kayıtlar atlanır ve sayılır. Kesilmiş bir dosya gittiği yere kadar okunur. Yalnızca ilk 250.000 kayıt tutulur (sayılar kesin kalır)."],
+    zh: ["dBase、FoxPro 或 Visual FoxPro 文件中的唯一一张表：字段名称和类型，以及每条未删除的记录。文本编码取自文件的代码页（DOS 和 Windows 代码页、西里尔文、希腊文、土耳其文、日文、中文、韩文等）。",
+      "直接提供 .dbf 文件。Shapefile 的属性表（.shp 旁边的 .dbf）也是 DBF 文件。",
+      "备注字段存放在单独的 .dbt 或 .fpt 文件中，不会被读取：它们会被列为未读取。已删除的记录会被跳过并计数。被截断的文件会读取到可读的位置。只保留前 250,000 条记录（计数保持准确）。"],
+    ja: ["dBase、FoxPro、Visual FoxPro ファイルの唯一のテーブル：フィールド名と型、そして削除されていないすべてのレコード。文字コードはファイルのコードページから判断します（DOS・Windows のコードページ、キリル文字、ギリシャ文字、トルコ語、日本語、中国語、韓国語など）。",
+      ".dbf ファイルそのもの。シェープファイルの属性テーブル（.shp の隣の .dbf）も DBF ファイルです。",
+      "メモフィールドは別の .dbt または .fpt ファイルに保存されており、読み取りません。未読み取りとして記載します。削除済みレコードはスキップして数えます。途中で切れたファイルは読める所まで読みます。先頭の 250,000 レコードだけを保持します（件数は正確なままです）。"],
+    ko: ["dBase, FoxPro 또는 Visual FoxPro 파일의 하나뿐인 테이블: 필드 이름과 형식, 그리고 삭제되지 않은 모든 레코드. 텍스트 인코딩은 파일의 코드 페이지에서 알아냅니다(DOS·Windows 코드 페이지, 키릴 문자, 그리스어, 터키어, 일본어, 중국어, 한국어 등).",
+      ".dbf 파일 자체. 셰이프파일의 속성 테이블(.shp 옆의 .dbf)도 DBF 파일입니다.",
+      "메모 필드는 별도의 .dbt 또는 .fpt 파일에 저장되며 읽지 않습니다. 읽지 않은 것으로 표시됩니다. 삭제된 레코드는 건너뛰고 개수를 셉니다. 잘린 파일은 읽을 수 있는 곳까지 읽습니다. 처음 250,000개 레코드만 보관합니다(개수는 정확하게 유지됩니다)."],
+    hi: ["dBase, FoxPro या Visual FoxPro फ़ाइल की एकमात्र तालिका: फ़ील्ड के नाम और प्रकार, और हर न हटाया गया रिकॉर्ड। टेक्स्ट एन्कोडिंग फ़ाइल के कोड पेज से ली जाती है (DOS और Windows कोड पेज, सिरिलिक, यूनानी, तुर्की, जापानी, चीनी, कोरियाई...)।",
+      "स्वयं .dbf फ़ाइल। शेपफ़ाइल की एट्रिब्यूट तालिकाएँ (.shp के पास की .dbf) भी DBF फ़ाइलें हैं।",
+      "मेमो फ़ील्ड एक अलग .dbt या .fpt फ़ाइल में रहते हैं, जिसे पढ़ा नहीं जाता: उन्हें न पढ़े गए के रूप में सूचीबद्ध किया जाता है। हटाए गए रिकॉर्ड छोड़ दिए जाते हैं और गिने जाते हैं। कटी हुई फ़ाइल जहाँ तक जाती है वहाँ तक पढ़ी जाती है। केवल पहले 250,000 रिकॉर्ड रखे जाते हैं (गिनती सटीक रहती है)।"],
+    ar: ["الجدول الوحيد في ملف dBase أو FoxPro أو Visual FoxPro: أسماء الحقول وأنواعها وكل سجل غير محذوف. يُستنتج ترميز النص من صفحة رموز الملف (صفحات DOS وWindows، السيريلية، اليونانية، التركية، اليابانية، الصينية، الكورية...).",
+      "ملف ‎.dbf نفسه. وجداول السمات في ملفات shapefile (ملف ‎.dbf المجاور لملف ‎.shp) هي أيضًا ملفات DBF.",
+      "تُخزَّن حقول المذكرة في ملف ‎.dbt أو ‎.fpt منفصل لا يُقرأ: يُشار إليها على أنها لم تُقرأ. تُتخطّى السجلات المحذوفة وتُحصى. يُقرأ الملف المقطوع بقدر ما يصل. يُحتفَظ فقط بأول 250,000 سجل (وتبقى الأعداد دقيقة)."],
+  };
+  for (const [lang, vals] of Object.entries(P)) PK.forEach((k, i) => { window.DB_I18N.prompt[lang][k] = vals[i]; });
+  for (const [lang, vals] of Object.entries(U)) UK.forEach((k, i) => { window.DB_I18N.ui[lang][k] = vals[i]; });
+})();
