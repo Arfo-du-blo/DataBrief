@@ -51,6 +51,17 @@ const CASES = [
   { file: 'table_none.parquet', has: PARQUET },
   { file: 'table_brotli.parquet', error: /compression|Parquet/ },
   { file: 'shop.sqlite', has: ['`customers`', '`orders`', 'primary key', '→ `customers.id`', '`big_orders`', '[binary 4 bytes]', '| `name` | text | TEXT |  | yes |', 'separate table'] },
+  // Regression tests for confirmed defects (audit S1-S6): generated columns, composite keys, 64-bit integers,
+  // implicit foreign-key targets, constraints, indexes, table and view definitions.
+  { file: 'schema_features.sqlite', has: [
+    '| 1 | 1 | 2 | 3 | 6 | 4 |', '| 2 | 1 | 1 | 4 | 8 | 5 |', ' | Generated |', '| virtual |', '| stored |',
+    '9007199254740993', '-9223372036854775808', '9223372036854775807',
+    '**Primary key:** `k1`, `k2`', '**Primary key:** `y`, `x`', '**Primary key:** `id`',
+    '- (`a`, `b`) → `parent` (`k1`, `k2`) · on delete: CASCADE', '→ `singles.id`', '- (`sid`) → `singles` (`id`)',
+    '**Unique constraints and indexes:** `child_qty_a_uq` (`qty`, `a`)', '**Other indexes:** `child_a_ix` (`a`)',
+    '**Definition:**', 'CHECK (qty >= 0)', 'GENERATED ALWAYS AS (qty * 2) VIRTUAL',
+    '## Views (saved queries, not included as data)', '### `v_child`', 'CREATE VIEW v_child AS SELECT id, a FROM child WHERE qty > 0',
+  ], not: ['9007199254740992', '→ `singles.?`'] },
   { file: 'big.csv', big: true },
   { file: 'unknown.xyz', error: /not supported/ },
   { file: 'fake.xlsx', error: /does not match/ },

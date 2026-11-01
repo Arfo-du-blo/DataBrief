@@ -81,7 +81,7 @@
 
   const META_COLS = [
     ['label', 'cLabel'], ['values', 'cValues'], ['measure', 'cMeasure'], ['format', 'cFormat'], ['missing', 'cMissing'],
-    ['sqlType', 'cSql'], ['key', 'cKey'], ['notNull', 'cNotNull'], ['parquetType', 'cParquet'],
+    ['sqlType', 'cSql'], ['key', 'cKey'], ['notNull', 'cNotNull'], ['generated', 'cGenerated'], ['parquetType', 'cParquet'],
   ];
   const TYPE_KEYS = {
     integer: 'tInteger', decimal: 'tDecimal', date: 'tDate', datetime: 'tDatetime', time: 'tTime',
@@ -107,6 +107,27 @@
       lines.push('| ' + cells.join(' | ') + ' |');
     }
     return lines.join('\n');
+  }
+
+  const sqlBlock = (sql) => { const f = fenceFor(sql); return f + 'sql\n' + sql + '\n' + f; };
+
+  /* Keys, constraints, indexes and the original definition of a table (locked: they describe the data exactly). */
+  function constraintsText(c, t) {
+    const list = (cols) => cols.map(code).join(', ');
+    const out = [];
+    if (c.pk && c.pk.length) out.push('**' + t('tblPk') + ':** ' + list(c.pk));
+    if (c.fks && c.fks.length) {
+      const lines = c.fks.map((f) => {
+        const act = [['onDelete', f.onDelete], ['onUpdate', f.onUpdate]].filter(([, v]) => v && v !== 'NO ACTION').map(([k, v]) => ' · ' + t(k) + ': ' + v).join('');
+        return '- (' + list(f.from) + ') → ' + code(f.table) + ' (' + list(f.to.map((x) => x || '?')) + ')' + act;
+      });
+      out.push('**' + t('tblFk') + ':**\n' + lines.join('\n'));
+    }
+    const ixLine = (e) => (e.name ? code(e.name) + ' ' : '') + '(' + list(e.cols) + ')';
+    if (c.unique && c.unique.length) out.push('**' + t('tblUnique') + ':** ' + c.unique.map(ixLine).join('; '));
+    if (c.indexes && c.indexes.length) out.push('**' + t('tblIndexes') + ':** ' + c.indexes.map(ixLine).join('; '));
+    if (c.ddl) out.push('**' + t('tblDdl') + ':**\n\n' + sqlBlock(c.ddl));
+    return out.length ? out.join('\n\n') + '\n\n' : '';
   }
 
   /* Collects locked and editable parts. */
@@ -242,6 +263,7 @@
       if (s.caption) { b.lock('\n**'); say('caption', 'caption@' + i); b.lock(':** ' + s.caption + '\n'); }
       b.lock('\n');
       if (s.columns.length) b.lock(columnsTable(s, t) + '\n\n');
+      if (s.constraints) b.lock(constraintsText(s.constraints, t));
       if (s.comments && s.comments.length) {
         b.lock('**'); say('comments', 'comments@' + i); b.lock(':**\n');
         const list = s.comments.slice(0, 200).map((c) => '- `' + c.cell + '`: ' + c.text.replace(/\n/g, ' '));
@@ -249,6 +271,12 @@
         b.lock(list.join('\n') + '\n\n');
       }
     });
+
+    // Saved queries (SQL views): their definitions, never their results
+    if (doc.views && doc.views.length) {
+      line('## ', 'mViews'); b.lock('\n');
+      for (const v of doc.views) b.lock('### ' + code(v.name) + '\n\n' + sqlBlock(v.sql) + '\n\n');
+    }
 
     // Data
     line('## ', files ? 'dataSample' : 'data'); b.lock('\n');

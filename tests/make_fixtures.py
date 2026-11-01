@@ -163,6 +163,35 @@ INSERT INTO orders VALUES (10, 1, 99.9, X'DEADBEEF'), (11, 2, NULL, NULL);
 con.commit()
 con.close()
 
+# --- SQLite: composite keys, generated columns, 64-bit integers, indexes, implicit FK, view with definition ---
+db_path = P("schema_features.sqlite")
+if os.path.exists(db_path):
+    os.remove(db_path)
+con = sqlite3.connect(db_path)
+con.executescript("""
+CREATE TABLE parent (k1 INTEGER, k2 INTEGER, label TEXT, PRIMARY KEY (k1, k2));
+CREATE TABLE child (
+  id INTEGER PRIMARY KEY,
+  a INTEGER, b INTEGER,
+  qty INTEGER DEFAULT 1 CHECK (qty >= 0),
+  total INTEGER GENERATED ALWAYS AS (qty * 2) VIRTUAL,
+  stored_total INTEGER GENERATED ALWAYS AS (qty + 1) STORED,
+  FOREIGN KEY (a, b) REFERENCES parent (k1, k2) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX child_qty_a_uq ON child (qty, a);
+CREATE INDEX child_a_ix ON child (a);
+CREATE TABLE pk_order (x TEXT, y TEXT, PRIMARY KEY (y, x));
+CREATE TABLE singles (id INTEGER PRIMARY KEY, v TEXT);
+CREATE TABLE refs (id INTEGER PRIMARY KEY, sid INTEGER REFERENCES singles);
+CREATE TABLE big (n INTEGER);
+CREATE VIEW v_child AS SELECT id, a FROM child WHERE qty > 0;
+INSERT INTO parent VALUES (1, 1, 'p11'), (1, 2, 'p12');
+INSERT INTO child (id, a, b, qty) VALUES (1, 1, 2, 3), (2, 1, 1, 4);
+INSERT INTO big VALUES (9007199254740993), (-9223372036854775808), (9223372036854775807);
+""")
+con.commit()
+con.close()
+
 # --- Large CSV to trigger the warning ---
 with open(P("big.csv"), "w", encoding="utf-8", newline="") as f:
     f.write("id,label,value,category,created\n")

@@ -2432,6 +2432,31 @@ window.DB_I18N = {
   for (const lang of Object.keys(window.DB_I18N.ui)) delete window.DB_I18N.ui[lang].confirmReset;
 })();
 </script>
+<script>/* DataBrief - translations for table structure: keys, indexes, definitions, generated columns. GPL-3.0-or-later.
+ * Prompt order: tblPk, tblFk, tblUnique, tblIndexes, onDelete, onUpdate, tblDdl, cGenerated, genVirtual, genStored */
+'use strict';
+(function () {
+  const KEYS = ['tblPk', 'tblFk', 'tblUnique', 'tblIndexes', 'onDelete', 'onUpdate', 'tblDdl', 'cGenerated', 'genVirtual', 'genStored'];
+  const P = {
+    en: ['Primary key', 'Foreign keys', 'Unique constraints and indexes', 'Other indexes', 'on delete', 'on update', 'Definition', 'Generated', 'virtual', 'stored'],
+    fr: ['Clé primaire', 'Clés étrangères', 'Contraintes et index uniques', 'Autres index', 'à la suppression', 'à la mise à jour', 'Définition', 'Générée', 'virtuelle', 'stockée'],
+    es: ['Clave primaria', 'Claves foráneas', 'Restricciones e índices únicos', 'Otros índices', 'al eliminar', 'al actualizar', 'Definición', 'Generada', 'virtual', 'almacenada'],
+    de: ['Primärschlüssel', 'Fremdschlüssel', 'Eindeutige Einschränkungen und Indizes', 'Weitere Indizes', 'beim Löschen', 'beim Aktualisieren', 'Definition', 'Berechnet', 'virtuell', 'gespeichert'],
+    it: ['Chiave primaria', 'Chiavi esterne', 'Vincoli e indici univoci', 'Altri indici', 'in eliminazione', 'in aggiornamento', 'Definizione', 'Generata', 'virtuale', 'memorizzata'],
+    pt: ['Chave primária', 'Chaves estrangeiras', 'Restrições e índices únicos', 'Outros índices', 'ao excluir', 'ao atualizar', 'Definição', 'Gerada', 'virtual', 'armazenada'],
+    nl: ['Primaire sleutel', 'Vreemde sleutels', 'Unieke beperkingen en indexen', 'Overige indexen', 'bij verwijderen', 'bij bijwerken', 'Definitie', 'Gegenereerd', 'virtueel', 'opgeslagen'],
+    pl: ['Klucz główny', 'Klucze obce', 'Ograniczenia i indeksy unikalne', 'Pozostałe indeksy', 'przy usuwaniu', 'przy aktualizacji', 'Definicja', 'Generowana', 'wirtualna', 'przechowywana'],
+    ru: ['Первичный ключ', 'Внешние ключи', 'Ограничения и уникальные индексы', 'Прочие индексы', 'при удалении', 'при обновлении', 'Определение', 'Вычисляемый', 'виртуальный', 'хранимый'],
+    tr: ['Birincil anahtar', 'Yabancı anahtarlar', 'Benzersiz kısıtlamalar ve dizinler', 'Diğer dizinler', 'silinirken', 'güncellenirken', 'Tanım', 'Üretilmiş', 'sanal', 'saklanan'],
+    zh: ['主键', '外键', '唯一约束和唯一索引', '其他索引', '删除时', '更新时', '定义', '生成列', '虚拟', '存储'],
+    ja: ['主キー', '外部キー', '一意制約と一意インデックス', 'その他のインデックス', '削除時', '更新時', '定義', '生成列', '仮想', '保存型'],
+    ko: ['기본 키', '외래 키', '고유 제약 조건 및 고유 인덱스', '기타 인덱스', '삭제 시', '업데이트 시', '정의', '생성 열', '가상', '저장됨'],
+    hi: ['प्राथमिक कुंजी', 'विदेशी कुंजियाँ', 'अद्वितीय बाधाएँ और अनुक्रमणिकाएँ', 'अन्य अनुक्रमणिकाएँ', 'हटाने पर', 'अपडेट करने पर', 'परिभाषा', 'जनित', 'वर्चुअल', 'संग्रहीत'],
+    ar: ['المفتاح الأساسي', 'المفاتيح الأجنبية', 'القيود والفهارس الفريدة', 'فهارس أخرى', 'عند الحذف', 'عند التحديث', 'التعريف', 'مُولَّد', 'افتراضي', 'مخزَّن'],
+  };
+  for (const [lang, vals] of Object.entries(P)) KEYS.forEach((k, i) => { window.DB_I18N.prompt[lang][k] = vals[i]; });
+})();
+</script>
 <script>/* DataBrief - shared helpers. GPL-3.0-or-later. */
 'use strict';
 (function () {
@@ -3503,19 +3528,69 @@ window.DB_I18N = {
       } catch (e) { throw new UserError('errSqlite', {}, String(e.message || e)); }
       const sections = [];
       const skipped = [];
+      // Columns of a table in primary-key order (used when a foreign key does not name its target columns).
+      const pkCache = new Map();
+      const pkColumns = (table) => {
+        if (!pkCache.has(table)) {
+          let cols = [];
+          try { cols = allRows(db, 'PRAGMA table_info(' + qi(table) + ')').filter((c) => c.pk > 0).sort((a, b) => a.pk - b.pk).map((c) => c.name); } catch (e) { /* unknown table */ }
+          pkCache.set(table, cols);
+        }
+        return pkCache.get(table);
+      };
       for (const t of master.filter((m) => m.type === 'table')) {
         try {
-          const info = allRows(db, 'PRAGMA table_info(' + qi(t.name) + ')');
-          const fks = allRows(db, 'PRAGMA foreign_key_list(' + qi(t.name) + ')');
-          const columns = info.map((c) => {
-            const fk = fks.filter((f) => f.from === c.name).map((f) => '→ `' + f.table + '.' + (f.to || '?') + '`');
-            const key = [c.pk > 0 ? { key: 'pk' } : null].concat(fk).filter(Boolean);
-            return { name: c.name, meta: { sqlType: c.type || '', key, notNull: c.notnull ? { key: 'yes' } : '' } };
+          // table_xinfo (not table_info) also lists generated columns, which SELECT * returns:
+          // header and rows must describe the same columns. hidden: 0 normal, 1 hidden (virtual tables), 2 generated virtual, 3 generated stored.
+          const info = allRows(db, 'PRAGMA table_xinfo(' + qi(t.name) + ')').filter((c) => c.hidden === 0 || c.hidden === 2 || c.hidden === 3);
+
+          // Foreign keys: one entry per constraint (a composite key has several rows with the same id).
+          const fkMap = new Map();
+          for (const f of allRows(db, 'PRAGMA foreign_key_list(' + qi(t.name) + ')')) {
+            if (!fkMap.has(f.id)) fkMap.set(f.id, { table: f.table, from: [], to: [], onUpdate: f.on_update, onDelete: f.on_delete });
+            const e = fkMap.get(f.id);
+            e.from[f.seq] = f.from;
+            e.to[f.seq] = f.to;
+          }
+          const fks = Array.from(fkMap.values()).map((f) => {
+            if (f.to.some((x) => x == null)) { // implicit target: the primary key of the referenced table
+              const pk = pkColumns(f.table);
+              f.to = f.from.map((_, i) => (pk.length === f.from.length ? pk[i] : null));
+            }
+            return f;
           });
-          const st = db.prepare('SELECT * FROM ' + qi(t.name));
+
+          const columns = info.map((c) => {
+            const arrows = [];
+            for (const f of fks) {
+              const i = f.from.indexOf(c.name);
+              if (i >= 0) arrows.push('→ `' + f.table + '.' + (f.to[i] || '?') + '`');
+            }
+            const key = [c.pk > 0 ? { key: 'pk' } : null].concat(arrows).filter(Boolean);
+            const meta = { sqlType: c.type || '', key, notNull: c.notnull ? { key: 'yes' } : '' };
+            if (c.hidden === 2) meta.generated = { key: 'genVirtual' };
+            else if (c.hidden === 3) meta.generated = { key: 'genStored' };
+            return { name: c.name, meta };
+          });
+
+          // Indexes: unique constraints and unique indexes together, the others apart (the primary key is listed on its own).
+          const unique = [];
+          const indexes = [];
+          for (const ix of allRows(db, 'PRAGMA index_list(' + qi(t.name) + ')')) {
+            if (ix.origin === 'pk') continue;
+            const cols = allRows(db, 'PRAGMA index_info(' + qi(ix.name) + ')').sort((a, b) => a.seqno - b.seqno).map((c) => c.name || '<expression>');
+            const entry = { name: /^sqlite_autoindex_/.test(ix.name) ? '' : ix.name, cols };
+            (ix.unique ? unique : indexes).push(entry);
+          }
+
+          // Rows: the columns are named explicitly, in the same order as the header. 64-bit integers stay exact (BigInt).
+          const st = db.prepare('SELECT ' + info.map((c) => qi(c.name)).join(', ') + ' FROM ' + qi(t.name));
           const rows = [];
-          try { while (st.step()) rows.push(st.get().map(DB.str)); } finally { st.free(); }
-          sections.push({ name: t.name, columns, rows });
+          try { while (st.step()) rows.push(st.get(null, { useBigInt: true }).map(DB.str)); } finally { st.free(); }
+          sections.push({
+            name: t.name, columns, rows,
+            constraints: { pk: info.filter((c) => c.pk > 0).sort((a, b) => a.pk - b.pk).map((c) => c.name), fks, unique, indexes, ddl: t.sql || '' },
+          });
         } catch (e) {
           skipped.push(t.name);
         }
@@ -3524,7 +3599,7 @@ window.DB_I18N = {
       const views = master.filter((m) => m.type === 'view');
       if (views.length) fileMeta.push(['mViews', views.map((v) => '`' + v.name + '`').join(', ')]);
       if (skipped.length) fileMeta.push(['mSkipped', skipped.map((v) => '`' + v + '`').join(', ')]);
-      return { sections, fileMeta, notes: {} };
+      return { sections, fileMeta, notes: {}, views: views.map((v) => ({ name: v.name, sql: v.sql || '' })).filter((v) => v.sql) };
     } finally {
       db.close();
     }
@@ -3732,7 +3807,7 @@ window.DB_I18N = {
 
   const META_COLS = [
     ['label', 'cLabel'], ['values', 'cValues'], ['measure', 'cMeasure'], ['format', 'cFormat'], ['missing', 'cMissing'],
-    ['sqlType', 'cSql'], ['key', 'cKey'], ['notNull', 'cNotNull'], ['parquetType', 'cParquet'],
+    ['sqlType', 'cSql'], ['key', 'cKey'], ['notNull', 'cNotNull'], ['generated', 'cGenerated'], ['parquetType', 'cParquet'],
   ];
   const TYPE_KEYS = {
     integer: 'tInteger', decimal: 'tDecimal', date: 'tDate', datetime: 'tDatetime', time: 'tTime',
@@ -3758,6 +3833,27 @@ window.DB_I18N = {
       lines.push('| ' + cells.join(' | ') + ' |');
     }
     return lines.join('\n');
+  }
+
+  const sqlBlock = (sql) => { const f = fenceFor(sql); return f + 'sql\n' + sql + '\n' + f; };
+
+  /* Keys, constraints, indexes and the original definition of a table (locked: they describe the data exactly). */
+  function constraintsText(c, t) {
+    const list = (cols) => cols.map(code).join(', ');
+    const out = [];
+    if (c.pk && c.pk.length) out.push('**' + t('tblPk') + ':** ' + list(c.pk));
+    if (c.fks && c.fks.length) {
+      const lines = c.fks.map((f) => {
+        const act = [['onDelete', f.onDelete], ['onUpdate', f.onUpdate]].filter(([, v]) => v && v !== 'NO ACTION').map(([k, v]) => ' · ' + t(k) + ': ' + v).join('');
+        return '- (' + list(f.from) + ') → ' + code(f.table) + ' (' + list(f.to.map((x) => x || '?')) + ')' + act;
+      });
+      out.push('**' + t('tblFk') + ':**\n' + lines.join('\n'));
+    }
+    const ixLine = (e) => (e.name ? code(e.name) + ' ' : '') + '(' + list(e.cols) + ')';
+    if (c.unique && c.unique.length) out.push('**' + t('tblUnique') + ':** ' + c.unique.map(ixLine).join('; '));
+    if (c.indexes && c.indexes.length) out.push('**' + t('tblIndexes') + ':** ' + c.indexes.map(ixLine).join('; '));
+    if (c.ddl) out.push('**' + t('tblDdl') + ':**\n\n' + sqlBlock(c.ddl));
+    return out.length ? out.join('\n\n') + '\n\n' : '';
   }
 
   /* Collects locked and editable parts. */
@@ -3893,6 +3989,7 @@ window.DB_I18N = {
       if (s.caption) { b.lock('\n**'); say('caption', 'caption@' + i); b.lock(':** ' + s.caption + '\n'); }
       b.lock('\n');
       if (s.columns.length) b.lock(columnsTable(s, t) + '\n\n');
+      if (s.constraints) b.lock(constraintsText(s.constraints, t));
       if (s.comments && s.comments.length) {
         b.lock('**'); say('comments', 'comments@' + i); b.lock(':**\n');
         const list = s.comments.slice(0, 200).map((c) => '- `' + c.cell + '`: ' + c.text.replace(/\n/g, ' '));
@@ -3900,6 +3997,12 @@ window.DB_I18N = {
         b.lock(list.join('\n') + '\n\n');
       }
     });
+
+    // Saved queries (SQL views): their definitions, never their results
+    if (doc.views && doc.views.length) {
+      line('## ', 'mViews'); b.lock('\n');
+      for (const v of doc.views) b.lock('### ' + code(v.name) + '\n\n' + sqlBlock(v.sql) + '\n\n');
+    }
 
     // Data
     line('## ', files ? 'dataSample' : 'data'); b.lock('\n');

@@ -642,7 +642,7 @@ src/
   template.html               page markup and build directives
   setdefault.html/.css/.js    the settings page
   styles.css                  light/dark theme
-  i18n.js, i18n-modes.js      15 languages (interface + prompt)
+  i18n*.js                    15 languages (interface + prompt; i18n-modes, i18n-structure add keys)
   config.js                   settings: config block, URL parameters, locks
   util.js                     type detection, flattening, CSV parsing, token estimate
   parsers.js                  format detection and readers (CSV…SQLite)

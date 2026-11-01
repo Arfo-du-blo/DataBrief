@@ -280,19 +280,69 @@
       } catch (e) { throw new UserError('errSqlite', {}, String(e.message || e)); }
       const sections = [];
       const skipped = [];
+      // Columns of a table in primary-key order (used when a foreign key does not name its target columns).
+      const pkCache = new Map();
+      const pkColumns = (table) => {
+        if (!pkCache.has(table)) {
+          let cols = [];
+          try { cols = allRows(db, 'PRAGMA table_info(' + qi(table) + ')').filter((c) => c.pk > 0).sort((a, b) => a.pk - b.pk).map((c) => c.name); } catch (e) { /* unknown table */ }
+          pkCache.set(table, cols);
+        }
+        return pkCache.get(table);
+      };
       for (const t of master.filter((m) => m.type === 'table')) {
         try {
-          const info = allRows(db, 'PRAGMA table_info(' + qi(t.name) + ')');
-          const fks = allRows(db, 'PRAGMA foreign_key_list(' + qi(t.name) + ')');
-          const columns = info.map((c) => {
-            const fk = fks.filter((f) => f.from === c.name).map((f) => '→ `' + f.table + '.' + (f.to || '?') + '`');
-            const key = [c.pk > 0 ? { key: 'pk' } : null].concat(fk).filter(Boolean);
-            return { name: c.name, meta: { sqlType: c.type || '', key, notNull: c.notnull ? { key: 'yes' } : '' } };
+          // table_xinfo (not table_info) also lists generated columns, which SELECT * returns:
+          // header and rows must describe the same columns. hidden: 0 normal, 1 hidden (virtual tables), 2 generated virtual, 3 generated stored.
+          const info = allRows(db, 'PRAGMA table_xinfo(' + qi(t.name) + ')').filter((c) => c.hidden === 0 || c.hidden === 2 || c.hidden === 3);
+
+          // Foreign keys: one entry per constraint (a composite key has several rows with the same id).
+          const fkMap = new Map();
+          for (const f of allRows(db, 'PRAGMA foreign_key_list(' + qi(t.name) + ')')) {
+            if (!fkMap.has(f.id)) fkMap.set(f.id, { table: f.table, from: [], to: [], onUpdate: f.on_update, onDelete: f.on_delete });
+            const e = fkMap.get(f.id);
+            e.from[f.seq] = f.from;
+            e.to[f.seq] = f.to;
+          }
+          const fks = Array.from(fkMap.values()).map((f) => {
+            if (f.to.some((x) => x == null)) { // implicit target: the primary key of the referenced table
+              const pk = pkColumns(f.table);
+              f.to = f.from.map((_, i) => (pk.length === f.from.length ? pk[i] : null));
+            }
+            return f;
           });
-          const st = db.prepare('SELECT * FROM ' + qi(t.name));
+
+          const columns = info.map((c) => {
+            const arrows = [];
+            for (const f of fks) {
+              const i = f.from.indexOf(c.name);
+              if (i >= 0) arrows.push('→ `' + f.table + '.' + (f.to[i] || '?') + '`');
+            }
+            const key = [c.pk > 0 ? { key: 'pk' } : null].concat(arrows).filter(Boolean);
+            const meta = { sqlType: c.type || '', key, notNull: c.notnull ? { key: 'yes' } : '' };
+            if (c.hidden === 2) meta.generated = { key: 'genVirtual' };
+            else if (c.hidden === 3) meta.generated = { key: 'genStored' };
+            return { name: c.name, meta };
+          });
+
+          // Indexes: unique constraints and unique indexes together, the others apart (the primary key is listed on its own).
+          const unique = [];
+          const indexes = [];
+          for (const ix of allRows(db, 'PRAGMA index_list(' + qi(t.name) + ')')) {
+            if (ix.origin === 'pk') continue;
+            const cols = allRows(db, 'PRAGMA index_info(' + qi(ix.name) + ')').sort((a, b) => a.seqno - b.seqno).map((c) => c.name || '<expression>');
+            const entry = { name: /^sqlite_autoindex_/.test(ix.name) ? '' : ix.name, cols };
+            (ix.unique ? unique : indexes).push(entry);
+          }
+
+          // Rows: the columns are named explicitly, in the same order as the header. 64-bit integers stay exact (BigInt).
+          const st = db.prepare('SELECT ' + info.map((c) => qi(c.name)).join(', ') + ' FROM ' + qi(t.name));
           const rows = [];
-          try { while (st.step()) rows.push(st.get().map(DB.str)); } finally { st.free(); }
-          sections.push({ name: t.name, columns, rows });
+          try { while (st.step()) rows.push(st.get(null, { useBigInt: true }).map(DB.str)); } finally { st.free(); }
+          sections.push({
+            name: t.name, columns, rows,
+            constraints: { pk: info.filter((c) => c.pk > 0).sort((a, b) => a.pk - b.pk).map((c) => c.name), fks, unique, indexes, ddl: t.sql || '' },
+          });
         } catch (e) {
           skipped.push(t.name);
         }
@@ -301,7 +351,7 @@
       const views = master.filter((m) => m.type === 'view');
       if (views.length) fileMeta.push(['mViews', views.map((v) => '`' + v.name + '`').join(', ')]);
       if (skipped.length) fileMeta.push(['mSkipped', skipped.map((v) => '`' + v + '`').join(', ')]);
-      return { sections, fileMeta, notes: {} };
+      return { sections, fileMeta, notes: {}, views: views.map((v) => ({ name: v.name, sql: v.sql || '' })).filter((v) => v.sql) };
     } finally {
       db.close();
     }
