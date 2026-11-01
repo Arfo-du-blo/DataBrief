@@ -628,6 +628,7 @@ how to export it, and its limits.
 | | **SQL dumps** (`.sql`: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite, ClickHouse; read as text, never executed) | [SQL dumps](docs/formats/sql.md) |
 | | **PostgreSQL archives** (`pg_dump -Fc` and `-Ft`, gzip, lz4 or zstd) | [PostgreSQL archives](docs/formats/pgdump.md) |
 | | **DuckDB exports** (a zipped `EXPORT DATABASE` folder: structure and rows, CSV or Parquet) | [DuckDB exports](docs/formats/duckdb.md) |
+| | **SQL Server packages** (`.dacpac`: the schema of a SQL Server database, read without SQL Server) | [DACPAC](docs/formats/dacpac.md) |
 | | **Microsoft Access** (`.mdb`, `.accdb`: tables, rows and the relationships Access stores; no Access needed) | [Access](docs/formats/access.md) |
 | Legacy databases | **DBF** (dBase, FoxPro, Visual FoxPro, shapefile attribute tables; any code page) | [DBF](docs/formats/dbf.md) |
 
@@ -718,6 +719,7 @@ src/
   parsers.js                  format detection and readers (CSV…SQLite)
   sqldump.js, pgarchive.js    the SQL dump reader (text, streaming, never executes) and the PostgreSQL archive reader
   dbf.js, dbf-codepages.js    the DBF reader (dBase, FoxPro) and its DOS code pages (generated)
+  dacpac.js                   the SQL Server data-tier package reader (model.xml)
   access.js                   the Access reader (wraps the vendored mdb-reader; tools/build-mdb-reader.sh rebuilds it)
   relationships.js            declared and inferred relationships between sections
   profile.js                  the data profile (statistics of every column; on by default, can be switched off)

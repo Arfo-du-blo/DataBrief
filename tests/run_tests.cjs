@@ -478,7 +478,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       { f: 'json.json' }, { f: 'ndjson.ndjson' }, { f: 'yaml.yaml' }, { f: 'xml.xml' }, { f: 'html.html', cap: true },
       { f: 'sav.sav', txt: true, lab: true }, { f: 'zsav.zsav', txt: true, lab: true },
       { f: 'parquet.parquet', txt: true }, { f: 'sqlite.sqlite', sql: true },
-      { f: 'sql.sql', txt: true, lab: true, sql: true }, { f: 'pgdump.dump', txt: true, lab: true, sql: true }, { f: 'dbf.dbf', names: 'CONF_COL' }, { f: 'access.accdb' },
+      { f: 'sql.sql', txt: true, lab: true, sql: true }, { f: 'pgdump.dump', txt: true, lab: true, sql: true }, { f: 'dbf.dbf', names: 'CONF_COL' }, { f: 'access.accdb' }, { f: 'dacpac.dacpac', noRec: true, txt: true, lab: true, sql: true },
     ];
     const checks = [];
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
@@ -490,7 +490,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       const page = await newPage();
       const first = await load(page, F('CONFIDENTIAL_FILE_' + c.f));
       if (!first.ok) { bad('could not be read: ' + first.err); await page.close(); continue; }
-      if (!first.md.includes('CONFIDENTIAL_REC')) bad('normal mode should contain the records (control)');
+      if (!c.noRec && !first.md.includes('CONFIDENTIAL_REC')) bad('normal mode should contain the records (control)');
       if (c.frm && !first.md.includes('CONFIDENTIAL_FORMULA')) bad('normal mode should show the formula (control)');
       await page.click('#nsOn'); await wait(300);
       const never = (s, where) => { for (const k of ['CONFIDENTIAL_REC', 'CONFIDENTIAL_FORMULA']) if (s.includes(k)) bad(k + ' in ' + where); };
@@ -563,7 +563,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     {
       const p = await newPage();
       ok(await p.evaluate(() => document.getElementById('nsOn').offsetParent === null), '8: switch must not be visible before a file is read');
-      ok(await p.evaluate(() => document.getElementById('chips').children.length === 20 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
+      ok(await p.evaluate(() => document.getElementById('chips').children.length === 21 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
       const r0 = await load(p, F('confidential.csv'));
       ok(r0.md.includes('CONFIDENTIAL_CUSTOMER_74291') && await p.evaluate(() => document.getElementById('nsOn').offsetParent !== null && !document.getElementById('nsOn').checked), '8: after loading: data included, switch visible and off');
       const order = await p.evaluate(() => ['secSummary', 'secShare', 'secOutput'].map((id) => document.getElementById(id).getBoundingClientRect().top));
@@ -668,7 +668,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
     const page = await newPage();
     const chips = await page.$$eval('#chips button.chip', (els) => els.length);
-    if (chips !== 20) checks.push('expected 20 clickable formats, got ' + chips);
+    if (chips !== 21) checks.push('expected 21 clickable formats, got ' + chips);
     for (let i = 0; i < chips; i++) {
       await page.evaluate((n) => document.querySelectorAll('#chips button.chip')[n].click(), i); await wait(60);
       const r = await page.evaluate(() => ({
@@ -682,12 +682,12 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     // every card in every language, with the guide link
     const miss = await page.evaluate(() => {
       const I = window.DB_I18N, out = [];
-      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump', 'Dbf', 'Duckdb', 'Access']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
+      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump', 'Dbf', 'Duckdb', 'Access', 'Dacpac']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
       return out;
     });
     if (miss.length) checks.push('missing card texts: ' + miss.join(','));
     // the guides the cards link to exist in the repository
-    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump', 'dbf', 'duckdb', 'access']) {
+    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump', 'dbf', 'duckdb', 'access', 'dacpac']) {
       if (!fs.existsSync(path.join(path.dirname(htmlPath), 'docs', 'formats', g + '.md'))) checks.push('guide docs/formats/' + g + '.md is missing');
     }
     // "what was found"
@@ -696,7 +696,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     if (found !== 'Found: 7 sections · 16 columns · 5 relationships (0 declared, 5 inferred)') checks.push('found line: ' + found);
     await page.close();
     if (checks.length) fail('format cards', checks.join(' | '));
-    else pass('format cards', '20 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
+    else pass('format cards', '21 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
   }
 
   // ---------- SQL dumps and PostgreSQL archives (real dumps of tests/sql-fixtures) ----------
@@ -853,6 +853,68 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     await p.close();
     if (checks.length) fail('DBF files', checks.join(' | '));
     else pass('DBF files', 'dBase III with memo and a deleted record, DOS code page 866, Visual FoxPro, a cut file, a text file named .dbf, 15 languages');
+  }
+
+  // ---------- SQL Server data-tier packages (.dacpac built by Microsoft's own DacFx: tests/dacpac-fixtures) ----------
+  {
+    const checks = [];
+    const bad = (m) => checks.push(m);
+    let p = await newPage();
+    let r = await load(p, F('shop.dacpac'));
+    if (!r.ok) { bad('shop.dacpac: ' + r.err); } else {
+      const d = await p.evaluate(() => {
+        const x = window.DataBrief.getState().doc;
+        const by = Object.fromEntries(x.sections.map((s) => [s.name, s]));
+        const c = by.Customers;
+        return {
+          k: x.formatKey, names: x.sections.map((s) => s.name).sort(), cols: c.columns.map((q) => q.name + ':' + q.meta.sqlType), pk: c.constraints.pk, unique: c.constraints.unique.map((u) => u.name + ':' + u.cols),
+          idx: by.Orders.constraints.indexes.map((u) => u.name + ':' + u.cols), desc: c.description, label: c.columns.find((q) => q.name === 'Notes').meta.label, gen: c.columns.find((q) => q.name === 'Label').meta.generated,
+          fks: x.sections.flatMap((s) => s.constraints.fks.map((f) => s.name + '(' + f.from + ')->' + f.table + '(' + f.to + ')' + (f.onDelete ? ' ' + f.onDelete : ''))).sort(),
+          rel: (x.relationships || []).filter((q) => q.source === 'declared').map((q) => q.cardinality).sort(), views: x.views.map((v) => v.name + ':' + /SUM\(\[Total\]\)/.test(v.sql)),
+          types: c.columns.map((q) => q.type), kinds: by.Products.columns.map((q) => q.name + ':' + q.meta.sqlType + ':' + q.type), rows: x.sections.reduce((a, s) => a + s.rows.length, 0),
+        };
+      });
+      const want = {
+        names: ['Customers', 'OrderItems', 'Orders', 'ProductTags', 'Products', 'Shipments', 'Tags', 'audit.Log'],
+        cols: ['Id:int IDENTITY', 'Email:nvarchar(255)', 'Name:nvarchar(100)', 'Country:char(2)', 'CreatedAt:datetime2(0)', 'Notes:nvarchar(MAX)', 'Balance:decimal(10,2)', 'Active:bit', 'Label:'],
+        fks: ['OrderItems(OrderId)->Orders(Id)', 'OrderItems(ProductId)->Products(Id)', 'Orders(CustomerId)->Customers(Id) CASCADE', 'ProductTags(ProductId)->Products(Id) CASCADE', 'ProductTags(TagId)->Tags(Id)',
+          'Shipments(OrderId,LineNo)->OrderItems(OrderId,LineNo)'],
+      };
+      if (d.k !== 'dacpac' || JSON.stringify(d.names) !== JSON.stringify(want.names)) bad('shop.dacpac tables: ' + JSON.stringify(d.names));
+      if (JSON.stringify(d.cols) !== JSON.stringify(want.cols)) bad('shop.dacpac Customers columns: ' + JSON.stringify(d.cols));
+      if (JSON.stringify(d.fks) !== JSON.stringify(want.fks)) bad('shop.dacpac foreign keys: ' + JSON.stringify(d.fks));
+      if (JSON.stringify(d.pk) !== '["Id"]' || JSON.stringify(d.unique) !== '["UQ_Customers_Email:Email"]' || JSON.stringify(d.idx) !== '["IX_Orders_Customer:CustomerId"]') bad('keys and indexes: ' + JSON.stringify([d.pk, d.unique, d.idx]));
+      if (d.desc !== 'People who bought something; one row per person' || d.label !== 'Free text written by the sales team') bad('descriptions: ' + JSON.stringify([d.desc, d.label]));
+      if (JSON.stringify(d.rel) !== JSON.stringify(['many_to_many', 'many_to_one', 'many_to_one', 'many_to_one', 'many_to_one', 'many_to_one', 'many_to_one'])) bad('relationships (6 foreign keys and the junction table): ' + JSON.stringify(d.rel));
+      if (JSON.stringify(d.views) !== '["v_order_totals:true"]' || d.gen.key !== 'genVirtual' || d.rows !== 0) bad('view, computed column or rows: ' + JSON.stringify([d.views, d.gen, d.rows]));
+      if (JSON.stringify(d.types) !== JSON.stringify(['integer', 'text', 'text', 'text', 'datetime', 'text', 'decimal', 'boolean', 'text']) || !d.kinds.includes('Unit Price:money:decimal')) bad('column kinds from the SQL Server types: ' + JSON.stringify([d.types, d.kinds]));
+      if (!r.md.includes('**SQL dialect:** SQL Server (data-tier package)') || !r.md.includes('**Archive:** dacpac · package version') || !r.md.includes('procedure ×1')) bad('the prompt lines: ' + r.md.slice(0, 600).replace(/\n/g, ' | '));
+      if ((await p.$eval('#stFormat', (el) => el.textContent)) !== 'DACPAC') bad('Format stat');
+    }
+    await p.close();
+    // a zip that is not a package: still the spreadsheet path (the clear error); a text file named .dacpac: refused
+    fs.writeFileSync(path.join(outDir, 'fake.dacpac'), 'not a zip');
+    p = await newPage();
+    r = await load(p, path.join(outDir, 'fake.dacpac'));
+    if (r.ok || !r.err) bad('a text file named .dacpac should be refused with a message');
+    await p.close();
+    // no-share: structure and relationships stay, the view SQL only when allowed
+    p = await newPage();
+    r = await load(p, F('shop.dacpac'));
+    await p.click('#nsOn'); await new Promise((res) => setTimeout(res, 500));
+    let ns = await p.evaluate(() => window.DataBrief.getMarkdown());
+    if (ns.includes('SUM([Total])') || !ns.includes('Shipments') || ns.includes('People who bought something')) bad('no-share on a dacpac: the view SQL or a table comment appeared by default');
+    await p.evaluate(() => document.querySelector('[data-sw="sql"]').click()); await new Promise((res) => setTimeout(res, 400));
+    ns = await p.evaluate(() => window.DataBrief.getMarkdown());
+    if (!ns.includes('SUM([Total])')) bad('no-share: the view SQL should appear when allowed (control)');
+    await p.evaluate(() => localStorage.clear());
+    await p.close();
+    p = await newPage();
+    const miss = await p.evaluate(() => { const I = window.DB_I18N, out = []; for (const l of I.langs.map((x) => x.code)) for (const k of ['fcDacpacReads', 'fcDacpacBest', 'fcDacpacGood']) if (!I.ui[l][k]) out.push(l + ':' + k); return out; });
+    if (miss.length) bad('missing texts: ' + miss.join(','));
+    await p.close();
+    if (checks.length) fail('SQL Server data-tier packages', checks.join(' | '));
+    else pass('SQL Server data-tier packages', 'real DacFx .dacpac: tables, SQL Server types, keys, indexes, foreign keys with cascade, junction table, view, descriptions, computed column, no row; no-share; 15 languages');
   }
 
   // ---------- Microsoft Access databases (files written by Jackcess, not by Access: tests/access-fixtures) ----------

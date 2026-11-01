@@ -450,3 +450,8 @@ for _f in sorted(os.listdir(_acc)):
     if _f.endswith((".accdb", ".mdb")) and not _f.startswith("CONFIDENTIAL"):
         shutil.copy(os.path.join(_acc, _f), P(_f))
 shutil.copy(os.path.join(_acc, "CONFIDENTIAL_FILE_access.accdb"), Q("access", "accdb"))
+
+# --- SQL Server data-tier packages: REAL .dacpac files built by Microsoft's DacFx (tests/make_dacpac_fixtures.sh) and their canary ---
+_dac = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dacpac-fixtures")
+shutil.copy(os.path.join(_dac, "shop.dacpac"), P("shop.dacpac"))
+shutil.copy(os.path.join(_dac, "CONFIDENTIAL_FILE_dacpac.dacpac"), Q("dacpac", "dacpac"))

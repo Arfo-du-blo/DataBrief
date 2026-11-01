@@ -3667,6 +3667,61 @@ window.DB_I18N = {
   for (const [lang, vals] of Object.entries(U)) UK.forEach((k, i) => { window.DB_I18N.ui[lang][k] = vals[i]; });
 })();
 </script>
+<script>/* DataBrief - translations for the SQL Server data-tier package (.dacpac / .bacpac) card. GPL-3.0-or-later.
+ * UI order: fcDacpacReads, fcDacpacBest, fcDacpacGood */
+'use strict';
+(function () {
+  const UK = ['fcDacpacReads', 'fcDacpacBest', 'fcDacpacGood'];
+  const U = {
+    en: ["The schema inside a SQL Server data-tier package (.dacpac): tables with their columns and SQL Server types, primary, unique and foreign keys, indexes, views with their query, and table and column descriptions. The relationships become declared relationships. A package holds no rows.",
+      "A .dacpac extracted from a database (SQL Server Management Studio: Tasks, Extract Data-tier Application) or built by Visual Studio (SQL Server Database Project). No SQL Server is needed to read it.",
+      "Rows are not in a .dacpac. A .bacpac (Tasks, Export Data-tier Application) also holds the rows as BCP files, which are not read: only its schema is. Stored procedures, functions and triggers are not read and are listed. Nothing is executed."],
+    fr: ["Le schéma d'un package SQL Server de niveau données (.dacpac) : les tables avec leurs colonnes et leurs types SQL Server, les clés primaires, uniques et étrangères, les index, les vues avec leur requête, et les descriptions des tables et colonnes. Les relations deviennent des relations déclarées. Un package ne contient aucune ligne.",
+      "Un .dacpac extrait d'une base (SQL Server Management Studio : Tâches, Extraire l'application de la couche Données) ou produit par Visual Studio (projet de base de données SQL Server). Aucun SQL Server n'est nécessaire pour le lire.",
+      "Les lignes ne sont pas dans un .dacpac. Un .bacpac (Tâches, Exporter l'application de la couche Données) contient aussi les lignes sous forme de fichiers BCP, qui ne sont pas lus : seul son schéma l'est. Les procédures stockées, fonctions et déclencheurs ne sont pas lus et sont signalés. Rien n'est exécuté."],
+    es: ["El esquema de un paquete de aplicación de capa de datos de SQL Server (.dacpac): tablas con sus columnas y tipos de SQL Server, claves primarias, únicas y foráneas, índices, vistas con su consulta y descripciones de tablas y columnas. Las relaciones pasan a ser relaciones declaradas. Un paquete no contiene filas.",
+      "Un .dacpac extraído de una base de datos (SQL Server Management Studio: Tareas, Extraer aplicación de capa de datos) o generado por Visual Studio (proyecto de base de datos de SQL Server). No hace falta SQL Server para leerlo.",
+      "Las filas no están en un .dacpac. Un .bacpac (Tareas, Exportar aplicación de capa de datos) también guarda las filas como archivos BCP, que no se leen: solo se lee su esquema. Los procedimientos almacenados, funciones y desencadenadores no se leen y se indican. No se ejecuta nada."],
+    de: ["Das Schema in einem SQL-Server-Datenebenenpaket (.dacpac): Tabellen mit ihren Spalten und SQL-Server-Typen, Primär-, Unique- und Fremdschlüssel, Indizes, Sichten mit ihrer Abfrage sowie Beschreibungen von Tabellen und Spalten. Die Beziehungen werden zu deklarierten Beziehungen. Ein Paket enthält keine Zeilen.",
+      "Ein .dacpac, das aus einer Datenbank extrahiert (SQL Server Management Studio: Tasks, Datenebenenanwendung extrahieren) oder von Visual Studio erzeugt wurde (SQL-Server-Datenbankprojekt). Zum Lesen ist kein SQL Server nötig.",
+      "Zeilen stehen nicht in einem .dacpac. Ein .bacpac (Tasks, Datenebenenanwendung exportieren) enthält die Zeilen zusätzlich als BCP-Dateien, die nicht gelesen werden: Gelesen wird nur sein Schema. Gespeicherte Prozeduren, Funktionen und Trigger werden nicht gelesen und aufgeführt. Es wird nichts ausgeführt."],
+    it: ["Lo schema contenuto in un pacchetto del livello dati di SQL Server (.dacpac): tabelle con le loro colonne e i tipi SQL Server, chiavi primarie, univoche ed esterne, indici, viste con la loro query e descrizioni di tabelle e colonne. Le relazioni diventano relazioni dichiarate. Un pacchetto non contiene righe.",
+      "Un .dacpac estratto da un database (SQL Server Management Studio: Attività, Estrai applicazione livello dati) o prodotto da Visual Studio (progetto di database SQL Server). Per leggerlo non serve SQL Server.",
+      "Le righe non sono in un .dacpac. Un .bacpac (Attività, Esporta applicazione livello dati) contiene anche le righe come file BCP, che non vengono letti: si legge solo il suo schema. Stored procedure, funzioni e trigger non vengono letti e sono indicati. Non viene eseguito nulla."],
+    pt: ["O esquema dentro de um pacote de camada de dados do SQL Server (.dacpac): tabelas com suas colunas e tipos do SQL Server, chaves primárias, únicas e estrangeiras, índices, visões com sua consulta e descrições de tabelas e colunas. Os relacionamentos viram relacionamentos declarados. Um pacote não contém linhas.",
+      "Um .dacpac extraído de um banco de dados (SQL Server Management Studio: Tarefas, Extrair Aplicativo da Camada de Dados) ou gerado pelo Visual Studio (projeto de banco de dados do SQL Server). Não é preciso ter SQL Server para lê-lo.",
+      "As linhas não estão em um .dacpac. Um .bacpac (Tarefas, Exportar Aplicativo da Camada de Dados) também guarda as linhas como arquivos BCP, que não são lidos: só o seu esquema é lido. Procedimentos armazenados, funções e gatilhos não são lidos e são indicados. Nada é executado."],
+    nl: ["Het schema in een SQL Server-gegevenslaagpakket (.dacpac): tabellen met hun kolommen en SQL Server-typen, primaire, unieke en refererende sleutels, indexen, views met hun query en beschrijvingen van tabellen en kolommen. De relaties worden gedeclareerde relaties. Een pakket bevat geen rijen.",
+      "Een .dacpac die uit een database is gehaald (SQL Server Management Studio: Taken, Gegevenslaagtoepassing extraheren) of door Visual Studio is gemaakt (SQL Server-databaseproject). Er is geen SQL Server nodig om het te lezen.",
+      "Rijen zitten niet in een .dacpac. Een .bacpac (Taken, Gegevenslaagtoepassing exporteren) bevat de rijen ook als BCP-bestanden, die niet worden gelezen: alleen het schema wordt gelezen. Opgeslagen procedures, functies en triggers worden niet gelezen en vermeld. Er wordt niets uitgevoerd."],
+    pl: ["Schemat z pakietu warstwy danych SQL Server (.dacpac): tabele z kolumnami i typami SQL Server, klucze główne, unikalne i obce, indeksy, widoki z ich zapytaniem oraz opisy tabel i kolumn. Relacje stają się relacjami zadeklarowanymi. Pakiet nie zawiera wierszy.",
+      "Plik .dacpac wyodrębniony z bazy danych (SQL Server Management Studio: Zadania, Wyodrębnij aplikację warstwy danych) lub zbudowany w Visual Studio (projekt bazy danych SQL Server). Do jego odczytu nie jest potrzebny SQL Server.",
+      "Wierszy nie ma w pliku .dacpac. Plik .bacpac (Zadania, Eksportuj aplikację warstwy danych) zawiera też wiersze jako pliki BCP, które nie są odczytywane: czytany jest tylko jego schemat. Procedury składowane, funkcje i wyzwalacze nie są odczytywane i są wymienione. Nic nie jest wykonywane."],
+    ru: ["Схема из пакета уровня данных SQL Server (.dacpac): таблицы со столбцами и типами SQL Server, первичные, уникальные и внешние ключи, индексы, представления с их запросами, а также описания таблиц и столбцов. Связи становятся объявленными связями. В пакете нет строк.",
+      "Файл .dacpac, извлечённый из базы данных (SQL Server Management Studio: Задачи, Извлечь приложение уровня данных) или собранный в Visual Studio (проект базы данных SQL Server). Для чтения SQL Server не нужен.",
+      "Строк в .dacpac нет. Файл .bacpac (Задачи, Экспортировать приложение уровня данных) содержит и строки в виде файлов BCP, которые не читаются: читается только его схема. Хранимые процедуры, функции и триггеры не читаются и указываются. Ничего не выполняется."],
+    tr: ["Bir SQL Server veri katmanı paketinin (.dacpac) içindeki şema: sütunları ve SQL Server türleriyle tablolar, birincil, benzersiz ve yabancı anahtarlar, dizinler, sorgusuyla görünümler ve tablo ile sütun açıklamaları. İlişkiler bildirilmiş ilişkiler olur. Bir paket satır içermez.",
+      "Bir veritabanından çıkarılmış (SQL Server Management Studio: Görevler, Veri Katmanı Uygulamasını Ayıkla) veya Visual Studio'nun ürettiği (SQL Server Veritabanı Projesi) bir .dacpac. Okumak için SQL Server gerekmez.",
+      "Satırlar .dacpac içinde değildir. Bir .bacpac (Görevler, Veri Katmanı Uygulamasını Dışarı Aktar) satırları BCP dosyaları olarak da içerir; bunlar okunmaz: yalnızca şeması okunur. Saklı yordamlar, işlevler ve tetikleyiciler okunmaz ve listelenir. Hiçbir şey çalıştırılmaz."],
+    zh: ["SQL Server 数据层包（.dacpac）中的架构：带 SQL Server 类型的表和列、主键、唯一键和外键、索引、带查询的视图，以及表和列的说明。关系会成为已声明的关系。数据包不包含行。",
+      "从数据库中提取的 .dacpac（SQL Server Management Studio：任务 → 提取数据层应用程序），或由 Visual Studio 生成的 .dacpac（SQL Server 数据库项目）。读取它不需要 SQL Server。",
+      ".dacpac 中没有行。.bacpac（任务 → 导出数据层应用程序）还以 BCP 文件的形式包含行，这些文件不会被读取：只读取它的架构。存储过程、函数和触发器不会被读取，并会列出。不会执行任何内容。"],
+    ja: ["SQL Server のデータ層パッケージ（.dacpac）に入っているスキーマ：列と SQL Server の型を持つテーブル、主キー・一意キー・外部キー、インデックス、クエリ付きのビュー、テーブルと列の説明。リレーションシップは宣言済みのリレーションとして扱います。パッケージに行はありません。",
+      "データベースから抽出した .dacpac（SQL Server Management Studio：タスク → データ層アプリケーションの抽出）、または Visual Studio（SQL Server データベース プロジェクト）で作った .dacpac。読み取りに SQL Server は不要です。",
+      "行は .dacpac に含まれません。.bacpac（タスク → データ層アプリケーションのエクスポート）は行を BCP ファイルとしても含みますが、それは読み取らず、スキーマだけを読み取ります。ストアド プロシージャ、関数、トリガーは読み取らず、一覧に記載します。何も実行されません。"],
+    ko: ["SQL Server 데이터 계층 패키지(.dacpac) 안의 스키마: 열과 SQL Server 형식을 가진 테이블, 기본 키·고유 키·외래 키, 인덱스, 쿼리가 있는 뷰, 테이블과 열 설명. 관계는 선언된 관계가 됩니다. 패키지에는 행이 없습니다.",
+      "데이터베이스에서 추출한 .dacpac(SQL Server Management Studio: 태스크 → 데이터 계층 애플리케이션 추출) 또는 Visual Studio(SQL Server 데이터베이스 프로젝트)에서 만든 .dacpac. 읽는 데 SQL Server는 필요하지 않습니다.",
+      "행은 .dacpac에 없습니다. .bacpac(태스크 → 데이터 계층 애플리케이션 내보내기)에는 행이 BCP 파일로도 들어 있지만 읽지 않고 스키마만 읽습니다. 저장 프로시저, 함수, 트리거는 읽지 않으며 목록으로 표시됩니다. 아무것도 실행하지 않습니다."],
+    hi: ["SQL Server डेटा-टियर पैकेज (.dacpac) के भीतर का स्कीमा: स्तंभों और SQL Server प्रकारों वाली तालिकाएँ, प्राथमिक, अद्वितीय और विदेशी कुंजियाँ, इंडेक्स, क्वेरी सहित व्यू, और तालिकाओं व स्तंभों के विवरण। संबंध घोषित संबंध बन जाते हैं। पैकेज में कोई पंक्ति नहीं होती।",
+      "किसी डेटाबेस से निकाली गई .dacpac (SQL Server Management Studio: Tasks, Extract Data-tier Application) या Visual Studio (SQL Server Database Project) से बनी .dacpac। इसे पढ़ने के लिए SQL Server ज़रूरी नहीं है।",
+      "पंक्तियाँ .dacpac में नहीं होतीं। .bacpac (Tasks, Export Data-tier Application) में पंक्तियाँ BCP फ़ाइलों के रूप में भी होती हैं, जिन्हें पढ़ा नहीं जाता: केवल उसका स्कीमा पढ़ा जाता है। स्टोर्ड प्रोसीजर, फ़ंक्शन और ट्रिगर नहीं पढ़े जाते और सूचीबद्ध किए जाते हैं। कुछ भी चलाया नहीं जाता।"],
+    ar: ["المخطط داخل حزمة طبقة البيانات في SQL Server (‎.dacpac): جداول بأعمدتها وأنواع SQL Server، والمفاتيح الأساسية والفريدة والأجنبية، والفهارس، وطرق العرض باستعلاماتها، وأوصاف الجداول والأعمدة. تصبح العلاقات علاقات مُعلَنة. لا تحتوي الحزمة على صفوف.",
+      "ملف ‎.dacpac مستخرج من قاعدة بيانات (SQL Server Management Studio: Tasks ثم Extract Data-tier Application) أو منشأ في Visual Studio (مشروع قاعدة بيانات SQL Server). لا حاجة إلى SQL Server لقراءته.",
+      "الصفوف ليست في ملف ‎.dacpac. أما ملف ‎.bacpac (Tasks ثم Export Data-tier Application) فيحوي الصفوف أيضًا كملفات BCP لا تُقرأ: يُقرأ مخططه فقط. لا تُقرأ الإجراءات المخزّنة والدوال والمشغّلات ويُشار إليها. لا يُنفَّذ أي شيء."],
+  };
+  for (const [lang, vals] of Object.entries(U)) UK.forEach((k, i) => { window.DB_I18N.ui[lang][k] = vals[i]; });
+})();
+</script>
 <script>/* DataBrief - shared helpers. GPL-3.0-or-later. */
 'use strict';
 (function () {
@@ -4983,6 +5038,143 @@ window.DB_I18N = {
     fileMeta.push(['mNotRead', 'saved queries, forms, reports, macros and code; primary keys and indexes']);
     if (sections.some((s) => s.rowsTotal > s.rows.length)) fileMeta.push(['mRowsCut', String(maxRows)]);
     return { sections, fileMeta, notes: {} };
+  };
+})();
+</script>
+<script>/* DataBrief - SQL Server data-tier packages (.dacpac, and the schema of a .bacpac). GPL-3.0-or-later.
+ *
+ * A .dacpac is a zip whose model.xml describes a database: tables, columns and types, keys, foreign keys, indexes, views,
+ * descriptions. It holds no rows. (A .bacpac adds the rows as BCP files: not read, said in the prompt.) Nothing is executed.
+ *
+ *   DB.isDacpacNames(names) -> boolean       (model.xml with Origin.xml or DacMetadata.xml)
+ *   DB.parseDacpac(modelXml, originXml, hasData) -> the same result shape as DB.parseSqlDump (sections, views, info.ignored ...)
+ * Uses the browser's DOMParser: it is tested in the page, not in Node. */
+'use strict';
+(function () {
+  const DB = window.DB;
+  const NS = 'http://schemas.microsoft.com/sqlserver/dac/Serialization/2012/02';
+
+  DB.isDacpacNames = (names) => names.includes('model.xml') && (names.includes('Origin.xml') || names.includes('DacMetadata.xml'));
+
+  const kids = (e, name) => Array.from(e.children).filter((c) => c.localName === name);
+  const rel = (e, name) => kids(e, 'Relationship').find((r) => r.getAttribute('Name') === name);
+  const entries = (r) => (r ? kids(r, 'Entry') : []);
+  const refOf = (entry) => { const r = kids(entry, 'References')[0]; return r ? { name: r.getAttribute('Name'), builtin: r.getAttribute('ExternalSource') === 'BuiltIns' } : null; };
+  const refs = (e, relName) => entries(rel(e, relName)).map(refOf).filter(Boolean);
+  function prop(e, name) {
+    for (const c of e.children) {
+      if (c.localName !== 'Property' || c.getAttribute('Name') !== name) continue;
+      const v = c.getAttribute('Value');
+      if (v !== null) return v;
+      const t = c.getElementsByTagNameNS(NS, 'Value')[0];
+      return t ? t.textContent : null;
+    }
+    return null;
+  }
+  // "[dbo].[Customers].[Id]" -> ["dbo", "Customers", "Id"]   ("]]" is a closing bracket inside a name)
+  const parts = (n) => (String(n || '').match(/\[(?:[^\]]|\]\])*\]/g) || []).map((x) => x.slice(1, -1).replace(/\]\]/g, ']'));
+  // N'text with ''quotes''' -> text with 'quotes'
+  const unliteral = (s) => { const m = /^N?'([\s\S]*)'$/.exec(String(s || '').trim()); return m ? m[1].replace(/''/g, "'") : String(s || ''); };
+
+  function typeOf(col) {
+    const spec = entries(rel(col, 'TypeSpecifier')).map((e) => kids(e, 'Element')[0]).filter(Boolean)[0];
+    if (!spec) return { sql: '', anon: '' };
+    const ref = refs(spec, 'Type')[0];
+    if (!ref) return { sql: '', anon: '' };
+    const p = parts(ref.name);
+    const base = ref.builtin ? p[p.length - 1].toLowerCase() : p.join('.');
+    let args = '';
+    if (prop(spec, 'IsMax') === 'True') args = '(MAX)';
+    else if (prop(spec, 'Length')) args = '(' + prop(spec, 'Length') + ')';
+    else if (prop(spec, 'Precision')) args = '(' + prop(spec, 'Precision') + ',' + (prop(spec, 'Scale') || '0') + ')';
+    else if (['datetime2', 'datetimeoffset', 'time'].includes(base)) args = '(' + (prop(spec, 'Scale') || '0') + ')';
+    return { sql: base + args, anon: ref.builtin ? base + args : 'custom_type' };
+  }
+
+  const IGNORED = { SqlProcedure: 'procedure', SqlScalarFunction: 'function', SqlInlineTableValuedFunction: 'function', SqlMultiStatementTableValuedFunction: 'function',
+    SqlDmlTrigger: 'trigger', SqlDatabaseDdlTrigger: 'trigger', SqlServerDdlTrigger: 'trigger' };
+  const ACTIONS = { 1: 'CASCADE', 2: 'SET NULL', 3: 'SET DEFAULT' };
+
+  DB.parseDacpac = function (modelXml, originXml, hasData) {
+    const doc = new DOMParser().parseFromString(modelXml, 'application/xml');
+    if (doc.getElementsByTagName('parsererror').length || !doc.documentElement || doc.documentElement.localName !== 'DataSchemaModel') throw new DB.UserError('errCorrupt', { ext: '.dacpac' });
+    const model = kids(doc.documentElement, 'Model')[0];
+    const els = model ? kids(model, 'Element') : [];
+    const tables = new Map();           // "[dbo].[Customers]" -> table
+    const order = [];
+    const ignored = {};
+    for (const e of els) {
+      if (e.getAttribute('Type') !== 'SqlTable') continue;
+      const name = e.getAttribute('Name');
+      const p = parts(name);
+      const t = { key: name, schema: p[0] || '', name: p[p.length - 1], columns: [], pk: [], unique: [], indexes: [], fks: [], description: '' };
+      for (const entry of entries(rel(e, 'Columns'))) {
+        const col = kids(entry, 'Element')[0];
+        if (!col) continue;
+        const cp = parts(col.getAttribute('Name'));
+        const c = { name: cp[cp.length - 1], sqlType: '', anon: '', notNull: prop(col, 'IsNullable') === 'False', generated: '', identity: prop(col, 'IsIdentity') === 'True', comment: '' };
+        if (col.getAttribute('Type') === 'SqlComputedColumn') { c.generated = prop(col, 'IsPersisted') === 'True' ? 'stored' : 'virtual'; }
+        else { const ty = typeOf(col); c.sqlType = ty.sql; c.anon = ty.anon; }
+        if (c.identity && c.sqlType) { c.sqlType += ' IDENTITY'; c.anon += ' IDENTITY'; }
+        t.columns.push(c);
+      }
+      tables.set(name, t);
+      order.push(t);
+    }
+    const colsOf = (e) => entries(rel(e, 'ColumnSpecifications')).map((en) => kids(en, 'Element')[0]).filter(Boolean)
+      .map((spec) => refs(spec, 'Column')[0]).filter(Boolean).map((r) => { const p = parts(r.name); return p[p.length - 1]; });
+    const lastName = (e) => { const n = e.getAttribute('Name'); return n ? parts(n).pop() : ''; };
+    const tableOf = (e, relName) => { const r = refs(e, relName)[0]; return r ? tables.get(r.name) : null; };
+    for (const e of els) {
+      const type = e.getAttribute('Type');
+      if (type === 'SqlPrimaryKeyConstraint') { const t = tableOf(e, 'DefiningTable'); if (t) t.pk = colsOf(e); }
+      else if (type === 'SqlUniqueConstraint') { const t = tableOf(e, 'DefiningTable'); if (t) t.unique.push({ name: lastName(e), cols: colsOf(e) }); }
+      else if (type === 'SqlIndex') {
+        const t = tableOf(e, 'IndexedObject');
+        if (t) (prop(e, 'IsUnique') === 'True' ? t.unique : t.indexes).push({ name: lastName(e), cols: colsOf(e) });
+      } else if (type === 'SqlForeignKeyConstraint') {
+        const t = tableOf(e, 'DefiningTable'), target = tableOf(e, 'ForeignTable');
+        const last = (r) => { const p = parts(r.name); return p[p.length - 1]; };
+        if (t && target) {
+          t.fks.push({ target, from: refs(e, 'Columns').map(last), to: refs(e, 'ForeignColumns').map(last),
+            onDelete: ACTIONS[prop(e, 'OnDeleteAction')] || '', onUpdate: ACTIONS[prop(e, 'OnUpdateAction')] || '' });
+        }
+      } else if (type === 'SqlExtendedProperty' && /\[MS_Description\]$/.test(e.getAttribute('Name') || '')) {
+        const p = parts(e.getAttribute('Name'));              // [SqlTableBase].[dbo].[T].[MS_Description] or [SqlColumn].[dbo].[T].[C].[MS_Description]
+        const text = unliteral(prop(e, 'Value'));
+        const t = tables.get('[' + p[1] + '].[' + p[2] + ']');
+        if (t && p[0] === 'SqlTableBase') t.description = text;
+        else if (t && p[0] === 'SqlColumn') { const c = t.columns.find((x) => x.name === p[3]); if (c) c.comment = text; }
+      } else if (IGNORED[type]) ignored[IGNORED[type]] = (ignored[IGNORED[type]] || 0) + 1;
+    }
+    // table names: "dbo" is left out, any other schema is part of the name
+    const display = (t) => (t.schema && t.schema.toLowerCase() !== 'dbo' ? t.schema + '.' + t.name : t.name);
+    const sections = order.map((t) => ({
+      name: display(t), rows: [], rowsTotal: 0, description: t.description, externalData: '', externalInfo: null,
+      columns: t.columns.map((c) => {
+        const arrows = [];
+        for (const f of t.fks) { const i = f.from.indexOf(c.name); if (i >= 0) arrows.push('→ `' + display(f.target) + '.' + (f.to[i] || '?') + '`'); }
+        const meta = { sqlType: c.sqlType, key: [t.pk.includes(c.name) ? { key: 'pk' } : null].concat(arrows).filter(Boolean), notNull: c.notNull ? { key: 'yes' } : '' };
+        if (c.anon && c.anon !== c.sqlType) meta.sqlTypeAnon = c.anon;
+        if (c.generated) meta.generated = { key: c.generated === 'stored' ? 'genStored' : 'genVirtual' };
+        if (c.comment) meta.label = c.comment;
+        return { name: c.name, meta };
+      }),
+      constraints: {
+        pk: t.pk, unique: t.unique, indexes: t.indexes, ddl: '',
+        fks: t.fks.map((f) => ({ table: display(f.target), from: f.from, to: f.to, onDelete: f.onDelete, onUpdate: f.onUpdate })),
+      },
+    }));
+    const views = els.filter((e) => e.getAttribute('Type') === 'SqlView').map((e) => {
+      const p = parts(e.getAttribute('Name'));
+      return { name: p[p.length - 1], sql: 'CREATE VIEW [' + p.join('].[') + '] AS' + (prop(e, 'QueryScript') || '') };
+    });
+    let model12 = '';
+    if (originXml) { const m = /<Version>([^<]+)<\/Version>/.exec(originXml); model12 = m ? m[1] : ''; }
+    const fileMeta = [];
+    if (views.length) fileMeta.push(['mViews', views.map((v) => '`' + v.name + '`').join(', ')]);
+    return { sections, views, fileMeta, notes: {}, dialectName: 'SQL Server (data-tier package)', packageVersion: model12, hasData: !!hasData,
+      info: { ignored, errors: {}, externalFiles: [], truncated: false } };
   };
 })();
 </script>
@@ -6741,12 +6933,13 @@ window.DB.DBF_CODEPAGES = {
     { key: 'dbf', label: 'DBF', exts: ['dbf'] },
     { key: 'duckdb', label: 'DuckDB', exts: ['zip'] },
     { key: 'access', label: 'Access', exts: ['mdb', 'accdb'] },
+    { key: 'dacpac', label: 'DACPAC', exts: ['dacpac', 'bacpac'] },
   ];
   const FORMAT_NAMES = {
     csv: 'CSV', tsv: 'TSV', txt: 'TXT (CSV)', xlsx: 'Excel (XLSX)', xlsm: 'Excel (XLSM)',
     xls: 'Excel 97-2003 (XLS)', ods: 'OpenDocument (ODS)', json: 'JSON', ndjson: 'NDJSON / JSON Lines',
     xml: 'XML', yaml: 'YAML', html: 'HTML', sav: 'SPSS Statistics (.sav)', zsav: 'SPSS Statistics (.zsav)',
-    parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)', dbf: 'dBase / FoxPro (DBF)', duckdb: 'DuckDB export (zip)', access: 'Microsoft Access',
+    parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)', dbf: 'dBase / FoxPro (DBF)', duckdb: 'DuckDB export (zip)', access: 'Microsoft Access', dacpac: 'SQL Server data-tier package',
   };
   DB.ACCEPT = DB.FORMATS.flatMap((f) => f.exts.map((e) => '.' + e)).concat(['.gz']).join(','); // .gz: a compressed file of any of these
 
@@ -7163,9 +7356,24 @@ window.DB.DBF_CODEPAGES = {
     try { window.fflate.unzipSync(u8, { filter: (f) => { names.push(f.name); return false; } }); } catch (e) { /* not readable as a zip: the spreadsheet reader says so */ }
     return names;
   }
-  function isDuckdbZip(u8) {
+  // What a zip really is, besides a spreadsheet: an exported DuckDB folder, or a SQL Server data-tier package
+  function zipKind(u8) {
     const names = zipNames(u8);
-    return names.some((n) => /(^|\/)schema\.sql$/.test(n)) && names.some((n) => /(^|\/)load\.sql$/.test(n));
+    if (names.some((n) => /(^|\/)schema\.sql$/.test(n)) && names.some((n) => /(^|\/)load\.sql$/.test(n))) return 'duckdb';
+    if (DB.isDacpacNames && DB.isDacpacNames(names)) return 'dacpac';
+    return null;
+  }
+  /* ---------- a SQL Server data-tier package (.dacpac, and the schema of a .bacpac): dacpac.js ---------- */
+  function parseDacpacFile(u8) {
+    let files;
+    try { files = window.fflate.unzipSync(u8, { filter: (f) => f.name === 'model.xml' || f.name === 'Origin.xml' }); } catch (e) { throw new UserError('errCorrupt', { ext: '.dacpac' }); }
+    if (!files['model.xml']) throw new UserError('errCorrupt', { ext: '.dacpac' });
+    const hasData = zipNames(u8).some((n) => /^Data\//.test(n));
+    const origin = files['Origin.xml'] ? DB.decodeText(files['Origin.xml']).text : '';
+    const r = DB.parseDacpac(DB.decodeText(files['model.xml']).text, origin, hasData || /<ContainsExportedData>true</.test(origin));
+    const doc = sqlDocument(r, [['mArchive', (r.hasData ? 'bacpac' : 'dacpac') + (r.packageVersion ? ' · package version ' + r.packageVersion : '')]]);
+    if (r.hasData) doc.fileMeta.push(['mNotRead', 'row data (the BCP files of a .bacpac)']);
+    return doc;
   }
   async function parseDuckdbZip(u8) {
     let files;
@@ -7397,13 +7605,13 @@ window.DB.DBF_CODEPAGES = {
     const magic = sniff(u8);
     if (magic === 'gzip') return parseGzip(u8, fileName, depth || 0);
     let kind;
-    if (magic === 'zip') kind = isDuckdbZip(u8) ? 'duckdb' : ext === 'ods' ? 'ods' : ext === 'xlsm' ? 'xlsm' : 'xlsx';
+    if (magic === 'zip') kind = zipKind(u8) || (ext === 'ods' ? 'ods' : ext === 'xlsm' ? 'xlsm' : 'xlsx');
     else if (magic) kind = magic;
     else {
       const f = DB.FORMATS.find((x) => x.exts.includes(ext));
       if (!f) throw new UserError('errUnsupported', { ext: ext ? '.' + ext : '?' });
       kind = f.key;
-      if (['xlsx', 'xlsm', 'xls', 'ods', 'sqlite', 'parquet', 'sav', 'duckdb', 'access'].includes(kind)) {
+      if (['xlsx', 'xlsm', 'xls', 'ods', 'sqlite', 'parquet', 'sav', 'duckdb', 'access', 'dacpac'].includes(kind)) {
         // Binary format expected but the content does not match: try as text.
         const sample = DB.decodeText(u8.subarray(0, 4096)).text.trim();
         if (/^</.test(sample)) kind = /<table/i.test(sample) || /^<!doctype html|^<html/i.test(sample) ? 'html' : 'xml';
@@ -7429,6 +7637,7 @@ window.DB.DBF_CODEPAGES = {
       case 'sql': res = parseSqlFile(buf, ext); break;
       case 'pgdump': res = parsePgFile(buf); break;
       case 'duckdb': res = await parseDuckdbZip(u8); break;
+      case 'dacpac': res = parseDacpacFile(u8); break;
       case 'access': res = DB.parseAccess(u8, { maxRows: DB.SQL_MAX_ROWS }); break;
       case 'dbf': res = DB.parseDbf(u8, { maxRows: DB.SQL_MAX_ROWS }); res.sections[0].name = baseOf(fileName); break;
       case 'parquet': res = await parseParquet(buf, ext, fileName); break;
@@ -7437,7 +7646,7 @@ window.DB.DBF_CODEPAGES = {
     }
     const formatKey = kind === 'sav' && ext === 'zsav' ? 'zsav' : kind;
     const sectionKind = ['xlsx', 'xlsm', 'xls', 'ods'].includes(kind) ? 'sheets'
-      : ['html', 'sqlite', 'sql', 'pgdump', 'duckdb', 'access'].includes(kind) ? 'tables' : 'records';
+      : ['html', 'sqlite', 'sql', 'pgdump', 'duckdb', 'access', 'dacpac'].includes(kind) ? 'tables' : 'records';
     return finalize(Object.assign(res, {
       fileName, fileSize: u8.length, formatKey, formatName: FORMAT_NAMES[formatKey] || kind.toUpperCase(), sectionKind,
     }));
@@ -7445,7 +7654,7 @@ window.DB.DBF_CODEPAGES = {
 
   function finalize(doc) {
     doc.sections = doc.sections.filter((s) => s && s.columns);
-    const fromSql = ['sql', 'pgdump', 'dbf', 'duckdb', 'access'].includes(doc.formatKey);
+    const fromSql = ['sql', 'pgdump', 'dbf', 'duckdb', 'access', 'dacpac'].includes(doc.formatKey);
     for (const s of doc.sections) {
       s.columns.forEach((c, i) => { c.type = DB.detectColumnType(s.rows, i); });
       // A dump of the structure only (or whose data is in other files): no row was read, the SQL type tells the kind
@@ -8209,8 +8418,8 @@ window.DB.DBF_CODEPAGES = {
   const chips = $('chips');
   // One card per family of formats (what is read / the best file / good to know), opened by clicking a format.
   const CARD = { csv: 'Csv', tsv: 'Csv', txt: 'Csv', xlsx: 'Excel', xlsm: 'Excel', xls: 'Excel', ods: 'Excel', json: 'Json', ndjson: 'Json',
-    xml: 'Xml', yaml: 'Yaml', html: 'Html', sav: 'Spss', parquet: 'Parquet', sqlite: 'Sqlite', sql: 'Sql', pgdump: 'Pgdump', dbf: 'Dbf', duckdb: 'Duckdb', access: 'Access' };
-  const GUIDE = { Csv: 'csv', Excel: 'excel', Json: 'json', Xml: 'xml', Yaml: 'yaml', Html: 'html', Spss: 'spss', Parquet: 'parquet', Sqlite: 'sqlite', Sql: 'sql', Pgdump: 'pgdump', Dbf: 'dbf', Duckdb: 'duckdb', Access: 'access' };
+    xml: 'Xml', yaml: 'Yaml', html: 'Html', sav: 'Spss', parquet: 'Parquet', sqlite: 'Sqlite', sql: 'Sql', pgdump: 'Pgdump', dbf: 'Dbf', duckdb: 'Duckdb', access: 'Access', dacpac: 'Dacpac' };
+  const GUIDE = { Csv: 'csv', Excel: 'excel', Json: 'json', Xml: 'xml', Yaml: 'yaml', Html: 'html', Spss: 'spss', Parquet: 'parquet', Sqlite: 'sqlite', Sql: 'sql', Pgdump: 'pgdump', Dbf: 'dbf', Duckdb: 'duckdb', Access: 'access', Dacpac: 'dacpac' };
   function openCard(f) {
     const k = CARD[f.key];
     $('fmtTitle').textContent = (f.key === 'sav' ? 'SPSS .sav / .zsav' : f.label) + ' · ' + f.exts.map((e) => '.' + e).join(' ');

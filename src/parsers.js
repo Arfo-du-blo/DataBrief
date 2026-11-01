@@ -29,12 +29,13 @@
     { key: 'dbf', label: 'DBF', exts: ['dbf'] },
     { key: 'duckdb', label: 'DuckDB', exts: ['zip'] },
     { key: 'access', label: 'Access', exts: ['mdb', 'accdb'] },
+    { key: 'dacpac', label: 'DACPAC', exts: ['dacpac', 'bacpac'] },
   ];
   const FORMAT_NAMES = {
     csv: 'CSV', tsv: 'TSV', txt: 'TXT (CSV)', xlsx: 'Excel (XLSX)', xlsm: 'Excel (XLSM)',
     xls: 'Excel 97-2003 (XLS)', ods: 'OpenDocument (ODS)', json: 'JSON', ndjson: 'NDJSON / JSON Lines',
     xml: 'XML', yaml: 'YAML', html: 'HTML', sav: 'SPSS Statistics (.sav)', zsav: 'SPSS Statistics (.zsav)',
-    parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)', dbf: 'dBase / FoxPro (DBF)', duckdb: 'DuckDB export (zip)', access: 'Microsoft Access',
+    parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)', dbf: 'dBase / FoxPro (DBF)', duckdb: 'DuckDB export (zip)', access: 'Microsoft Access', dacpac: 'SQL Server data-tier package',
   };
   DB.ACCEPT = DB.FORMATS.flatMap((f) => f.exts.map((e) => '.' + e)).concat(['.gz']).join(','); // .gz: a compressed file of any of these
 
@@ -451,9 +452,24 @@
     try { window.fflate.unzipSync(u8, { filter: (f) => { names.push(f.name); return false; } }); } catch (e) { /* not readable as a zip: the spreadsheet reader says so */ }
     return names;
   }
-  function isDuckdbZip(u8) {
+  // What a zip really is, besides a spreadsheet: an exported DuckDB folder, or a SQL Server data-tier package
+  function zipKind(u8) {
     const names = zipNames(u8);
-    return names.some((n) => /(^|\/)schema\.sql$/.test(n)) && names.some((n) => /(^|\/)load\.sql$/.test(n));
+    if (names.some((n) => /(^|\/)schema\.sql$/.test(n)) && names.some((n) => /(^|\/)load\.sql$/.test(n))) return 'duckdb';
+    if (DB.isDacpacNames && DB.isDacpacNames(names)) return 'dacpac';
+    return null;
+  }
+  /* ---------- a SQL Server data-tier package (.dacpac, and the schema of a .bacpac): dacpac.js ---------- */
+  function parseDacpacFile(u8) {
+    let files;
+    try { files = window.fflate.unzipSync(u8, { filter: (f) => f.name === 'model.xml' || f.name === 'Origin.xml' }); } catch (e) { throw new UserError('errCorrupt', { ext: '.dacpac' }); }
+    if (!files['model.xml']) throw new UserError('errCorrupt', { ext: '.dacpac' });
+    const hasData = zipNames(u8).some((n) => /^Data\//.test(n));
+    const origin = files['Origin.xml'] ? DB.decodeText(files['Origin.xml']).text : '';
+    const r = DB.parseDacpac(DB.decodeText(files['model.xml']).text, origin, hasData || /<ContainsExportedData>true</.test(origin));
+    const doc = sqlDocument(r, [['mArchive', (r.hasData ? 'bacpac' : 'dacpac') + (r.packageVersion ? ' · package version ' + r.packageVersion : '')]]);
+    if (r.hasData) doc.fileMeta.push(['mNotRead', 'row data (the BCP files of a .bacpac)']);
+    return doc;
   }
   async function parseDuckdbZip(u8) {
     let files;
@@ -685,13 +701,13 @@
     const magic = sniff(u8);
     if (magic === 'gzip') return parseGzip(u8, fileName, depth || 0);
     let kind;
-    if (magic === 'zip') kind = isDuckdbZip(u8) ? 'duckdb' : ext === 'ods' ? 'ods' : ext === 'xlsm' ? 'xlsm' : 'xlsx';
+    if (magic === 'zip') kind = zipKind(u8) || (ext === 'ods' ? 'ods' : ext === 'xlsm' ? 'xlsm' : 'xlsx');
     else if (magic) kind = magic;
     else {
       const f = DB.FORMATS.find((x) => x.exts.includes(ext));
       if (!f) throw new UserError('errUnsupported', { ext: ext ? '.' + ext : '?' });
       kind = f.key;
-      if (['xlsx', 'xlsm', 'xls', 'ods', 'sqlite', 'parquet', 'sav', 'duckdb', 'access'].includes(kind)) {
+      if (['xlsx', 'xlsm', 'xls', 'ods', 'sqlite', 'parquet', 'sav', 'duckdb', 'access', 'dacpac'].includes(kind)) {
         // Binary format expected but the content does not match: try as text.
         const sample = DB.decodeText(u8.subarray(0, 4096)).text.trim();
         if (/^</.test(sample)) kind = /<table/i.test(sample) || /^<!doctype html|^<html/i.test(sample) ? 'html' : 'xml';
@@ -717,6 +733,7 @@
       case 'sql': res = parseSqlFile(buf, ext); break;
       case 'pgdump': res = parsePgFile(buf); break;
       case 'duckdb': res = await parseDuckdbZip(u8); break;
+      case 'dacpac': res = parseDacpacFile(u8); break;
       case 'access': res = DB.parseAccess(u8, { maxRows: DB.SQL_MAX_ROWS }); break;
       case 'dbf': res = DB.parseDbf(u8, { maxRows: DB.SQL_MAX_ROWS }); res.sections[0].name = baseOf(fileName); break;
       case 'parquet': res = await parseParquet(buf, ext, fileName); break;
@@ -725,7 +742,7 @@
     }
     const formatKey = kind === 'sav' && ext === 'zsav' ? 'zsav' : kind;
     const sectionKind = ['xlsx', 'xlsm', 'xls', 'ods'].includes(kind) ? 'sheets'
-      : ['html', 'sqlite', 'sql', 'pgdump', 'duckdb', 'access'].includes(kind) ? 'tables' : 'records';
+      : ['html', 'sqlite', 'sql', 'pgdump', 'duckdb', 'access', 'dacpac'].includes(kind) ? 'tables' : 'records';
     return finalize(Object.assign(res, {
       fileName, fileSize: u8.length, formatKey, formatName: FORMAT_NAMES[formatKey] || kind.toUpperCase(), sectionKind,
     }));
@@ -733,7 +750,7 @@
 
   function finalize(doc) {
     doc.sections = doc.sections.filter((s) => s && s.columns);
-    const fromSql = ['sql', 'pgdump', 'dbf', 'duckdb', 'access'].includes(doc.formatKey);
+    const fromSql = ['sql', 'pgdump', 'dbf', 'duckdb', 'access', 'dacpac'].includes(doc.formatKey);
     for (const s of doc.sections) {
       s.columns.forEach((c, i) => { c.type = DB.detectColumnType(s.rows, i); });
       // A dump of the structure only (or whose data is in other files): no row was read, the SQL type tells the kind

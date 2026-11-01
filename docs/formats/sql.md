@@ -59,6 +59,8 @@ Never put a password on a command line: use your tool's password file or environ
   ([DuckDB exports](duckdb.md)).
 - **`INSERT ... SELECT`** has no values to read and is skipped. A table whose `CREATE TABLE` is missing gets numbered columns.
 - **Binary values** become `[binary N bytes]`.
+- **For SQL Server, a [`.dacpac`](dacpac.md)** (the schema, read without SQL Server) is the easiest file to give; a `.bak` backup
+  cannot be read.
 - **SQL Server** scripts (`GO` batches, `[brackets]`) and **Oracle** scripts are read from their structure; they are less
   tested than the engines above because no real dump could be generated for them here.
 

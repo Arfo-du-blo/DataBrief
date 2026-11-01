@@ -1,0 +1,4 @@
+Real .dacpac files here were built by Microsoft's DacFx library (NOT hand-written): see tests/make_dacpac_fixtures.sh
+Generated: 2026-11-01
+Microsoft.SqlServer.DacFx: 162.5.57
+.NET SDK: 8.0.427
