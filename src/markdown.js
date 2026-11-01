@@ -162,6 +162,39 @@
     return out.join('\n\n') + '\n\n';
   }
 
+  /* Optional data profile: one table per section (locked text: the numbers are computed from the data). */
+  function profileText(sections, t) {
+    const KIND = { identifier: 'kindIdentifier', categorical: 'kindCategorical', continuous: 'kindContinuous', datetime: 'kindDatetime',
+      text: 'kindText', empty: 'kindEmpty', mixed: 'kindMixed' };
+    const pct = (x) => (x >= 10 ? Math.round(x) : Math.round(x * 10) / 10) + '%';
+    const num = (x) => String(Number(Number(x).toPrecision(6)));
+    const summary = (c) => {
+      const s = c.summary;
+      if (c.note) return t(c.note);
+      if (!s) return '';
+      if (s.top) {
+        const parts = s.top.map((x) => x.value + ': ' + x.count + ' (' + pct(x.pct) + ')');
+        if (s.other) parts.push(t('statOther') + ': ' + s.other + ' (' + pct(s.otherPct) + ')');
+        return parts.join(' · ');
+      }
+      if (s.mean !== undefined) {
+        return [[t('statMin'), num(s.min)], [t('statMax'), num(s.max)], [t('statMean'), num(s.mean)], [t('statSd'), num(s.sd)],
+          [t('statMedian'), num(s.median)], [t('statOutliers'), s.outliers]].map(([k, v]) => k + ': ' + v).join(' · ');
+      }
+      return t('statMin') + ': ' + s.min + ' · ' + t('statMax') + ': ' + s.max;
+    };
+    const head = [t('cName'), t('profKind'), t('profMissing'), t('profDistinct'), t('profSummary')];
+    return sections.map((p, i) => {
+      if (!p.columns.length) return '';
+      const rows = p.columns.map((c) => [code(c.name), t(KIND[c.kind]), c.missing ? c.missing + ' (' + pct((c.missing / c.n) * 100) + ')' : '0', c.distinct, summary(c)]);
+      let s = '### ' + (i + 1) + '. ' + code(p.name) + '\n\n' +
+        ['| ' + head.join(' | ') + ' |', '|' + head.map(() => '---').join('|') + '|'].concat(rows.map((r) => '| ' + r.map(cellMd).join(' | ') + ' |')).join('\n') + '\n\n';
+      if (p.duplicateRows) s += '**' + t('profDup') + ':** ' + p.duplicateRows + '\n\n';
+      if (p.constantColumns.length) s += '**' + t('profConst') + ':** ' + p.constantColumns.map(code).join(', ') + '\n\n';
+      return s;
+    }).join('');
+  }
+
   /* Compact list of numbers: 3, 7-9. */
   function numRanges(nums) {
     const out = [];
@@ -346,6 +379,12 @@
     if (doc.relationships && doc.relationships.length) {
       line('## ', 'relTitle'); b.lock('\n');
       b.lock(relationshipsText(doc.relationships, t));
+    }
+
+    // Optional profile of every column (statistics from all the rows)
+    if (opts.profile && DB.getProfile) {
+      line('## ', 'profTitle'); b.lock('\n'); say('profIntro'); b.lock('\n\n');
+      b.lock(profileText(DB.getProfile(doc), t));
     }
 
     // Data

@@ -1,0 +1,47 @@
+/* DataBrief - translations for the optional data profile. GPL-3.0-or-later.
+ * Prompt order: profTitle, profIntro, profKind, profMissing, profDistinct, profSummary, kindIdentifier, kindCategorical, kindContinuous,
+ * kindDatetime, kindText, kindEmpty, kindMixed, profDup, profConst, statMin, statMax, statMean, statSd, statMedian, statOutliers,
+ * statOther, profAmbiguous, profNonIso
+ * UI order: profileOpt, profileLabel */
+'use strict';
+(function () {
+  const KEYS = ['profTitle', 'profIntro', 'profKind', 'profMissing', 'profDistinct', 'profSummary', 'kindIdentifier', 'kindCategorical', 'kindContinuous',
+    'kindDatetime', 'kindText', 'kindEmpty', 'kindMixed', 'profDup', 'profConst', 'statMin', 'statMax', 'statMean', 'statSd', 'statMedian', 'statOutliers',
+    'statOther', 'profAmbiguous', 'profNonIso'];
+  const P = {
+    en: ["Data profile", "Statistics computed from all rows (observed facts). The kind of each column is an inference.", "Kind", "Missing", "Distinct", "Summary", "identifier (candidate)", "categorical", "continuous", "date/time", "text", "empty", "mixed types", "Duplicate rows", "Constant columns", "min", "max", "mean", "standard deviation", "median", "beyond 1.5 × IQR", "other", "numbers in an ambiguous format, not summarised", "dates not in ISO format, range not computed"],
+    fr: ["Profil des données", "Statistiques calculées sur toutes les lignes (faits observés). La nature de chaque colonne est une déduction.", "Nature", "Manquantes", "Distinctes", "Résumé", "identifiant (candidat)", "catégorielle", "continue", "date/heure", "texte", "vide", "types mélangés", "Lignes en double", "Colonnes constantes", "min", "max", "moyenne", "écart type", "médiane", "au-delà de 1,5 × IQR", "autres", "nombres dans un format ambigu, non résumés", "dates hors format ISO, plage non calculée"],
+    es: ["Perfil de los datos", "Estadísticas calculadas con todas las filas (hechos observados). La clase de cada columna es una inferencia.", "Clase", "Faltantes", "Distintos", "Resumen", "identificador (candidato)", "categórica", "continua", "fecha/hora", "texto", "vacía", "tipos mezclados", "Filas duplicadas", "Columnas constantes", "mín.", "máx.", "media", "desviación estándar", "mediana", "más allá de 1,5 × RIC", "otros", "números en un formato ambiguo, no resumidos", "fechas que no están en formato ISO, rango no calculado"],
+    de: ["Datenprofil", "Statistiken über alle Zeilen (beobachtete Fakten). Die Art jeder Spalte ist eine Schlussfolgerung.", "Art", "Fehlend", "Verschiedene", "Zusammenfassung", "Kennung (Kandidat)", "kategorial", "stetig", "Datum/Uhrzeit", "Text", "leer", "gemischte Typen", "Doppelte Zeilen", "Konstante Spalten", "min.", "max.", "Mittelwert", "Standardabweichung", "Median", "jenseits von 1,5 × IQR", "andere", "Zahlen in mehrdeutigem Format, nicht zusammengefasst", "Datumswerte nicht im ISO-Format, Bereich nicht berechnet"],
+    it: ["Profilo dei dati", "Statistiche calcolate su tutte le righe (fatti osservati). La natura di ciascuna colonna è un'inferenza.", "Natura", "Mancanti", "Distinti", "Riepilogo", "identificatore (candidato)", "categoriale", "continua", "data/ora", "testo", "vuota", "tipi misti", "Righe duplicate", "Colonne costanti", "min", "max", "media", "deviazione standard", "mediana", "oltre 1,5 × IQR", "altri", "numeri in un formato ambiguo, non riepilogati", "date non in formato ISO, intervallo non calcolato"],
+    pt: ["Perfil dos dados", "Estatísticas calculadas com todas as linhas (fatos observados). A natureza de cada coluna é uma inferência.", "Natureza", "Ausentes", "Distintos", "Resumo", "identificador (candidato)", "categórica", "contínua", "data/hora", "texto", "vazia", "tipos mistos", "Linhas duplicadas", "Colunas constantes", "mín.", "máx.", "média", "desvio padrão", "mediana", "além de 1,5 × IQR", "outros", "números em formato ambíguo, não resumidos", "datas fora do formato ISO, intervalo não calculado"],
+    nl: ["Gegevensprofiel", "Statistieken berekend over alle rijen (waargenomen feiten). Het soort van elke kolom is een afleiding.", "Soort", "Ontbrekend", "Unieke waarden", "Samenvatting", "identificatiekolom (kandidaat)", "categorisch", "continu", "datum/tijd", "tekst", "leeg", "gemengde typen", "Dubbele rijen", "Constante kolommen", "min.", "max.", "gemiddelde", "standaardafwijking", "mediaan", "buiten 1,5 × IQR", "overige", "getallen in een dubbelzinnig formaat, niet samengevat", "datums niet in ISO-formaat, bereik niet berekend"],
+    pl: ["Profil danych", "Statystyki obliczone na podstawie wszystkich wierszy (fakty zaobserwowane). Rodzaj każdej kolumny jest wnioskiem.", "Rodzaj", "Braki", "Unikalne", "Podsumowanie", "identyfikator (kandydat)", "kategorialna", "ciągła", "data/godzina", "tekst", "pusta", "typy mieszane", "Zduplikowane wiersze", "Kolumny stałe", "min.", "maks.", "średnia", "odchylenie standardowe", "mediana", "poza 1,5 × IQR", "inne", "liczby w niejednoznacznym formacie, nie podsumowano", "daty nie w formacie ISO, zakresu nie obliczono"],
+    ru: ["Профиль данных", "Статистика по всем строкам (наблюдаемые факты). Вид каждого столбца — это вывод.", "Вид", "Пропуски", "Различных", "Сводка", "идентификатор (кандидат)", "категориальный", "непрерывный", "дата/время", "текст", "пустой", "смешанные типы", "Дубликаты строк", "Постоянные столбцы", "мин.", "макс.", "среднее", "стандартное отклонение", "медиана", "за пределами 1,5 × IQR", "прочие", "числа в неоднозначном формате, не обобщены", "даты не в формате ISO, диапазон не вычислен"],
+    tr: ["Veri profili", "Tüm satırlardan hesaplanan istatistikler (gözlenen olgular). Her sütunun türü bir çıkarımdır.", "Tür", "Eksik", "Farklı", "Özet", "tanımlayıcı (aday)", "kategorik", "sürekli", "tarih/saat", "metin", "boş", "karışık türler", "Yinelenen satırlar", "Sabit sütunlar", "min.", "maks.", "ortalama", "standart sapma", "medyan", "1,5 × IQR dışında", "diğer", "belirsiz biçimli sayılar, özetlenmedi", "ISO biçiminde olmayan tarihler, aralık hesaplanmadı"],
+    zh: ["数据概况", "基于所有行计算的统计数据（观察到的事实）。每列的类别是推断。", "类别", "缺失", "不同值", "摘要", "标识符（候选）", "分类", "连续", "日期/时间", "文本", "空", "混合类型", "重复行", "常量列", "最小", "最大", "平均值", "标准差", "中位数", "超出 1.5 × IQR", "其他", "数字格式有歧义，未汇总", "日期不是 ISO 格式，未计算范围"],
+    ja: ["データプロファイル", "すべての行から計算した統計（観測された事実）。各列の種類は推論です。", "種類", "欠損", "異なる値", "概要", "識別子（候補）", "カテゴリ", "連続", "日付/時刻", "テキスト", "空", "型の混在", "重複行", "定数列", "最小", "最大", "平均", "標準偏差", "中央値", "1.5 × IQR の外", "その他", "あいまいな形式の数値のため集計していません", "ISO 形式ではない日付のため範囲は計算していません"],
+    ko: ["데이터 프로필", "모든 행에서 계산한 통계(관찰된 사실). 각 열의 종류는 추론입니다.", "종류", "결측", "고유 값", "요약", "식별자(후보)", "범주형", "연속형", "날짜/시간", "텍스트", "비어 있음", "혼합 유형", "중복 행", "상수 열", "최소", "최대", "평균", "표준편차", "중앙값", "1.5 × IQR 초과", "기타", "모호한 형식의 숫자라 요약하지 않음", "ISO 형식이 아닌 날짜라 범위를 계산하지 않음"],
+    hi: ["डेटा प्रोफ़ाइल", "सभी पंक्तियों से गणना किए गए आँकड़े (देखे गए तथ्य)। प्रत्येक स्तंभ का प्रकार एक अनुमान है।", "प्रकार", "अनुपलब्ध", "भिन्न", "सारांश", "पहचानकर्ता (उम्मीदवार)", "श्रेणीगत", "सतत", "तिथि/समय", "पाठ", "रिक्त", "मिश्रित प्रकार", "डुप्लिकेट पंक्तियाँ", "स्थिर स्तंभ", "न्यूनतम", "अधिकतम", "औसत", "मानक विचलन", "माध्यिका", "1.5 × IQR से परे", "अन्य", "अस्पष्ट प्रारूप वाली संख्याएँ, सारांशित नहीं", "ISO प्रारूप में न होने वाली तिथियाँ, सीमा की गणना नहीं की गई"],
+    ar: ["ملف تعريف البيانات", "إحصاءات محسوبة من جميع الصفوف (حقائق مرصودة). نوع كل عمود استنتاج.", "النوع", "مفقودة", "قيم مميزة", "ملخص", "معرّف (مرشح)", "فئوي", "مستمر", "تاريخ/وقت", "نص", "فارغ", "أنواع مختلطة", "صفوف مكررة", "أعمدة ثابتة", "الأدنى", "الأقصى", "المتوسط", "الانحراف المعياري", "الوسيط", "خارج 1.5 × IQR", "أخرى", "أرقام بصيغة غامضة، لم تُلخَّص", "تواريخ ليست بصيغة ISO، لم يُحسب النطاق"],
+  };
+  const U = {
+    en: ["Data profile", "Add statistics about each column (missing values, distinct values, ranges)"],
+    fr: ["Profil des données", "Ajouter des statistiques sur chaque colonne (valeurs manquantes, valeurs distinctes, plages)"],
+    es: ["Perfil de los datos", "Añadir estadísticas de cada columna (valores faltantes, valores distintos, rangos)"],
+    de: ["Datenprofil", "Statistiken zu jeder Spalte hinzufügen (fehlende Werte, verschiedene Werte, Wertebereiche)"],
+    it: ["Profilo dei dati", "Aggiungi statistiche su ogni colonna (valori mancanti, valori distinti, intervalli)"],
+    pt: ["Perfil dos dados", "Adicionar estatísticas de cada coluna (valores ausentes, valores distintos, intervalos)"],
+    nl: ["Gegevensprofiel", "Statistieken per kolom toevoegen (ontbrekende waarden, unieke waarden, bereiken)"],
+    pl: ["Profil danych", "Dodaj statystyki każdej kolumny (braki danych, wartości unikalne, zakresy)"],
+    ru: ["Профиль данных", "Добавить статистику по каждому столбцу (пропуски, различные значения, диапазоны)"],
+    tr: ["Veri profili", "Her sütun için istatistik ekle (eksik değerler, farklı değerler, aralıklar)"],
+    zh: ["数据概况", "添加每列的统计信息（缺失值、不同值、范围）"],
+    ja: ["データプロファイル", "各列の統計を追加（欠損値、異なる値、範囲）"],
+    ko: ["데이터 프로필", "각 열의 통계 추가(결측값, 고유 값, 범위)"],
+    hi: ["डेटा प्रोफ़ाइल", "प्रत्येक स्तंभ के आँकड़े जोड़ें (अनुपलब्ध मान, भिन्न मान, सीमाएँ)"],
+    ar: ["ملف تعريف البيانات", "إضافة إحصاءات لكل عمود (القيم المفقودة، القيم المميزة، النطاقات)"],
+  };
+  for (const [lang, vals] of Object.entries(P)) KEYS.forEach((k, i) => { window.DB_I18N.prompt[lang][k] = vals[i]; });
+  for (const [lang, vals] of Object.entries(U)) ['profileOpt', 'profileLabel'].forEach((k, i) => { window.DB_I18N.ui[lang][k] = vals[i]; });
+})();

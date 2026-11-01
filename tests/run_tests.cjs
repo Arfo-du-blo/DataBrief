@@ -255,6 +255,47 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     await page.close();
   }
 
+  // ---------- data profile (optional: off by default, switched on with the checkbox) ----------
+  {
+    const page = await newPage();
+    const first = await load(page, F('profile.csv'));
+    const offByDefault = !first.md.includes('## Data profile');
+    await page.click('#profileOn');
+    await new Promise((res) => setTimeout(res, 400));
+    const md = await page.evaluate(() => window.DataBrief.getMarkdown());
+    const expected = [
+      '## Data profile', 'Statistics computed from all rows (observed facts). The kind of each column is an inference.',
+      '| Column | Kind | Missing | Distinct | Summary |',
+      '| `id` | identifier (candidate) | 0 | 10 |  |',
+      '| `group` | categorical | 0 | 3 | A: 5 (50%) · B: 4 (40%) · C: 1 (10%) |',
+      '| `score` | continuous | 0 | 2 | min: 1.5 · max: 11.5 · mean: 2.5 · standard deviation: 3.16228 · median: 1.5 · beyond 1.5 × IQR: 1 |',
+      '| `day` | date/time | 0 | 10 | min: 2024-01-01 · max: 2024-01-10 |',
+      '| `note` | text | 0 | 10 |  |',
+      '| `flag` | categorical | 0 | 1 | x: 10 (100%) |',
+      '| `mix` | mixed types | 0 | 4 |  |',
+      '| `empty` | empty | 10 (100%) | 0 |  |',
+      '| `price_fr` | continuous | 0 | 10 | min: 3.5 · max: 12.5 · mean: 7.87 · standard deviation:',
+      '| `amb` | continuous | 0 | 10 | numbers in an ambiguous format, not summarised |',
+      '**Constant columns:** `flag`',
+    ];
+    const missing = expected.filter((s) => !md.includes(s));
+    await page.click('#profileOn');
+    await new Promise((res) => setTimeout(res, 300));
+    const offAgain = !(await page.evaluate(() => window.DataBrief.getMarkdown())).includes('## Data profile');
+    if (offByDefault && !missing.length && offAgain) pass('data profile', 'off by default; every kind of column; switches off again');
+    else fail('data profile', (offByDefault ? '' : 'on by default; ') + (offAgain ? '' : 'did not switch off; ') + 'missing: ' + JSON.stringify(missing));
+    await page.close();
+
+    const page2 = await newPage();
+    await load(page2, F('dupes.csv'));
+    await page2.click('#profileOn');
+    await new Promise((res) => setTimeout(res, 300));
+    const md2 = await page2.evaluate(() => window.DataBrief.getMarkdown());
+    if (md2.includes('**Duplicate rows:** 1')) pass('data profile: duplicate rows', '1 duplicate row found');
+    else fail('data profile: duplicate rows', md2.slice(md2.indexOf('## Data profile'), md2.indexOf('## Data profile') + 400));
+    await page2.close();
+  }
+
   // ---------- layout toggle + downloads ----------
   {
     const page = await newPage();

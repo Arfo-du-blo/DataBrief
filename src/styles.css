@@ -145,6 +145,8 @@ main { width: 100%; max-width: 780px; margin: 0 auto; padding: 8px 16px 32px; fl
 
 .options { display: flex; flex-wrap: wrap; gap: 14px 22px; margin-top: 16px; align-items: flex-end; }
 .opt-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.check { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; min-height: 36px; }
+.check input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); }
 .segmented { display: inline-flex; background: var(--surface-2); border-radius: 9px; padding: 3px; }
 .segmented button { border: 0; background: transparent; padding: 5px 12px; border-radius: 7px; cursor: pointer; color: var(--text-2); font-size: 14px; }
 .segmented button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, .12); font-weight: 500; }

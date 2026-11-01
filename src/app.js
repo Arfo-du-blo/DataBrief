@@ -19,6 +19,7 @@
     limitOn: false, limitN: null, fullParts: [], fullMd: '', fullTokens: 0, parts: [], md: '', tokens: 0,
     lastErr: null, busy: false,
     mode: 'inline',  // 'inline': data inside the prompt, 'files': data in separate CSV files
+    profile: false,  // add the optional data profile (statistics of every column)
     edits: { inline: {}, files: {} }, // user edits of the free regions, kept separately per mode: { regionId: text }
     editing: false,
     lockedRaw: 0,    // token estimate of the locked parts while editing
@@ -161,7 +162,7 @@
   });
   const VIEW_ROWS = 500; // rows per table rendered in the formatted view
   const buildOpts = (extra) => Object.assign({
-    lang: state.prompt, layout: state.layout, overrides: curEdits(), mode: state.mode, sample: SAMPLE_ROWS, base: baseTexts(),
+    lang: state.prompt, layout: state.layout, overrides: curEdits(), mode: state.mode, sample: SAMPLE_ROWS, base: baseTexts(), profile: state.profile,
   }, extra);
   function build(limit) {
     return DB.buildParts(state.doc, buildOpts({ limit }));
@@ -250,7 +251,7 @@
     $('editedBadge').classList.toggle('hidden', ed || !hasEdits());
     $('resetBtn').classList.toggle('hidden', ed || !hasEdits());
     // While editing, actions use the confirmed version only, so they wait for Confirm or Cancel.
-    for (const id of ['copyBtn', 'downloadBtn', 'dataBtn', 'allBtn', 'viewBtn', 'promptLang', 'uiLang', 'limitOn', 'limitN', 'anotherBtn']) $(id).disabled = ed;
+    for (const id of ['copyBtn', 'downloadBtn', 'dataBtn', 'allBtn', 'viewBtn', 'promptLang', 'uiLang', 'limitOn', 'limitN', 'anotherBtn', 'profileOn']) $(id).disabled = ed;
     document.querySelectorAll('#layoutGroup button, #modeGroup button').forEach((b) => { b.disabled = ed; });
     $('fileInput').disabled = ed;
   }
@@ -390,6 +391,7 @@
     }
     document.querySelectorAll('#layoutGroup button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.layout === state.layout)));
     $('promptLang').value = state.prompt;
+    $('profileOn').checked = state.profile;
 
     renderEditControls();
     renderPreview();
@@ -477,6 +479,7 @@
     applySetting(() => { state.layout = v; });
   }));
   $('limitOn').addEventListener('change', (e) => { const v = e.target.checked; applySetting(() => { state.limitOn = v; }); });
+  $('profileOn').addEventListener('change', (e) => { const v = e.target.checked; applySetting(() => { state.profile = v; }); });
   let limitTimer = null;
   $('limitN').addEventListener('input', (e) => {
     clearTimeout(limitTimer);
