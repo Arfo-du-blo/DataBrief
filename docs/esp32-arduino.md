@@ -4,7 +4,7 @@ Turn a €5–10 microcontroller into a **pocket DataBrief server**. Plug it int
 over Wi-Fi to every computer and phone around it. It can even **create its own Wi-Fi network**, so it works with no
 router and no internet at all: the most offline version of DataBrief there is.
 
-It's also a great lesson in **embedded constraints**: fitting a 2.5 MB web app into a chip with 520 KB of RAM.
+It's also a great lesson in **embedded constraints**: fitting a 3 MB web app into a chip with 520 KB of RAM.
 
 **Contents**
 
@@ -29,7 +29,7 @@ page is sent in small pieces straight from flash memory.
 
 | Board | Works? | Why |
 |---|---|---|
-| **ESP32 DevKit / ESP32-WROOM-32** (4 MB) | ✅ Yes | The cheapest option. Uses about 2 MB of the 3 MB firmware space |
+| **ESP32 DevKit / ESP32-WROOM-32** (4 MB) | ✅ Yes | The cheapest option. Uses about 2.2 MB (70%) of the 3 MB firmware space |
 | **ESP32-S3 DevKitC** (8–16 MB) | ✅ Yes, recommended | More room, faster, native USB |
 | **Arduino Nano ESP32** (ESP32-S3, 16 MB) | ✅ Yes | The official Arduino board that can do it, with the same sketch |
 | Arduino Uno / Nano / Mega (classic) | ❌ No | See below |
@@ -41,7 +41,7 @@ page is sent in small pieces straight from flash memory.
 
 | | Arduino Uno | Arduino Mega | ESP32 | DataBrief needs |
 |---|---|---|---|---|
-| Flash (storage) | 32 KB | 256 KB | 4–16 MB | **≈ 1 MB** (compressed page) |
+| Flash (storage) | 32 KB | 256 KB | 4–16 MB | **≈ 1.1 MB** (compressed page) |
 | RAM | 2 KB | 8 KB | 520 KB | a few KB per connection |
 | Wi-Fi | none | none | built in | required |
 
@@ -52,13 +52,13 @@ plus Wi-Fi, for a similar price.
 ## 2. How it works
 
 ```
- databrief.html (2.5 MB) --gzip--> 1 MB --> databrief_html.h --compiled into--> firmware --> ESP32 flash
+ databrief.html (3 MB) --gzip--> 1.1 MB --> databrief_html.h --compiled into--> firmware --> ESP32 flash
                                                                                                   |
- Browser <-- "Content-Encoding: gzip" + the 1 MB, sent as is <--- tiny web server on the ESP32 -+
+ Browser <-- "Content-Encoding: gzip" + the 1.1 MB, sent as is <--- tiny web server on the ESP32 -+
  (decompresses it, then runs DataBrief: your files never go to the board)
 ```
 
-- **Compression.** The page is compressed once on your computer (2.5 MB down to about 1 MB). The ESP32 never
+- **Compression.** The page is compressed once on your computer (3 MB down to about 1.1 MB). The ESP32 never
   decompresses it: it sends the compressed bytes with the header `Content-Encoding: gzip`, and the browser
   decompresses them, as it does for most websites.
 - **The page is part of the firmware.** `make_header` turns the compressed page into a C file
@@ -91,7 +91,7 @@ powershell -ExecutionPolicy Bypass -File deploy\esp32\make_header.ps1          #
 python3 deploy/esp32/make_header.py                                          # macOS, Linux (or Windows: py)
 ```
 ```
-Built deploy/esp32/DataBrief/databrief_html.h (page 2.50 MB -> 0.96 MB compressed)
+Built deploy/esp32/DataBrief/databrief_html.h (page 2.95 MB -> 1.11 MB compressed)
 ```
 
 - `build.ps1` also does this automatically, and **PlatformIO does it before each build**, so with Path A you can skip
@@ -148,9 +148,9 @@ each board and generates the page automatically.
 5. Click **→ Upload** (status bar). The first build downloads the toolchain (a few hundred MB, once).
    Before compiling, PlatformIO runs `make_header.py`:
    ```
-   Built .../DataBrief/databrief_html.h (page 2.50 MB -> 0.96 MB compressed)
+   Built .../DataBrief/databrief_html.h (page 2.95 MB -> 1.11 MB compressed)
    ...
-   Flash: [======    ]  62.4% (used 1963032 bytes from 3145728 bytes)
+   Flash: [=======   ]  70.0% (used 2201384 bytes from 3145728 bytes)
    ```
 6. Click **🔌 Serial Monitor** to see the board's address (next section).
 

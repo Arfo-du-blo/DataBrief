@@ -593,7 +593,8 @@ For settings that are **not locked**, a link can choose them: `?lang=fr`, `?prom
   columns, the data and the closing line. The token estimate updates live. When a setting change would regenerate
   text you edited, DataBrief asks **Keep my text** or **Regenerate**. Each data mode keeps its own edits.
 - **View formatted:** the prompt rendered as a document (headings, bold, tables…) in a large window.
-- **Relationships between tables or sheets:** declared ones (SQLite and SQL dump foreign keys, composite and self-referencing keys,
+- **Relationships between tables or sheets:** declared ones (foreign keys of SQLite, SQL dumps, PostgreSQL archives, DuckDB
+  exports, `.dacpac` packages and the relationships stored in Access; composite and self-referencing keys,
   one-to-one, junction tables as many-to-many) and **inferred candidates** for files that declare none: the column names
   must correspond, the parent column must be unique and the values must agree. Inferred relationships are always
   labelled as candidates to validate, with their evidence; a name alone is never enough.
@@ -602,6 +603,8 @@ For settings that are **not locked**, a link can choose them: `?lang=fr`, `?prom
   median and outliers, duplicate rows. Numbers in an ambiguous format are reported as such, never guessed.
 - **Click a format** at the top of the page for what DataBrief reads from it and the best file to give, and see
   **what it found** in your file (sections, columns, relationships).
+- **How do I export my database?** (under the formats): pick one of 13 engines and copy read-only commands for the
+  structure only, the structure and data, and the list of foreign keys. The page never connects to a database.
 - **Format notes** in the prompt ("How this file is formatted": sections, CSV rules, empty cells, flattened columns,
   truncation) so the AI reads the data correctly.
 - **15 languages** for the page and the prompt: English, French, Spanish, German, Italian, Portuguese, Dutch, Polish,
@@ -642,6 +645,10 @@ When a file holds several sheets or tables, each one becomes its own section, an
 |---|---|
 | SPSS | variable labels, **value labels** (`1 = Male`, shown as words in the data), type and format, measurement level, missing-value definitions, file label, notes |
 | SQL dumps, PostgreSQL archives | the same structure as SQLite (types, keys, **foreign keys** read from `CREATE TABLE` or `ALTER TABLE`, indexes, views, **relationships**), plus comments, enum labels, the dialect, and what was not read; the rows from `INSERT` and `COPY` |
+| DuckDB exports | the structure of `schema.sql` (types, keys, foreign keys, views) and the rows of every CSV or Parquet file named in `load.sql` |
+| SQL Server `.dacpac` | tables and SQL Server types, primary and unique keys, indexes, **foreign keys** (with cascade), views, descriptions, computed columns; no rows (a `.bacpac`'s data is not read) |
+| Access | tables, Access types, rows, and the **relationships** Access stores (composite, cascading deletes); not the primary keys or indexes |
+| DBF | field types, decimals, the code page, deleted records (counted, not shown), Visual FoxPro nulls and varchar; memo field names (their text is in another file and not read) |
 | SQLite | types, primary keys (in order), **foreign keys** (composite, with `ON DELETE`), unique constraints, indexes, `CREATE TABLE`, views with their SQL, **relationships**, generated columns, exact 64-bit integers |
 | Parquet | the **type of every nested field** (`STRUCT`, `LIST`, `MAP`), required fields, decimals, timestamp units, pandas metadata, row groups, compression |
 | Excel / ODS | sheet names, hidden sheets, cell comments, **merged cells, hidden rows and columns, defined names**, the number of formulas (those without a stored result are counted, not lost) |
@@ -687,9 +694,13 @@ both, and lets you catch a deliberately tampered copy in the act:
 
 ## Limits
 
-- Encrypted or password-protected files (Excel, SQLite) cannot be read: save a copy without the password first.
+- Encrypted or password-protected files (Excel, SQLite, Access) cannot be read: save a copy without the password first.
 - Files DataBrief recognises but cannot read (a DuckDB database, HDF5, Arrow / Feather, ORC, Avro, PDF, a SQL Server `.bak`, an Oracle `.dmp`) are
   recognised by their content, whatever their name, and answered with what to do instead. `.gz` files (`dump.sql.gz`, `data.csv.gz`) are unpacked and read.
+- SQL dumps are read up to 250,000 rows per table (the counts stay exact). PostgreSQL's directory format (`pg_dump -Fd`)
+  is not read: use `-Fc` or a plain dump. SQL Server and Oracle scripts are tested with hand-written examples only;
+  PostgreSQL, MySQL, MariaDB, SQLite, ClickHouse and DuckDB with real dumps of each engine. Access files used in the tests
+  were written by Jackcess, not by Microsoft Access, and there is no Access 97 file among them.
 - JSON and YAML numbers above 2^53 may lose precision (they are read as floating-point numbers); quote very large
   identifiers. SQLite and Parquet 64-bit integers are exact.
 - Parquet: Snappy, Gzip, Zstd and LZ4 (raw) compression are supported; Brotli and Hadoop-LZ4 are not.
@@ -726,6 +737,7 @@ src/
   relationships.js            declared and inferred relationships between sections
   profile.js                  the data profile (statistics of every column; on by default, can be switched off)
   noshare.js                  "Do not share data": the record-free copy of a file
+  export-helper.js            the commands of "How do I export my database?" (13 engines)
   spss.js                     SPSS .sav / .zsav reader (original code)
   markdown.js                 builds the prompt (locked parts and editable regions) and the no-share prompt
   app.js                      page logic
@@ -738,13 +750,15 @@ deploy/
   nginx/ apache/ iis/ caddy/ systemd/ kubernetes/
   raspberry-pi/               setup.sh (one-command setup), low-port.conf, docker-compose.yml
   esp32/                      DataBrief/DataBrief.ino (firmware), platformio.ini, make_header.ps1/.py
-docs/                         learn.md (tutorial), no-share.md, verify-privacy.md, raspberry-pi.md, esp32-arduino.md
+docs/                         learn.md (tutorial), no-share.md, verify-privacy.md, export-your-database.md,
+                              raspberry-pi.md, esp32-arduino.md
   formats/                    one guide per format (what is extracted, the best file, limits)
 examples/tampered/            the privacy demo: tampered copies + receiver.py (never published)
 .github/workflows/            pages.yml (GitHub Pages), release.yml (release + Docker images), tests.yml (tests on every push)
 .gitlab-ci.yml                the same for GitLab: Pages, release, Docker images (Container Registry)
 vendor/                       third-party libraries and their licenses
-tests/                        test suites
+tools/                        build-mdb-reader.sh: rebuilds vendor/mdb-reader.min.js from its sources
+tests/                        test suites; *-fixtures/ hold real files written by each engine's own tools
 ```
 
 ### Building
@@ -759,7 +773,7 @@ pwsh ./build.ps1                                          # PowerShell 7 (Window
 ### Releasing
 
 ```bash
-git tag v1.2.0 && git push origin v1.2.0
+git tag v1.3.0 && git push origin v1.3.0
 ```
 
 `.github/workflows/release.yml` creates the GitHub release (with both HTML files and `SHA256SUMS.txt`, their
@@ -787,6 +801,13 @@ rm -rf ~/databrief-testenv    # removes everything
 powershell -ExecutionPolicy Bypass -File tests\test_powershell.ps1   # PowerShell server, on Windows
 ```
 
+- **Readers in Node** (`run.sh`, first): the SQL dump and PostgreSQL archive readers against real dumps of
+  PostgreSQL 13/16/17, MySQL 8, MariaDB 11, SQLite, ClickHouse and DuckDB (`tests/sql-fixtures`, checked against a
+  hand-written `expected.json`), the Access reader (files written by Jackcess) and the DBF reader (files written by an
+  independent library); hand-written cases, marked *synthetic*, for what no engine here could produce; time limits on
+  adversarial input. The fixtures are regenerated by `make_*_fixtures.*` (Docker).
+- **Export commands** (`test_export_commands.sh`, Docker, on demand): runs the commands shown by "How do I export my
+  database?" against real PostgreSQL, MySQL, MariaDB, ClickHouse and SQLite servers and reads their files.
 - **Browser** (`run.sh`): every format (three SPSS compression modes, five Parquet codecs), errors, the 15 languages,
   large files, layouts, downloads, CSV-files mode, formatted view (HTML/script/image injection), prompt editing,
   team settings and locks, the settings page, mobile layout, relationships, the data profile, the format cards, and

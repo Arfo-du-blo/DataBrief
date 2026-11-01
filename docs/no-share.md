@@ -46,7 +46,7 @@ The mode is remembered: DataBrief never silently goes back to sharing your data.
 | **Table and column names** | on | neutral names (`table_1`, `column_3`); relationships and keys keep their shape; SQL definitions are removed |
 | **Labels and value labels** | on | variable labels, value labels and HTML captions used as names are left out |
 | **Relationships between tables** | on | the Relationships section is left out |
-| **File name** | on | the file is called `dataset.csv` (also for the download) |
+| **File name** | on | the file is called `dataset.csv` (also for the download); a table named after the file (also inside a `.gz`) and the names of other files the dump refers to are hidden too |
 | **Comments, notes and other free text** | **off** | (Excel comments, SPSS file label and notes, embedded metadata) left out unless you allow them |
 | **SQL definitions** of tables and views | **off** | they can contain literal values (`DEFAULT 'Smith'`); only available when names are shared |
 
