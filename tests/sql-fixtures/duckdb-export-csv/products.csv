@@ -1,0 +1,5 @@
+id,sku,title,price
+1,SKU-001,Café,12.50
+2,SKU-002,Thé,8.00
+3,SKU-003,Chocolat,
+4,SKU-004,"""Quoted"" title",99.99

@@ -4,3 +4,4 @@
 databrief.html text eol=lf
 vendor/*.js text eol=lf
 examples/tampered/*.html text eol=lf
+tests/sql-fixtures/** -text

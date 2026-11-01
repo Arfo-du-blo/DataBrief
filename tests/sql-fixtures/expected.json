@@ -1,0 +1,39 @@
+{
+  "_about": "What the SQL parser must find in every dump of the 'shop' database (the source is in src/). Written by hand from the source schemas, NOT from the parser, so it is the oracle of the tests. Names are as stored by each engine (case as written).",
+  "tables": {
+    "customers":     { "rows": 6, "columns": ["id", "email", "name", "country", "created_at", "notes"], "primaryKey": ["id"] },
+    "products":      { "rows": 4, "primaryKey": ["id"], "columnsByDialect": { "generic": ["id", "sku", "title", "price"], "postgres": ["id", "sku", "title", "price", "attrs", "labels"], "mysql": ["id", "sku", "title", "price", "attrs", "price_cents"] } },
+    "tags":          { "rows": 3, "columns": ["id", "label"], "primaryKey": ["id"] },
+    "product_tags":  { "rows": 4, "columns": ["product_id", "tag_id"], "primaryKey": ["product_id", "tag_id"] },
+    "orders":        { "rows": 5, "columns": ["id", "customer_id", "ordered_at", "status", "total"], "primaryKey": ["id"] },
+    "order_items":   { "rows": 5, "columns": ["order_id", "line_no", "product_id", "quantity"], "primaryKey": ["order_id", "line_no"] },
+    "shipments":     { "rows": 3, "columns": ["id", "order_id", "line_no", "carrier", "shipped_at"], "primaryKey": ["id"] },
+    "weird name":    { "rows": 2, "columns": ["id", "select", "from"], "primaryKey": ["id"], "note": "a name with a space, and reserved words as column names" }
+  },
+  "views": ["v_order_totals"],
+  "declaredForeignKeys": [
+    { "from": "product_tags", "columns": ["product_id"], "to": "products", "toColumns": ["id"] },
+    { "from": "product_tags", "columns": ["tag_id"], "to": "tags", "toColumns": ["id"] },
+    { "from": "orders", "columns": ["customer_id"], "to": "customers", "toColumns": ["id"] },
+    { "from": "order_items", "columns": ["order_id"], "to": "orders", "toColumns": ["id"] },
+    { "from": "order_items", "columns": ["product_id"], "to": "products", "toColumns": ["id"] },
+    { "from": "shipments", "columns": ["order_id", "line_no"], "to": "order_items", "toColumns": ["order_id", "line_no"], "note": "composite: must stay ONE relationship" }
+  ],
+  "junctionTables": ["product_tags"],
+  "dialects": {
+    "postgres":   { "files": "pg13-*, pg16-*, pg17-*", "foreignKeys": "declared (in ALTER TABLE ... ADD CONSTRAINT for -default, -inserts, -column-inserts and -schema-only)", "dataSyntax": "COPY ... FROM stdin (default and -data-only), INSERT (-inserts, -column-inserts)" },
+    "mysql":      { "files": "mysql8-*, mariadb11-*", "foreignKeys": "declared (inline CONSTRAINT in CREATE TABLE)", "dataSyntax": "INSERT, several rows per statement (default, -full), one row (-one-row-per-insert), with column names (-complete-insert)" },
+    "sqlite":     { "files": "sqlite-dump.sql", "foreignKeys": "declared (inline REFERENCES)", "dataSyntax": "INSERT, one row per statement; the newline is char(10) concatenation" },
+    "duckdb":     { "files": "duckdb-export-csv/, duckdb-export-parquet/", "foreignKeys": "declared (inline REFERENCES in schema.sql)", "dataSyntax": "COPY ... FROM 'file' (data is in the CSV/Parquet files, not in the SQL)" },
+    "clickhouse": { "files": "clickhouse-show-create.sql, clickhouse-data-sqlinsert.sql", "foreignKeys": "none exist in ClickHouse: relationships can only be inferred", "tables": { "customers": 5, "orders": 3, "order_items": 3 }, "dataSyntax": "INSERT ... VALUES with backslash escapes (O\\'Brien)" }
+  },
+  "awkwardValues": [
+    "a single quote doubled or escaped: Bob O'Brien",
+    "a newline, a semicolon and '--' inside a string: must not end the statement nor start a comment",
+    "'/* not a comment */' as a value, and a reserved word used as a column name",
+    "a backslash: back\\slash path C:\\temp (a literal in PostgreSQL and SQLite, an escape in MySQL and ClickHouse)",
+    "an emoji and accents (Zoë 😀), NULL, and an empty string",
+    "PostgreSQL 17 dumps contain \\restrict / \\unrestrict meta-commands; MariaDB 11 starts with /*M!999999\\- enable the sandbox mode */"
+  ],
+  "canaries": ["CONFIDENTIAL_CUSTOMER_74291", "ana.secret@example.com", "CONFIDENTIAL_SEGMENT_X", "CONFIDENTIAL_NOTE_123", "confidential_segment_x@example.com"]
+}

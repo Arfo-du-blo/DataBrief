@@ -1,0 +1,13 @@
+Real dumps in this folder were written by these tools (see tests/make_sql_fixtures.sh).
+Generated: 2026-11-01
+
+PostgreSQL 13: pg_dump (PostgreSQL) 13.23 / server 13.23
+PostgreSQL 16: pg_dump (PostgreSQL) 16.11 (Debian 16.11-1.pgdg13+1) / server 16.11 (Debian 16.11-1.pgdg13+1)
+PostgreSQL 17: pg_dump (PostgreSQL) 17.11 / server 17.11
+mariadb11: mariadb-dump from 11.8.9-MariaDB, client 10.20 for debian-linux-gnu (x86_64)
+ClickHouse: ClickHouse client version 26.10.3.7 (official build).
+SQLite: library 3.37.2 (Python iterdump, same text as the shell's .dump)
+DuckDB: 1.5.6 (EXPORT DATABASE, CSV and Parquet)
+mysql8: mysqldump  Ver 8.4.13 for Linux on x86_64 (MySQL Community Server - GPL)
+DuckDB: 1.5.6 (EXPORT DATABASE, CSV and Parquet)
+mysql8: mysqldump  Ver 8.4.13 for Linux on x86_64 (MySQL Community Server - GPL)

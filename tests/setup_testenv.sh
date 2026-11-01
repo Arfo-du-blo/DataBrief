@@ -17,6 +17,6 @@ npx puppeteer browsers install firefox > /dev/null 2>&1 || echo "Firefox not ins
 echo "node packages ok"
 cd "$E"
 [ -d venv ] || python3 -m venv venv
-./venv/bin/pip -q install --cache-dir "$E/pip-cache" pyreadstat==1.2.8 pandas==2.2.3 pyarrow==18.1.0 openpyxl==3.1.5 pyyaml==6.0.2
+./venv/bin/pip -q install --cache-dir "$E/pip-cache" pyreadstat==1.2.8 pandas==2.2.3 pyarrow==18.1.0 openpyxl==3.1.5 pyyaml==6.0.2 duckdb==1.5.6
 echo "python ok"
 du -sh "$E"

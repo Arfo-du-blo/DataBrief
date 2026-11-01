@@ -1,0 +1,4 @@
+id,order_id,line_no,carrier,shipped_at
+1,1,1,DHL,2024-05-02
+2,2,1,,2024-05-04
+3,3,1,UPS,

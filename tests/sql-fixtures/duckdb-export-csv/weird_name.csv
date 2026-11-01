@@ -1,0 +1,3 @@
+id,select,from
+1,a;b,--x
+2,,/* not a comment */
