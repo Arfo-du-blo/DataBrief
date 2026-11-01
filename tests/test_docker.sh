@@ -43,8 +43,8 @@ check "nginx: runs as non-root" '[ "$(docker exec db-test-nginx id -u)" = "101" 
 for _ in $(seq 1 20); do [ "$(docker inspect -f '{{.State.Health.Status}}' db-test-nginx)" = "healthy" ] && break; sleep 2; done
 check "nginx: Docker healthcheck" '[ "$(docker inspect -f "{{.State.Health.Status}}" db-test-nginx)" != "unhealthy" ]'
 # regression (v1.0.0): without DATABRIEF_LOCK, the other settings were silently dropped
-docker run -d --name db-test-nginx-nolock -p 18095:8080 -e DATABRIEF_LANG=it -e DATABRIEF_MODE=files databrief-test:nginx >/dev/null
-check "nginx: settings work without DATABRIEF_LOCK" 'wait_http localhost:18095/healthz && [ "$(curl -s localhost:18095/ | config_of)" = "{\"lang\": \"it\", \"mode\": \"files\"}" ]' "$(docker logs db-test-nginx-nolock 2>&1 | grep -v io_setup | tail -10)"
+docker run -d --name db-test-nginx-nolock -p 18095:8080 -e DATABRIEF_LANG=it -e DATABRIEF_MODE=files -e DATABRIEF_SHARE=no databrief-test:nginx >/dev/null
+check "nginx: settings work without DATABRIEF_LOCK" 'wait_http localhost:18095/healthz && [ "$(curl -s localhost:18095/ | config_of)" = "{\"lang\": \"it\", \"mode\": \"files\", \"share\": \"no\"}" ]' "$(docker logs db-test-nginx-nolock 2>&1 | grep -v io_setup | tail -10)"
 
 # ---- Python variant
 docker run -d --name db-test-python -p 18091:8080 -e DATABRIEF_LANG=ko -e DATABRIEF_THREADS=4 databrief-test:python >/dev/null
@@ -55,7 +55,7 @@ check "python image: runs as non-root" '[ "$(docker exec db-test-python id -u)" 
 
 # interactive setup inside the container, answers saved in the mounted folder
 mkdir -p "$T/config" && chmod 777 "$T/config"
-printf 'es\n\nfiles\n\n\n\n\n\n\n\n\n\n\n\ny\n' | docker run -i --rm -v "$T/config:/config" databrief-test:python setup --check > "$T/setup.txt" 2>&1
+printf 'es\n\nfiles\n\n\n\n\n\n\n\n\n\n\n\n\ny\n' | docker run -i --rm -v "$T/config:/config" databrief-test:python setup --check > "$T/setup.txt" 2>&1
 check "python image: interactive setup prints docker commands" 'grep -q "docker run -d -p 8080:8080" "$T/setup.txt" && grep -q "DATABRIEF_LANG=es" "$T/setup.txt"' "$(cat "$T/setup.txt" | tail -30)"
 check "python image: setup saved to /config" 'grep -q "^DATABRIEF_LANG=es$" "$T/config/databrief.conf"' "$(cat "$T/config/databrief.conf" 2>/dev/null)"
 docker rm -f db-test-python >/dev/null

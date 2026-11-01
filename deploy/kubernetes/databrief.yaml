@@ -13,6 +13,7 @@ data:
   DATABRIEF_MODE: "inline"
   DATABRIEF_LAYOUT: "auto"
   DATABRIEF_THEME: "system"
+  DATABRIEF_SHARE: "yes"          # "no" = Do not share data (structure only, no records)
   DATABRIEF_SAMPLE_ROWS: "5"
   DATABRIEF_WARN_TOKENS: "150000"
   DATABRIEF_LOCK: ""

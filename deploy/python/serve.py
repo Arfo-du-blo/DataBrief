@@ -26,7 +26,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LANGS = ["en", "fr", "es", "de", "it", "pt", "nl", "pl", "ru", "tr", "zh", "ja", "ko", "hi", "ar"]
-LOCKABLE = ["lang", "promptLang", "mode", "layout", "theme", "limit", "edit", "view"]
+LOCKABLE = ["lang", "promptLang", "mode", "layout", "theme", "limit", "edit", "view", "share"]
 
 # name, environment variable, default, page config key (None = server setting), question for --setup
 SETTINGS = [
@@ -35,6 +35,7 @@ SETTINGS = [
     ("mode", "DATABRIEF_MODE", "inline", "mode", "Give the data to the AI: inline (inside the prompt) or files (separate CSV files)"),
     ("layout", "DATABRIEF_LAYOUT", "auto", "layout", "Data layout: auto, table or csv"),
     ("theme", "DATABRIEF_THEME", "system", "theme", "Theme: system, light or dark"),
+    ("share", "DATABRIEF_SHARE", "yes", "share", "Share the data with the AI: yes, or no (Do not share data: the prompt describes the file without its records)"),
     ("sample_rows", "DATABRIEF_SAMPLE_ROWS", "5", "sampleRows", "Sample rows per section in CSV-files mode (1-100)"),
     ("warn_tokens", "DATABRIEF_WARN_TOKENS", "150000", "warnTokens", "Large-file warning above how many tokens"),
     ("lock", "DATABRIEF_LOCK", "", "lock", "Settings to lock, comma-separated (" + ",".join(LOCKABLE) + "; empty = none)"),
@@ -148,7 +149,7 @@ def validate(eff):
     for k in ("lang", "prompt_lang"):
         if eff[k] and eff[k] not in LANGS:
             errors.append(f"{BY_NAME[k][1]}: '{eff[k]}' is not one of {' '.join(LANGS)}")
-    choices = {"mode": ("inline", "files"), "layout": ("auto", "table", "csv"), "theme": ("system", "light", "dark")}
+    choices = {"mode": ("inline", "files"), "layout": ("auto", "table", "csv"), "theme": ("system", "light", "dark"), "share": ("yes", "no")}
     for k, allowed in choices.items():
         if eff[k] not in allowed:
             errors.append(f"{BY_NAME[k][1]}: '{eff[k]}' must be one of {', '.join(allowed)}")

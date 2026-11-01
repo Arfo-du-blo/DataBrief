@@ -68,6 +68,10 @@
       <select id="f_theme" class="select"><option value="">Follow the system (default)</option><option value="light">Light</option><option value="dark">Dark</option></select>
       <label class="sd-lock"><input type="checkbox" data-lock="theme"> Lock</label>
 
+      <label for="f_share">Share the data with the AI</label>
+      <select id="f_share" class="select"><option value="">Yes, the prompt contains the data (default)</option><option value="no">No: "Do not share data" (structure only, no records)</option></select>
+      <label class="sd-lock"><input type="checkbox" data-lock="share"> Lock</label>
+
       <label for="f_sampleRows">Sample rows in CSV-files mode</label>
       <input id="f_sampleRows" class="select" type="number" min="1" max="100" placeholder="5">
       <span></span>

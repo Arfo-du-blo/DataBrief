@@ -17,9 +17,10 @@ x-databrief-settings: &settings
   DATABRIEF_MODE: "inline"        # inline (data inside the prompt) | files (separate CSV files)
   DATABRIEF_LAYOUT: "auto"        # auto | table | csv
   DATABRIEF_THEME: "system"       # system | light | dark
+  DATABRIEF_SHARE: "yes"          # yes | no ("Do not share data": structure only, no records)
   DATABRIEF_SAMPLE_ROWS: "5"      # sample rows per section in CSV-files mode (1-100)
   DATABRIEF_WARN_TOKENS: "150000" # large-file warning threshold (tokens)
-  DATABRIEF_LOCK: ""              # locked + hidden: lang,promptLang,mode,layout,theme,limit,edit,view
+  DATABRIEF_LOCK: ""              # locked + hidden: lang,promptLang,mode,layout,theme,limit,edit,view,share
   DATABRIEF_PROMPT_INTRO: ""      # your team's introduction ("" = DataBrief's text)
   DATABRIEF_PROMPT_RESPOND: ""    # your team's "How to respond" text, data inside the prompt
   DATABRIEF_PROMPT_RESPOND_FILES: ""  # same, CSV-files mode

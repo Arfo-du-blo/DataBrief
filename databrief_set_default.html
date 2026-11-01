@@ -377,6 +377,10 @@ footer a { color: inherit; }
       <select id="f_theme" class="select"><option value="">Follow the system (default)</option><option value="light">Light</option><option value="dark">Dark</option></select>
       <label class="sd-lock"><input type="checkbox" data-lock="theme"> Lock</label>
 
+      <label for="f_share">Share the data with the AI</label>
+      <select id="f_share" class="select"><option value="">Yes, the prompt contains the data (default)</option><option value="no">No: "Do not share data" (structure only, no records)</option></select>
+      <label class="sd-lock"><input type="checkbox" data-lock="share"> Lock</label>
+
       <label for="f_sampleRows">Sample rows in CSV-files mode</label>
       <input id="f_sampleRows" class="select" type="number" min="1" max="100" placeholder="5">
       <span></span>
@@ -3188,12 +3192,12 @@ window.DB_I18N = {
   const DB = window.DB;
   const I = window.DB_I18N;
   const $ = (id) => document.getElementById(id);
-  const FIELDS = ['lang', 'promptLang', 'mode', 'layout', 'theme'];
+  const FIELDS = ['lang', 'promptLang', 'mode', 'layout', 'theme', 'share'];
   const TEXTS = [['promptIntro', 't_intro'], ['promptRespond', 't_respond'], ['promptRespondFiles', 't_respondFiles']];
   /* Settings -> environment variable names used by the servers, Docker and databrief.conf */
   const ENV = {
     lang: 'DATABRIEF_LANG', promptLang: 'DATABRIEF_PROMPT_LANG', mode: 'DATABRIEF_MODE', layout: 'DATABRIEF_LAYOUT',
-    theme: 'DATABRIEF_THEME', sampleRows: 'DATABRIEF_SAMPLE_ROWS', warnTokens: 'DATABRIEF_WARN_TOKENS', lock: 'DATABRIEF_LOCK',
+    theme: 'DATABRIEF_THEME', share: 'DATABRIEF_SHARE', sampleRows: 'DATABRIEF_SAMPLE_ROWS', warnTokens: 'DATABRIEF_WARN_TOKENS', lock: 'DATABRIEF_LOCK',
     promptIntro: 'DATABRIEF_PROMPT_INTRO', promptRespond: 'DATABRIEF_PROMPT_RESPOND', promptRespondFiles: 'DATABRIEF_PROMPT_RESPOND_FILES',
   };
 

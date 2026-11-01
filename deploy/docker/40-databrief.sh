@@ -21,6 +21,7 @@ jq -n \
   --arg mode "${DATABRIEF_MODE:-}" \
   --arg layout "${DATABRIEF_LAYOUT:-}" \
   --arg theme "${DATABRIEF_THEME:-}" \
+  --arg share "${DATABRIEF_SHARE:-}" \
   --arg sample "${DATABRIEF_SAMPLE_ROWS:-}" \
   --arg warn "${DATABRIEF_WARN_TOKENS:-}" \
   --arg intro "${DATABRIEF_PROMPT_INTRO:-}" \
@@ -29,7 +30,7 @@ jq -n \
   --argjson lock "$LOCK_JSON" '
   def set(k; v; skip): if v != "" and v != skip then {(k): v} else {} end;
   set("lang"; $lang; "") + set("promptLang"; $promptLang; "") + set("mode"; $mode; "inline")
-  + set("layout"; $layout; "auto") + set("theme"; $theme; "system")
+  + set("layout"; $layout; "auto") + set("theme"; $theme; "system") + set("share"; $share; "yes")
   + (if $sample != "" and $sample != "5" then {sampleRows: ($sample | tonumber)} else {} end)
   + (if $warn != "" and $warn != "150000" then {warnTokens: ($warn | tonumber)} else {} end)
   + (if ($lock | length) > 0 then {lock: $lock} else {} end)

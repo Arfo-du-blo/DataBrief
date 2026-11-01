@@ -48,9 +48,16 @@ EOF
   "$@" --html "$ROOT/databrief.html" --mode bogus --check > err.txt 2>&1
   check "$name: invalid value rejected" '[ $? -eq 2 ] || grep -q "DATABRIEF_MODE" err.txt' "$(cat err.txt)"
 
+  # "Do not share data": DATABRIEF_SHARE=no reaches the page, "share" can be locked, a wrong value is rejected
+  DATABRIEF_SHARE=no "$@" --html "$ROOT/databrief.html" --lock share --check > share.txt 2>&1
+  check "$name: DATABRIEF_SHARE=no and lock share in the page" 'grep -Eq "\"share\": ?\"no\"" share.txt && grep -Eq "\"lock\": ?\[ ?\"share\" ?\]" share.txt' "$(tail -8 share.txt)"
+  DATABRIEF_SHARE=maybe "$@" --html "$ROOT/databrief.html" --check > share_bad.txt 2>&1
+  local rc=$?
+  check "$name: invalid DATABRIEF_SHARE rejected" '[ "$rc" -ne 0 ] && grep -q "DATABRIEF_SHARE" share_bad.txt' "$(cat share_bad.txt)"
+
   # interactive setup: answers on stdin (one invalid answer is asked again), saved to databrief.conf
   mkdir -p setup && cd setup
-  printf 'fr\n\nbogus\nfiles\n\n\n\n\nlang\n\n9999\n\n\n\n\ny\n' | "$@" --setup --check --config "$PWD/databrief.conf" --html "$ROOT/databrief.html" > setup.txt 2>&1
+  printf 'fr\n\nbogus\nfiles\n\n\n\n\n\nlang\n\n9999\n\n\n\n\ny\n' | "$@" --setup --check --config "$PWD/databrief.conf" --html "$ROOT/databrief.html" > setup.txt 2>&1
   check "$name: --setup asks again after an invalid answer" 'grep -q "must be one of inline, files" setup.txt' "$(tail -20 setup.txt)"
   check "$name: --setup saves databrief.conf" 'grep -q "^DATABRIEF_LANG=fr$" databrief.conf && grep -q "^DATABRIEF_MODE=files$" databrief.conf && grep -q "^DATABRIEF_PORT=9999$" databrief.conf && grep -q "^DATABRIEF_LOCK=lang$" databrief.conf' "$(cat databrief.conf 2>/dev/null)"
   check "$name: --setup result used" 'grep -Eq "\"lang\": ?\"fr\"" setup.txt && grep -Eq "\"mode\": ?\"files\"" setup.txt' "$(tail -3 setup.txt)"

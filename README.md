@@ -499,9 +499,10 @@ An empty value means "not set".
 | `DATABRIEF_MODE` | `--mode` | `-Mode` | `inline` | `inline` = data inside the prompt, `files` = separate CSV files + sample |
 | `DATABRIEF_LAYOUT` | `--layout` | `-Layout` | `auto` | `auto`, `table` or `csv` |
 | `DATABRIEF_THEME` | `--theme` | `-Theme` | `system` | `system`, `light` or `dark` |
+| `DATABRIEF_SHARE` | `--share` | `-Share` | `yes` | `no` = "Do not share data": the prompt describes the file without any of its records. Lock it (`share`) to impose it |
 | `DATABRIEF_SAMPLE_ROWS` | `--sample-rows` | `-SampleRows` | `5` | Sample rows per section in CSV-files mode (1–100) |
 | `DATABRIEF_WARN_TOKENS` | `--warn-tokens` | `-WarnTokens` | `150000` | Large-file warning threshold |
-| `DATABRIEF_LOCK` | `--lock` | `-Lock` | *(none)* | Comma-separated: `lang`, `promptLang`, `mode`, `layout`, `theme` (value fixed, control hidden); `limit`, `edit`, `view` (row-limit control / Edit / View formatted hidden) |
+| `DATABRIEF_LOCK` | `--lock` | `-Lock` | *(none)* | Comma-separated: `lang`, `promptLang`, `mode`, `layout`, `theme`, `share` (value fixed, control hidden); `limit`, `edit`, `view` (row-limit control / Edit / View formatted hidden) |
 | `DATABRIEF_PROMPT_INTRO` | `--prompt-intro` | `-PromptIntro` | *(DataBrief's text)* | Your introduction (under the title) |
 | `DATABRIEF_PROMPT_RESPOND` | `--prompt-respond` | `-PromptRespond` | *(DataBrief's text)* | Your "How to respond" part, data inside the prompt |
 | `DATABRIEF_PROMPT_RESPOND_FILES` | `--prompt-respond-files` | `-PromptRespondFiles` | *(DataBrief's text)* | Same, CSV-files mode |
@@ -532,6 +533,7 @@ server script, `/config/` (Docker).
 
 For settings that are **not locked**, a link can choose them: `?lang=fr`, `?prompt=en`, `?mode=files`,
 `?layout=csv`, `?theme=dark` (combine with `&`). Example: `…/databrief.html?lang=de&mode=files`.
+`?share=no` opens DataBrief in "Do not share data" mode. A link can switch this mode on, never off.
 
 ---
 
