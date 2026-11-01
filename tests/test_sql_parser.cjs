@@ -413,5 +413,72 @@ ok('archives recognised by their content', DB.isPgArchive(readBin('pg16-custom.d
     sec(r, 'big2').rows[7][2] === 'note\twith tab 7' && sec(r, 'big').rows[3][2] === "note with 'quote' and ; semicolon 3", ms + ' ms');
 }
 
+/* ---- review of v1.3 (synthetic): values that must never end up in a column type ---- */
+{
+  const r = parse("CREATE TABLE [dbo].[Customers]([Id] [int] NOT NULL,[City] [nvarchar](50) NULL)\nGO\n" +
+    "ALTER TABLE [dbo].[Customers] ADD  DEFAULT (N'CONFIDENTIAL_DEFAULT') FOR [City]\nGO\nALTER TABLE [dbo].[Customers] ADD [Extra] [int] NULL\nGO\n");
+  const c = sec(r, 'Customers');
+  ok('synthetic SQL Server ALTER TABLE ADD DEFAULT .. FOR: no column, no value', same(colNames(c), ['Id', 'City', 'Extra']) && !JSON.stringify(r).includes('CONFIDENTIAL'), JSON.stringify(c.columns.map((x) => [x.name, x.meta.sqlType])));
+  ok('synthetic SQL Server: a bracketed built-in type is not a custom type', c.columns.every((x) => !x.meta.sqlTypeAnon || x.meta.sqlTypeAnon === x.meta.sqlType), JSON.stringify(c.columns.map((x) => x.meta.sqlTypeAnon)));
+  const r2 = parse("CREATE TABLE t (s varchar(10) TITLE 'CONFIDENTIAL_T1', ea int ENGINE_ATTRIBUTE='CONFIDENTIAL_T2', d DateTime64(3,'CONFIDENTIAL_T3'), e enum('CONFIDENTIAL_T4','b'));\n" +
+    "ALTER TABLE t ADD PARTITION (PARTITION p1 VALUES IN ('CONFIDENTIAL_T5'));\nALTER TABLE t ADD COLUMN z text;\n");
+  const t = sec(r2, 't');
+  const types = JSON.stringify(t.columns.map((x) => [x.meta.sqlType, x.meta.sqlTypeAnon]));
+  ok('synthetic: quoted text in a type is replaced, partitions are not columns', same(colNames(t), ['s', 'ea', 'd', 'e', 'z']) && !types.includes('CONFIDENTIAL') && t.columns[4].meta.sqlType === 'text', types);
+  ok('synthetic: enum labels still go to the values (shown with the labels switch)', t.columns[3].meta.values === 'CONFIDENTIAL_T4, b', t.columns[3].meta.values);
+}
+/* ---- review of v1.3 (synthetic): the SQL reader's bugs found in review, one case each ---- */
+{
+  const rowsOf = (r, n) => (sec(r, n) || { rows: [] }).rows;
+  const timed = (f) => { const t0 = Date.now(); const r = f(); return [r, Date.now() - t0]; };
+  // 1. an escape beyond U+10FFFF does not stop the reading
+  let r;
+  try { r = parse("-- PostgreSQL database dump\nCREATE TABLE t (a text);\nINSERT INTO t VALUES (E'x\\U00110000');\nINSERT INTO t VALUES ('ok');\n"); } catch (e) { r = null; }
+  ok('review: \\U beyond U+10FFFF does not throw', !!r && rowsOf(r, 't').length === 2, r ? JSON.stringify(rowsOf(r, 't')) : 'threw');
+  // 2. nested comments: linear
+  let ms;
+  [r, ms] = timed(() => parse('-- PostgreSQL database dump\nCREATE TABLE t (a int);\n' + '/* '.repeat(300000)));
+  ok('review: 300,000 open nested comments in linear time', ms < 3000, ms + ' ms');
+  // 3. backslashes in strings: linear (mysqldump writes BLOBs as escaped strings)
+  [r, ms] = timed(() => parse('-- MySQL dump\nCREATE TABLE `t` (`b` blob);\nINSERT INTO `t` VALUES (\'' + '\\0x'.repeat(1000000) + '\');\n'));
+  ok('review: a 3 MB escaped blob in linear time', ms < 3000 && rowsOf(r, 't').length === 1, ms + ' ms');
+  [r, ms] = timed(() => parse('-- MySQL dump\nINSERT INTO `t` VALUES (\'' + '\\a'.repeat(1000000)));
+  ok('review: an unterminated escaped string in linear time', ms < 3000, ms + ' ms');
+  [r, ms] = timed(() => parse("-- PostgreSQL database dump\nINSERT INTO t VALUES (E'" + "''".repeat(500000) + "\\n');\n"));
+  ok('review: doubled quotes before a far backslash in linear time', ms < 3000, ms + ' ms');
+  // 4. SQL Server: BEGIN TRANSACTION is an ordinary statement
+  r = parse('CREATE TABLE [dbo].[t]([a] int)\nGO\nBEGIN TRANSACTION;\nINSERT INTO [dbo].[t] ([a]) VALUES (1);\nINSERT INTO [dbo].[t] ([a]) VALUES (2);\nCOMMIT;\nGO\n');
+  ok('review: SQL Server BEGIN TRANSACTION keeps the rows', same(rowsOf(r, 't'), [['1'], ['2']]), JSON.stringify([rowsOf(r, 't'), r.info.ignored]));
+  // 5. columns named key, index, fulltext (pg_dump does not quote them)
+  r = parse('-- PostgreSQL database dump\nCREATE TABLE public.t (id integer NOT NULL, key numeric(10,2), fulltext tsvector, index bit(8));\n');
+  ok('review: columns named key, index, fulltext', same(colNames(sec(r, 't')), ['id', 'key', 'fulltext', 'index']), JSON.stringify(colNames(sec(r, 't'))));
+  r = parse('-- MySQL dump\nCREATE TABLE `t` (`id` int, `body` text, KEY `k1` (`id`), FULLTEXT KEY `ft` (`body`), FULLTEXT ft2 (`body`)) ENGINE=InnoDB;\n');
+  ok('review: MySQL KEY / FULLTEXT KEY are still indexes', same(colNames(sec(r, 't')), ['id', 'body']) && sec(r, 't').constraints.indexes.length === 3, JSON.stringify([colNames(sec(r, 't')), sec(r, 't').constraints.indexes]));
+  // 6. SQL Server CAST(... AS type) values
+  r = parse("CREATE TABLE [dbo].[t]([a] datetime, [b] decimal(10,2))\nGO\nINSERT [dbo].[t] ([a], [b]) VALUES (CAST(N'2020-01-01T00:00:00.000' AS DateTime), CAST(12.50 AS Decimal(10, 2)))\nGO\n");
+  ok('review: SQL Server CAST values are decoded', same(rowsOf(r, 't'), [['2020-01-01T00:00:00.000', '12.50']]), JSON.stringify(rowsOf(r, 't')));
+  // 7. mysqldump --compact --no-create-info
+  r = parse("INSERT INTO `t` VALUES (1,'it\\'s'),(2,'x; y');\n");
+  ok('review: compact MySQL data is read as MySQL', r.info.dialect === 'mysql' && same(rowsOf(r, 't'), [['1', "it's"], ['2', 'x; y']]), JSON.stringify([r.info.dialect, rowsOf(r, 't')]));
+  // 8. MySQL \0 is NUL, never octal; \u and \x are letters
+  r = parse("-- MySQL dump\nINSERT INTO `t` VALUES ('a\\012','\\ufeed','\\x41','50\\%');\n");
+  ok('review: MySQL escapes', same(rowsOf(r, 't')[0], ['a\u000012', 'ufeed', 'x41', '50\\%']), JSON.stringify(rowsOf(r, 't')[0]));
+  r = parse("-- PostgreSQL database dump\nINSERT INTO t VALUES (E'a\\101\\x42\\u0043 50\\%');\n");
+  ok('review: PostgreSQL E-string escapes', same(rowsOf(r, 't')[0], ['aABC 50%']), JSON.stringify(rowsOf(r, 't')[0]));
+  // 9. a trigger's sql_mode is restored after it
+  r = parse("-- MySQL dump\n/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;\nCREATE TABLE `t` (`a` text);\n" +
+    "/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;\n/*!50003 SET sql_mode              = 'NO_BACKSLASH_ESCAPES' */ ;\n" +
+    "/*!50003 SET sql_mode              = @saved_sql_mode */ ;\nINSERT INTO `t` VALUES ('it\\'s'),('b');\n/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;\n");
+  ok('review: NO_BACKSLASH_ESCAPES of a trigger ends with it', same(rowsOf(r, 't'), [["it's"], ['b']]), JSON.stringify(rowsOf(r, 't')));
+  r = parse("-- MySQL dump\n/*!40101 SET SQL_MODE='NO_BACKSLASH_ESCAPES' */;\nINSERT INTO `t` VALUES ('a\\b');\n");
+  ok('review: NO_BACKSLASH_ESCAPES for the whole dump still applies', same(rowsOf(r, 't'), [['a\\b']]), JSON.stringify(rowsOf(r, 't')));
+  // 10. rows growing wider: linear
+  let s = 'CREATE TABLE t (c1 int);\n';
+  for (let k = 0; k < 100000; k++) s += 'INSERT INTO t VALUES (' + k + ');\n';
+  for (let w = 2; w <= 1500; w++) s += 'INSERT INTO t VALUES (' + Array.from({ length: w }, (_, j) => j).join(',') + ');\n';
+  [r, ms] = timed(() => parse(s));
+  ok('review: rows growing wider in linear time, every row as wide as the table', ms < 8000 && sec(r, 't').rows.every((x) => x.length === 1500), ms + ' ms');
+}
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

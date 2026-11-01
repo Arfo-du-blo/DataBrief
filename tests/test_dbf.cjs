@@ -145,5 +145,40 @@ for (const name of ['dbase3', 'dos437', 'cyrillic866', 'cyrillic1251', 'foxpro',
     s.rows[7][0] === 'name7' && s.rows[7][1] === '7' && ms < 5000, JSON.stringify([s.rows.length, s.rowsTotal, ms]));
 }
 
+/* ---- Visual FoxPro varchar (SYNTHETIC: no VFP here, and the library writes no varchar) ----
+   _NullFlags: in field order, a bit per nullable field, then a bit per varchar field ("shorter than the field": the real
+   length is in the field's last byte). A table NAME V(10) nullable, QTY I nullable, CODE V(4) not nullable. */
+{
+  const fields = [['NAME', 'V', 10, 0x02], ['QTY', 'I', 4, 0x02], ['CODE', 'V', 4, 0x00], ['_NullFlags', '0', 1, 0x05]];
+  const rec = 1 + fields.reduce((a, f) => a + f[2], 0), hdr = 32 + 32 * fields.length + 1 + 263;
+  const records = [
+    // NAME 'abc' (short: length 3 in the last byte), QTY NULL, CODE 'XY' (short)   bits: NAME null 0, NAME len 1, QTY null 2, CODE len 3
+    { name: [0x61, 0x62, 0x63, 0, 0, 0, 0, 0, 0, 3], qty: [0, 0, 0, 0], code: [0x58, 0x59, 0, 2], flags: 0b1110 },
+    // NAME full length (no length bit), QTY 0 (real zero), CODE full
+    { name: [...Buffer.from('0123456789')], qty: [0, 0, 0, 0], code: [...Buffer.from('ABCD')], flags: 0 },
+    // NAME NULL, QTY 7
+    { name: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], qty: [7, 0, 0, 0], code: [...Buffer.from('Z   ')], flags: 0b0001 },
+  ];
+  const u8 = new Uint8Array(hdr + rec * records.length + 1);
+  const dv = new DataView(u8.buffer);
+  u8[0] = 0x30; dv.setUint32(4, records.length, true); dv.setUint16(8, hdr, true); dv.setUint16(10, rec, true); u8[29] = 0x03;
+  let off = 1;
+  fields.forEach(([n, t, len, flags], i) => {
+    const p = 32 + 32 * i;
+    u8.set(Buffer.from(n), p); u8[p + 11] = t.charCodeAt(0); dv.setUint32(p + 12, off, true); u8[p + 16] = len; u8[p + 18] = flags; off += len;
+  });
+  u8[32 + 32 * fields.length] = 0x0d;
+  records.forEach((r, i) => {
+    const o = hdr + i * rec;
+    u8[o] = 0x20; u8.set(r.name, o + 1); u8.set(r.qty, o + 11); u8.set(r.code, o + 15); u8[o + 19] = r.flags;
+  });
+  u8[u8.length - 1] = 0x1a;
+  const s = DB.parseDbf(u8).sections[0];
+  ok('vfp varchar (synthetic): types', same(s.columns.map((c) => c.meta.sqlType), ['VARCHAR(10)', 'INTEGER', 'VARCHAR(4)']), JSON.stringify(s.columns.map((c) => c.meta.sqlType)));
+  ok('vfp varchar (synthetic): short values cut at their length, NULL integer empty', same(s.rows[0], ['abc', '', 'XY']), JSON.stringify(s.rows[0]));
+  ok('vfp varchar (synthetic): full values, a real zero stays 0', same(s.rows[1], ['0123456789', '0', 'ABCD']), JSON.stringify(s.rows[1]));
+  ok('vfp varchar (synthetic): NULL varchar empty, other fields read', same(s.rows[2], ['', '7', 'Z']), JSON.stringify(s.rows[2]));
+}
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

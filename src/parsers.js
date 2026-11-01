@@ -449,7 +449,7 @@
   /* ---------- a zipped DuckDB "EXPORT DATABASE" folder: schema.sql + load.sql + one CSV or Parquet file per table ---------- */
   function zipNames(u8) {
     const names = [];
-    try { window.fflate.unzipSync(u8, { filter: (f) => { names.push(f.name); return false; } }); } catch (e) { /* not readable as a zip: the spreadsheet reader says so */ }
+    try { window.fflate.unzipSync(u8, { filter: (f) => { names.push(f.name.replace(/\\/g, '/')); return false; } }); } catch (e) { /* not readable as a zip: the spreadsheet reader says so */ }
     return names;
   }
   // What a zip really is, besides a spreadsheet: an exported DuckDB folder, or a SQL Server data-tier package
@@ -462,7 +462,7 @@
   /* ---------- a SQL Server data-tier package (.dacpac, and the schema of a .bacpac): dacpac.js ---------- */
   function parseDacpacFile(u8) {
     let files;
-    try { files = window.fflate.unzipSync(u8, { filter: (f) => f.name === 'model.xml' || f.name === 'Origin.xml' }); } catch (e) { throw new UserError('errCorrupt', { ext: '.dacpac' }); }
+    try { files = window.fflate.unzipSync(u8, { filter: (f) => (f.name === 'model.xml' || f.name === 'Origin.xml') && f.originalSize < 512 * 1024 * 1024 }); } catch (e) { throw new UserError('errCorrupt', { ext: '.dacpac' }); }
     if (!files['model.xml']) throw new UserError('errCorrupt', { ext: '.dacpac' });
     const hasData = zipNames(u8).some((n) => /^Data\//.test(n));
     const origin = files['Origin.xml'] ? DB.decodeText(files['Origin.xml']).text : '';
@@ -472,13 +472,31 @@
     return doc;
   }
   async function parseDuckdbZip(u8) {
-    let files;
-    try { files = window.fflate.unzipSync(u8, { filter: (f) => !/\/$/.test(f.name) && f.originalSize < 1024 * 1024 * 1024 }); } catch (e) { throw new UserError('errCorrupt', { ext: '.zip' }); }
-    const names = Object.keys(files);
-    const schema = names.find((n) => /(^|\/)schema\.sql$/.test(n)), load = names.find((n) => /(^|\/)load\.sql$/.test(n));
-    const r = DB.parseSqlDump([DB.decodeText(files[schema]).text, '\n', DB.decodeText(files[load]).text], { maxRows: DB.SQL_MAX_ROWS, dialect: 'generic' });
+    const all = zipNames(u8).filter((n) => !/\/$/.test(n));
+    const schema = all.find((n) => /(^|\/)schema\.sql$/.test(n)), load = all.find((n) => /(^|\/)load\.sql$/.test(n));
+    let total = 0;
+    const take = (wanted) => {   // decompresses only the wanted entries; the sizes are limited all together (a zip bomb stops here)
+      let got;
+      try {
+        got = window.fflate.unzipSync(u8, { filter: (f) => {
+          if (!wanted(f.name.replace(/\\/g, '/'))) return false;
+          total += f.originalSize;
+          if (total > 1024 * 1024 * 1024) throw new UserError('errTooLarge');
+          return true;
+        } });
+      } catch (e) { if (e instanceof UserError) throw e; throw new UserError('errCorrupt', { ext: '.zip' }); }
+      const out = {};
+      for (const k of Object.keys(got)) out[k.replace(/\\/g, '/')] = got[k];
+      return out;
+    };
+    const head = take((n) => n === schema || n === load);
+    if (!head[schema] || !head[load]) throw new UserError('errCorrupt', { ext: '.zip' });
+    const r = DB.parseSqlDump([DB.decodeText(head[schema]).text, '\n', DB.decodeText(head[load]).text], { maxRows: DB.SQL_MAX_ROWS, dialect: 'generic' });
+    const needed = new Set(r.sections.map((s) => s.externalData).filter(Boolean));
+    const files = take((n) => n !== schema && n !== load && needed.has(n.split('/').pop()));
+    const names = all;
     const byBase = {};
-    for (const n of names) byBase[n.split('/').pop()] = n;
+    for (const n of Object.keys(files)) byBase[n.split('/').pop()] = n;
     const missing = [];
     let cut = false;
     const read = new Set();
@@ -680,10 +698,25 @@
   async function parseGzip(u8, fileName, depth) {
     if (depth) throw new UserError('errCorrupt', { ext: '.gz' });            // a gzip inside a gzip is not followed
     const n = u8.length;
-    const size = (u8[n - 4] | (u8[n - 3] << 8) | (u8[n - 2] << 16) | (u8[n - 1] << 24)) >>> 0;   // stored size modulo 4 GB
-    if (size > 1024 * 1024 * 1024) throw new UserError('errTooLarge');
-    let inner;
-    try { inner = window.fflate.gunzipSync(u8); } catch (e) { throw new UserError('errCorrupt', { ext: '.gz' }); }
+    const parts = [];
+    let size = 0, members = 0;
+    try {
+      const g = new window.fflate.Gunzip((chunk) => {
+        size += chunk.length;
+        if (size > 1024 * 1024 * 1024) throw new UserError('errTooLarge');
+        parts.push(chunk);
+      });
+      g.onmember = () => { members++; };
+      // fflate starts the next member only on a new push: push empty input until no member starts any more
+      for (let i = 0; i < n; i += 1 << 20) {
+        g.push(u8.subarray(i, Math.min(n, i + (1 << 20))), false);
+        let m;
+        do { m = members; g.push(new Uint8Array(0), false); } while (members !== m);
+      }
+      g.push(new Uint8Array(0), true);
+    } catch (e) { if (e instanceof UserError) throw e; throw new UserError('errCorrupt', { ext: '.gz' }); }
+    let inner = parts.length === 1 ? parts[0] : new Uint8Array(size);
+    if (parts.length !== 1) { let at = 0; for (const p of parts) { inner.set(p, at); at += p.length; } }
     const innerName = /\.(gz|gzip)$/i.test(fileName) ? fileName.replace(/\.(gz|gzip)$/i, '') : fileName;
     const doc = await DB.parseFile(inner, innerName, 1);
     doc.fileName = fileName;

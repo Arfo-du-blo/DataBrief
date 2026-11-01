@@ -37,6 +37,8 @@
     ['postgres', /^\\(connect|restrict)\b/m, 3],
     ['mysql', /^-- (MySQL|MariaDB) dump/mi, 6], ['mysql', /\/\*M?!\d{5}/, 3], ['mysql', /\bENGINE\s*=\s*(InnoDB|MyISAM|Aria|MEMORY|CSV|ARCHIVE)\b/i, 4],
     ['mysql', /^LOCK TABLES `/m, 3], ['mysql', /\bAUTO_INCREMENT\b/i, 1],
+    // mysqldump --compact --no-create-info: no comment, no ENGINE=, only INSERT INTO `t` with \' escapes
+    ['mysql', /^INSERT (IGNORE )?INTO `/m, 3], ['mysql', /[^\\]\\'/, 1],
     ['mssql', /^\s*GO\s*$/mi, 3], ['mssql', /\[dbo\]\./i, 4], ['mssql', /\bSET ANSI_NULLS (ON|OFF)\b/i, 3], ['mssql', /\bIDENTITY\s*\(\s*\d/i, 2],
     ['mssql', /\bN?VARCHAR\s*\(\s*MAX\s*\)/i, 2],
     ['oracle', /\bVARCHAR2\b/i, 4], ['oracle', /\bNUMBER\s*\(\s*\d/i, 2], ['oracle', /\bALTER SESSION SET\b/i, 2], ['oracle', /^\s*\/\s*$/m, 1],
@@ -56,6 +58,7 @@
   function lexFor(d) {
     return {
       backslash: d === 'mysql' || d === 'clickhouse',   // \' \n ... inside every string
+      esc: d === 'mysql' ? 'my' : d === 'clickhouse' ? 'ch' : 'pg', // which escapes: MySQL has no octal, \x or \u
       dollar: d === 'postgres' || d === 'generic',      // $tag$ ... $tag$ strings
       nested: d === 'postgres',                          // /* /* */ */
       hash: d === 'mysql',                               // # comment
@@ -72,6 +75,8 @@
   // dollar quote, a COPY ... FROM stdin data block. The result does not depend on where the chunks are cut.
   const LOOK = 256; // characters kept back at the end of a chunk so that every look-ahead is complete
   const ROUTINE_HEAD = /^\s*(?:CREATE|ALTER)\s+(?:OR\s+(?:REPLACE|ALTER)\s+)?(?:(?:NON)?EDITIONABLE\s+)?(?:PROCEDURE|PROC|FUNCTION|PACKAGE|TRIGGER|TYPE\s+BODY)\b|^\s*(?:DECLARE|BEGIN)\b/i;
+  // SQL Server: BEGIN TRANSACTION, BEGIN TRY, DECLARE @x are ordinary statements (an Oracle PL/SQL block starts with them)
+  const ROUTINE_HEAD_MSSQL = /^\s*(?:CREATE|ALTER)\s+(?:OR\s+ALTER\s+)?(?:PROCEDURE|PROC|FUNCTION|TRIGGER)\b/i;
   const esc = (s) => s.replace(/[\\^\]\-[]/g, '\\$&');
 
   class Splitter {
@@ -162,9 +167,10 @@
         switch (this.mode) {
           case 'q': {
             const close = this.q === '[' ? ']' : this.q;
+            let k = buf.indexOf(close, i), b = this.qbs ? buf.indexOf('\\', i) : -1;   // kept while ahead: linear
             for (;;) {
-              const k = buf.indexOf(close, i);
-              const b = this.qbs ? buf.indexOf('\\', i) : -1;
+              if (k >= 0 && k < i) k = buf.indexOf(close, i);
+              if (b >= 0 && b < i) b = buf.indexOf('\\', i);
               if (b >= 0 && (k < 0 || b < k)) {
                 if (b + 1 >= buf.length && !final) { this.i = b; return; }
                 i = b + 2; continue;
@@ -183,9 +189,10 @@
             continue;
           }
           case 'b': {
+            let k = buf.indexOf('*/', i), o = lex.nested ? buf.indexOf('/*', i) : -1;   // both kept while ahead: linear
             for (;;) {
-              const k = buf.indexOf('*/', i);
-              const o = lex.nested ? buf.indexOf('/*', i) : -1;
+              if (k >= 0 && k < i) k = buf.indexOf('*/', i);
+              if (o >= 0 && o < i) o = buf.indexOf('/*', i);
               if (o >= 0 && (k < 0 || o < k)) { this.depth++; i = o + 2; continue; }
               if (k < 0) { i = Math.max(i, buf.length - 1); if (!final) { this.i = i; return; } i = buf.length; break outer; }
               i = k + 2;
@@ -217,7 +224,7 @@
         i = k;
         if (c === '\n') { this.lineStart = true; i = k + 1; continue; }
         if (buf.startsWith(this.delim, k)) {
-          if (lex.routines && this.delim === ';' && ROUTINE_HEAD.test(stripComments(buf.slice(this.start, Math.min(k, this.start + 400))))) {
+          if (lex.routines && this.delim === ';' && (lex.go ? ROUTINE_HEAD_MSSQL : ROUTINE_HEAD).test(stripComments(buf.slice(this.start, Math.min(k, this.start + 400))))) {
             this.has = true; i = k + 1; continue;              // a ';' inside a procedure body
           }
           this.emit(k, k + this.delim.length);
@@ -281,9 +288,17 @@
   const OPS = ['::', '||', '->>', '->', '<=', '>=', '<>', '!=', ':=', '=>', '<<', '>>', '&&', '#>>', '#>'];
   const CHARSET_INTRO = /^_(utf8mb4|utf8mb3|utf8|latin1|latin2|binary|ascii|ucs2|utf16|utf16le|utf32|cp1250|cp1251|cp1252|cp850|gbk|big5|sjis|euckr|ujis|koi8r|greek|hebrew|tis620|armscii8|geostd8|swe7|dec8|hp8|keybcs2|macce|macroman|cp852|cp866|cp932|eucjpms|gb2312|gb18030)$/i;
 
-  function escapeAt(t, j) {
+  // mode: 'my' MySQL / MariaDB (\0 is NUL, \x \u \U are plain letters, \% \_ keep the backslash), 'ch' ClickHouse (\xHH),
+  // 'pg' PostgreSQL E'' strings (octal, \xHH, \uXXXX, \UXXXXXXXX)
+  function escapeAt(t, j, mode) {
     const c = t[j + 1];
     if (c === undefined) return { v: '\\', e: j + 1 };
+    if (mode === 'my' || mode === 'ch') {
+      if (c === '0') return { v: '\0', e: j + 2 };
+      if (c === '%' || c === '_') return { v: mode === 'my' ? '\\' + c : c, e: j + 2 };
+      if (c === 'u' || c === 'U' || (c === 'x' && mode === 'my')) return { v: c, e: j + 2 };
+    }
+    if (mode === 'pg' && (c === '%' || c === '_')) return { v: c, e: j + 2 };
     switch (c) {
       case 'n': return { v: '\n', e: j + 2 };
       case 'r': return { v: '\r', e: j + 2 };
@@ -292,23 +307,28 @@
       case 'f': return { v: '\f', e: j + 2 };
       case 'v': return { v: '\v', e: j + 2 };
       case 'Z': return { v: '\x1a', e: j + 2 };
-      case '%': case '_': return { v: '\\' + c, e: j + 2 }; // MySQL keeps the backslash before % and _
       case 'x': { const m = /^[0-9a-fA-F]{1,2}/.exec(t.slice(j + 2, j + 4)); if (m) return { v: String.fromCharCode(parseInt(m[0], 16)), e: j + 2 + m[0].length }; break; }
       case 'u': { const m = /^[0-9a-fA-F]{4}/.exec(t.slice(j + 2, j + 6)); if (m) return { v: String.fromCharCode(parseInt(m[0], 16)), e: j + 6 }; break; }
-      case 'U': { const m = /^[0-9a-fA-F]{8}/.exec(t.slice(j + 2, j + 10)); if (m) return { v: String.fromCodePoint(parseInt(m[0], 16)), e: j + 10 }; break; }
+      case 'U': {   // beyond U+10FFFF is not a character: kept as written (String.fromCodePoint would throw)
+        const m = /^[0-9a-fA-F]{8}/.exec(t.slice(j + 2, j + 10));
+        if (m && parseInt(m[0], 16) <= 0x10ffff) return { v: String.fromCodePoint(parseInt(m[0], 16)), e: j + 10 };
+        break;
+      }
       default: {
-        const m = /^[0-7]{1,3}/.exec(t.slice(j + 1, j + 4));
+        const m = mode === 'pg' && /^[0-7]{1,3}/.exec(t.slice(j + 1, j + 4));
         if (m) return { v: String.fromCharCode(parseInt(m[0], 8)), e: j + 1 + m[0].length };
       }
     }
     return { v: c, e: j + 2 };
   }
+  // bs: the escape mode of escapeAt ('my', 'ch', 'pg'), or nothing when a backslash is an ordinary character
   function readQuoted(t, i, close, bs) {
     let out = '', from = i + 1, j = i + 1;
+    let k = t.indexOf(close, j), b = bs ? t.indexOf('\\', j) : -1;   // both kept while ahead: linear
     for (;;) {
-      const k = t.indexOf(close, j);
-      const b = bs ? t.indexOf('\\', j) : -1;
-      if (b >= 0 && (k < 0 || b < k)) { out += t.slice(from, b); const r = escapeAt(t, b); out += r.v; j = from = r.e; continue; }
+      if (k >= 0 && k < j) k = t.indexOf(close, j);
+      if (b >= 0 && b < j) b = t.indexOf('\\', j);
+      if (b >= 0 && (k < 0 || b < k)) { out += t.slice(from, b); const r = escapeAt(t, b, bs); out += r.v; j = from = r.e; continue; }
       if (k < 0) return { v: out + t.slice(from), e: t.length, open: true };
       if (t[k + 1] === close) { out += t.slice(from, k) + close; j = from = k + 2; continue; }
       return { v: out + t.slice(from, k), e: k + 1 };
@@ -337,8 +357,8 @@
       }
       if (c === '*' && text[i + 1] === '/' && exec > 0) { hidden.push([i, i + 2]); exec--; i += 2; continue; }
       const s = i;
-      if (c === "'") { const r = readQuoted(text, i, "'", lex.backslash || noStd); toks.push({ k: 's', v: r.v, s, e: r.e }); open = open || !!r.open; i = r.e; continue; }
-      if (c === '"') { const r = readQuoted(text, i, '"', lex.backslash); toks.push({ k: 'd', v: r.v, s, e: r.e }); open = open || !!r.open; i = r.e; continue; }
+      if (c === "'") { const r = readQuoted(text, i, "'", lex.backslash ? lex.esc : noStd ? 'pg' : ''); toks.push({ k: 's', v: r.v, s, e: r.e }); open = open || !!r.open; i = r.e; continue; }
+      if (c === '"') { const r = readQuoted(text, i, '"', lex.backslash ? lex.esc : ''); toks.push({ k: 'd', v: r.v, s, e: r.e }); open = open || !!r.open; i = r.e; continue; }
       if (c === '`') { const r = readQuoted(text, i, '`', false); toks.push({ k: 'i', v: r.v, s, e: r.e }); i = r.e; continue; }
       if (c === '[' && lex.brackets) { const r = readQuoted(text, i, ']', false); toks.push({ k: 'i', v: r.v, s, e: r.e }); i = r.e; continue; }
       if (c === '$') {
@@ -370,7 +390,7 @@
         const U = w.toUpperCase();
         // prefixed strings: E'..' (escapes), N'..', X'..' (hex), B'..' (bits), _utf8mb4'..' (character set)
         if (text[j] === "'" && (U === 'E' || U === 'N' || U === 'X' || U === 'B' || U === 'U&')) {
-          const r = readQuoted(text, j, "'", U === 'E' || lex.backslash || noStd);
+          const r = readQuoted(text, j, "'", lex.backslash ? lex.esc : (U === 'E' || noStd) ? 'pg' : '');
           if (U === 'X') toks.push({ k: 'x', v: blobText(r.v), s, e: r.e });
           else toks.push({ k: 's', v: r.v, s, e: r.e });
           i = r.e; continue;
@@ -378,7 +398,7 @@
         if (CHARSET_INTRO.test(w)) {
           let q = j; while (text[q] === ' ') q++;
           if (text[q] === "'") {
-            const r = readQuoted(text, q, "'", lex.backslash || noStd);
+            const r = readQuoted(text, q, "'", lex.backslash ? lex.esc : noStd ? 'pg' : '');
             toks.push(U === '_BINARY' ? { k: 'x', v: '[binary ' + r.v.length + ' bytes]', s, e: r.e } : { k: 's', v: r.v, s, e: r.e });
             i = r.e; continue;
           }
@@ -413,7 +433,7 @@
   function splitBatch(st) {
     const t = st.toks;
     const w = (k) => (t[k] && t[k].k === 'w' ? t[k].u : '');
-    if (ROUTINE_HEAD.test(t.slice(0, 6).map((x) => x.v).join(' ')) || /^(CREATE|ALTER)$/.test(w(0)) && ['VIEW', 'PROCEDURE', 'PROC', 'FUNCTION', 'TRIGGER'].includes(w(1))) return [st];
+    if (ROUTINE_HEAD_MSSQL.test(t.slice(0, 6).map((x) => x.v).join(' ')) || /^(CREATE|ALTER)$/.test(w(0)) && ['VIEW', 'PROCEDURE', 'PROC', 'FUNCTION', 'TRIGGER'].includes(w(1))) return [st];
     const cuts = [0];
     let d = 0;
     for (let k = 1; k < t.length; k++) {
@@ -520,7 +540,9 @@
     let out = '', at = 0;
     for (let k = 0; k < t.length; k++) {
       const x = t[k];
-      if (!((x.k === 'w' && !BUILTIN_TYPE.has(x.u)) || x.k === 'i' || x.k === 'd')) continue;
+      // a quoted or bracketed built-in type ([int], "varchar") is not a name chosen by people: SQL Server scripts write [int]
+      const word = x.k === 'w' ? x.u : (x.k === 'i' || x.k === 'd') ? String(x.v).toUpperCase() : null;
+      if (word === null || BUILTIN_TYPE.has(word)) continue;
       let e = k;
       while (t[e + 1] && t[e + 1].k === 'p' && t[e + 1].v === '.' && t[e + 2] && (t[e + 2].k === 'w' || t[e + 2].k === 'i' || t[e + 2].k === 'd')) e += 2;
       out += type.slice(at, x.s) + 'custom_type'; at = t[e].e; k = e;
@@ -560,6 +582,12 @@
       for (const [x, y] of cat) { const v = evalPure(st, x, y); if (v === NOVAL) return NOVAL; if (v === null) return null; out += v; }
       return out;
     }
+    // CAST('x' AS type): SQL Server "Generate Scripts" writes every date and decimal like this
+    if (one.k === 'w' && one.u === 'CAST' && t[a + 1] && t[a + 1].v === '(' && t[b - 1].v === ')') {
+      const parts = topSplit(t, a + 2, b - 1, (x) => x.k === 'w' && x.u === 'AS');
+      if (parts.length === 2) return evalPure(st, parts[0][0], parts[0][1]);
+      return NOVAL;
+    }
     // function calls with literal arguments only
     if (one.k === 'w' && t[a + 1] && t[a + 1].k === 'p' && t[a + 1].v === '(' && t[b - 1].k === 'p' && t[b - 1].v === ')') {
       const args = topSplit(t, a + 2, b - 1, (x) => x.k === 'p' && x.v === ',').filter(([x, y]) => y > x).map(([x, y]) => evalPure(st, x, y));
@@ -580,14 +608,8 @@
         case 'CONCAT':
           if (args.some((x) => x === null)) return null;
           return args.join('');
-        case 'CAST': return NOVAL;
         default: return NOVAL;
       }
-    }
-    // CAST('x' AS type)
-    if (one.k === 'w' && one.u === 'CAST' && t[a + 1] && t[a + 1].v === '(' && t[b - 1].v === ')') {
-      const parts = topSplit(t, a + 2, b - 1, (x) => x.k === 'w' && x.u === 'AS');
-      if (parts.length === 2) return evalPure(st, parts[0][0], parts[0][1]);
     }
     return NOVAL;
   }
@@ -717,8 +739,7 @@
     }
     addColumn(t, name) {
       t.columns.push({ name, sqlType: '', notNull: false, generated: '', comment: '', values: '' });
-      for (const r of t.rows) r.push('');
-      return t.columns.length - 1;
+      return t.columns.length - 1;           // the rows read before are padded once, at the end (padding here was quadratic)
     }
 
     /* --- one statement --- */
@@ -755,8 +776,16 @@
       if (/^SET standard_conforming_strings = off/i.test(text)) return { noStd: true };
       if (/^SET standard_conforming_strings = on/i.test(text)) return { noStd: false };
       if (this.dialect === 'mysql' && /SQL_MODE/i.test(text)) {
-        const s = c.st.toks.filter((t) => t.k === 's').map((t) => t.v).join(',');
-        if (/NO_BACKSLASH_ESCAPES/i.test(s)) return { backslash: false };
+        // mysqldump sets a mode (with a literal) before a trigger and restores it after (SQL_MODE = @saved_sql_mode):
+        // a literal pushes the backslash setting, a variable brings the previous one back
+        const t = c.st.toks;
+        this.modeStack = this.modeStack || [];
+        for (let k = 1; k < t.length - 2; k++) {
+          if (!(t[k].k === 'w' && t[k].u === 'SQL_MODE' && t[k + 1].v === '=') || (t[k - 1].k === 'o' && t[k - 1].v === '@')) continue;
+          const v = t[k + 2];
+          if (v.k === 's') { this.modeStack.push(this.lex.backslash); return { backslash: !/NO_BACKSLASH_ESCAPES/i.test(v.v) }; }
+          if (v.k === 'o' && v.v === '@') return this.modeStack.length ? { backslash: this.modeStack.pop() } : null;
+        }
       }
       return null;
     }
@@ -833,10 +862,12 @@
     // MySQL "KEY name (cols)", "INDEX (cols)", "FULLTEXT KEY name (cols)"; a column NAMED key would be quoted in a dump
     isIndexItem(c, b) {
       if (!c.isW('KEY', 'INDEX', 'FULLTEXT', 'SPATIAL')) return false;
-      if (c.isW('FULLTEXT', 'SPATIAL')) return true;
       const n1 = c.peek(1), n2 = c.peek(2);
       if (!n1 || c.i + 1 >= b) return false;
       if (n1.k === 'p' && n1.v === '(') return true;
+      if (c.isW('FULLTEXT', 'SPATIAL') && n1.k === 'w' && (n1.u === 'KEY' || n1.u === 'INDEX')) return true;
+      // pg_dump and SQLite leave a column named key or index unquoted: "key numeric(10,2)" is a column, not an index
+      if (n1.k === 'w' && BUILTIN_TYPE.has(n1.u)) return false;
       return ['w', 'i', 'd'].includes(n1.k) && !!n2 && ((n2.k === 'p' && n2.v === '(') || (n2.k === 'w' && (n2.u === 'USING' || n2.u === 'TYPE'))) ||
         (['w', 'i', 'd'].includes(n1.k) && st2HasType(c, b));
     }
@@ -906,6 +937,7 @@
       const cuts = [];                                         // [start, end] source spans replaced by "(…)"
       for (let k = a; k < b; k++) {
         const x = t[k];
+        if (x.k === 's') { cuts.push([x.s, x.e, "'…'"]); continue; }   // any other quoted text: possibly a value, never kept
         if (!(x.k === 'w' && /^(ENUM|ENUM8|ENUM16|SET)$/.test(x.u) && t[k + 1] && t[k + 1].k === 'p' && t[k + 1].v === '(')) continue;
         let d = 0, m = k + 1;
         for (; m < b; m++) {
@@ -923,7 +955,7 @@
         k = m;
       }
       let type = '', at = t[a].s;
-      for (const [x, y] of cuts) { type += st.text.slice(at, x) + '(…)'; at = y; }
+      for (const [x, y, r] of cuts) { type += st.text.slice(at, x) + (r || '(…)'); at = y; }
       type = oneLine(type + st.text.slice(at, t[b - 1].e));
       if (labels.length) col.values = labels.join(', ');
       else {
@@ -1025,9 +1057,13 @@
             if (k.isW('DEFAULT')) continue;
             k.i = save;
             this.tableItem(t, c.st, k.i, b);
+          } else if (k.isW('DEFAULT', 'PARTITION', 'PARTITIONS', 'PERIOD', 'SUBPARTITION', 'PROJECTION', 'STATISTICS', 'TTL', 'ROWGUIDCOL', 'PERSISTED', 'MASKED')) {
+            continue;                                          // SQL Server ADD DEFAULT ('x') FOR [col], partitions ...: never a column
           } else {
             k.eatW('COLUMN'); k.eatSeq('IF', 'NOT', 'EXISTS');
-            if (k.i < b) this.columnDef(t, k, b);
+            // a column is a name followed by its type; anything else (ADD (..), ADD 'x') is not read as one
+            const n0 = k.peek(), n1 = k.peek(1);
+            if (k.i < b && n0 && ['w', 'i', 'd'].includes(n0.k) && n1 && ['w', 'i', 'd'].includes(n1.k)) this.columnDef(t, k, b);
           }
           continue;
         }
@@ -1175,6 +1211,8 @@
           if (col.values) meta.values = col.values;
           return { name: col.name, meta };
         });
+        const width = t.columns.length;
+        for (const r of t.rows) for (let k = r.length; k < width; k++) r.push('');   // columns added after these rows
         return {
           name: display(t), columns, rows: t.rows, rowsTotal: t.rowsTotal, description: t.description, externalData: t.externalData, externalInfo: t.externalInfo || null,
           constraints: { pk: t.pk.slice(), fks, unique: t.unique, indexes: t.indexes, ddl: t.ddl },

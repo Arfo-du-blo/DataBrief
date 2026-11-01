@@ -500,7 +500,7 @@
     b.lock('- **'); say('rows'); b.lock(':** ' + N(ns.sections.reduce((a, s) => a + s.rows, 0)) + '\n');
     b.lock('- **'); say('nsLevelLabel'); b.lock(':** '); say('nsL' + level); b.lock('\n');
     for (const m of ns.fileMeta) {
-      if ((m.freeText && !sw.text) || (m.names && !sw.names) || m.key === 'mViews') continue;
+      if ((m.freeText && !sw.text) || (m.names && !sw.names) || (m.files && !sw.file) || m.key === 'mViews') continue;
       b.lock('- **'); say(m.key); b.lock(':**');
       if (m.value.includes('\n')) b.lock('\n' + m.value.split('\n').map((l) => '  > ' + l).join('\n') + '\n');
       else b.lock(' ' + m.value + '\n');

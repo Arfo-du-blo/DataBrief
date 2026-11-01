@@ -127,13 +127,16 @@
             const token = src[ip++];
             let lit = token >> 4;
             if (lit === 15) { let x; do { x = src[ip++]; lit += x; } while (x === 255 && ip < end); }
+            if (ip > end || ip + lit > end) throw fail('pgArchiveCorrupt', 'truncated lz4 sequence');   // never NaN or a short copy
             ensure(lit);
             out.set(src.subarray(ip, ip + lit), op); op += lit; ip += lit;
             if (ip >= end) break;                                                     // the last sequence has no match
+            if (ip + 2 > end) throw fail('pgArchiveCorrupt', 'truncated lz4 sequence');
             const off = src[ip] | (src[ip + 1] << 8); ip += 2;
             if (!off || off > op) throw fail('pgArchiveCorrupt', 'bad lz4 offset');
             let ml = token & 15;
             if (ml === 15) { let x; do { x = src[ip++]; ml += x; } while (x === 255 && ip < end); }
+            if (ip > end) throw fail('pgArchiveCorrupt', 'truncated lz4 sequence');
             ml += 4;
             ensure(ml);
             for (let k = 0; k < ml; k++, op++) out[op] = out[op - off];               // may overlap: byte by byte

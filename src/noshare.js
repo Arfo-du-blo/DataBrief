@@ -15,6 +15,7 @@
   // File metadata that is free text written by people (it may hold anything): shown only when the user allows it.
   const FREE_TEXT_META = new Set(['mFileLabel', 'mDocs', 'mEmbedded']);
   // File metadata made of names: hidden when names are replaced. Embedded pandas / Spark metadata lists the columns.
+  const FILE_META = new Set(['mExternal']);   // names of other files (COPY FROM a file, linked tables): hidden with the file name too
   const NAME_META = new Set(['mViews', 'mSkipped', 'mNames', 'mRoot', 'mWeight', 'mEmbedded', 'mExternal', 'mMemo']);
   const copy = (v) => (v == null ? v : JSON.parse(JSON.stringify(v)));
   const baseOf = (name) => (name || 'data').replace(/\.[^.]+$/, '') || 'data';
@@ -48,7 +49,7 @@
   DB.makeNoShareSource = function (doc, level) {
     level = [1, 2, 3].includes(level) ? level : 1;
     const profile = level >= 2 && DB.getProfile ? DB.getProfile(doc) : null;
-    const fileBase = baseOf(doc.fileName);
+    const fileBase = baseOf(doc.fileName), innerBase = baseOf(String(doc.fileName || '').replace(/.(gz|gzip)$/i, '')); // data.csv.gz: the section is "data"
     const sections = doc.sections.map((s, i) => {
       const c = s.constraints || null;
       const columns = s.columns.map((col) => {
@@ -67,7 +68,7 @@
       const si = s.sheetInfo;
       return {
         name: s.name, rows: s.totalRows || s.rows.length, hidden: !!s.hidden, caption: s.caption || '', description: s.description || '', columns,
-        fromFile: s.name === fileBase,                                   // a section named after the file
+        fromFile: s.name === fileBase || s.name === innerBase,                                   // a section named after the file
         nameIsText: ['caption', 'label', 'summary'].includes(s.nameFrom), // an HTML table named by its caption
         headerWeak: !!s.headerWeak,                                      // the column names may be the first record
         constraints: copy(c),
@@ -80,7 +81,7 @@
     });
     const views = (doc.views || []).map((v) => ({ name: v.name, sql: v.sql }));
     const fileMeta = (doc.fileMeta || [])
-      .map(([key, value]) => ({ key, value: key === 'mNames' ? keepRanges(String(value)) : String(value), freeText: FREE_TEXT_META.has(key), names: NAME_META.has(key) }))
+      .map(([key, value]) => ({ key, value: key === 'mNames' ? keepRanges(String(value)) : String(value), freeText: FREE_TEXT_META.has(key), names: NAME_META.has(key), files: FILE_META.has(key) }))
       .filter((m) => m.value !== '');
     return {
       level, fileName: doc.fileName, fileSize: doc.fileSize, formatName: doc.formatName, formatKey: doc.formatKey, sectionKind: doc.sectionKind,

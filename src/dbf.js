@@ -138,10 +138,17 @@
       f.index = cols.length;
       cols.push({ name: f.name || 'column_' + (cols.length + 1), meta: { sqlType: sqlTypeOf(f) } });
     }
-    // VFP: one bit per nullable field in the _NullFlags bytes (varchar / varbinary fields add bits of their own: then it is not used)
-    const nullable = fields.filter((f) => f.type !== '0' && (f.flags & 0x02));
-    const useNull = nullAt >= 0 && nullable.length && !fields.some((f) => f.type === 'V' || f.type === 'Q');
-    nullable.forEach((f, k) => { f.nullBit = k; });
+    // VFP _NullFlags: in field order, one bit per nullable field, then one more per varchar / varbinary field ("shorter than
+    // the field": its real length is then in the field's last byte). Same order as Harbour's DBF driver; from the format's
+    // description, no VFP-written varchar file here (tests/test_dbf.cjs marks that case synthetic).
+    let bits = 0;
+    for (const f of fields) {
+      if (f.type === '0') continue;
+      if (f.flags & 0x02) f.nullBit = bits++;
+      if (f.type === 'V' || f.type === 'Q') f.lenBit = bits++;
+    }
+    const useNull = nullAt >= 0 && bits > 0;
+    const bit = (o, n) => (u8[o + nullAt + (n >> 3)] >> (n & 7)) & 1;
 
     const rows = [];
     let deleted = 0, total = 0, truncatedAt = false;
@@ -157,11 +164,12 @@
         if (f.type === '0') continue;
         const a = o + f.off, e = a + f.len;
         let v = '';
-        if (useNull && f.nullBit !== undefined && (u8[o + nullAt + (f.nullBit >> 3)] >> (f.nullBit & 7)) & 1) { row[f.index] = ''; continue; }
+        if (useNull && f.nullBit !== undefined && bit(o, f.nullBit)) { row[f.index] = ''; continue; }
         switch (f.type) {
           case 'C': case 'V': {
             if (f.flags & 0x04) { v = '[binary ' + f.len + ' bytes]'; break; }
             let z = e;
+            if (useNull && f.lenBit !== undefined && bit(o, f.lenBit)) z = a + Math.min(u8[e - 1], f.len - 1);   // varchar shorter than the field
             while (z > a && (u8[z - 1] === 0x20 || u8[z - 1] === 0)) z--;
             v = z > a ? dec.decode(u8.subarray(a, z)) : '';
             break;

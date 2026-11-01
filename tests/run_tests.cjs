@@ -479,6 +479,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       { f: 'sav.sav', txt: true, lab: true }, { f: 'zsav.zsav', txt: true, lab: true },
       { f: 'parquet.parquet', txt: true }, { f: 'sqlite.sqlite', sql: true },
       { f: 'sql.sql', txt: true, lab: true, sql: true }, { f: 'pgdump.dump', txt: true, lab: true, sql: true }, { f: 'dbf.dbf', names: 'CONF_COL' }, { f: 'access.accdb' }, { f: 'dacpac.dacpac', noRec: true, txt: true, lab: true, sql: true },
+      { f: 'csvgz.csv.gz' },   // the section is named after the file inside the gzip: the file name too
     ];
     const checks = [];
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
@@ -1128,6 +1129,36 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     p = await newPage();
     r = await load(p, path.join(outDir, 'double.csv.gz'));
     if (r.ok) bad('a gzip inside a gzip should be refused');
+    await p.close();
+    // several gzip members (concatenated files, bgzip with its empty last member): all of them are read
+    fs.writeFileSync(path.join(outDir, 'members.csv.gz'), Buffer.concat([zlib.gzipSync('a,b\n1,2\n3,4\n'), zlib.gzipSync('5,6\n'), zlib.gzipSync('')]));
+    p = await newPage();
+    r = await load(p, path.join(outDir, 'members.csv.gz'));
+    if (!r.ok || !r.md.includes('| 5 | 6 |') || !r.md.includes('| 1 | 2 |')) bad('a gzip of several members should be read whole: ' + (r.err || r.md.slice(0, 200)));
+    await p.close();
+    // a gzip whose stored size lies (says 900 MB): read by its real content, no huge allocation
+    const liar = Buffer.from(zlib.gzipSync('a,b\n1,2\n')); liar.writeUInt32LE(900 * 1024 * 1024, liar.length - 4);
+    fs.writeFileSync(path.join(outDir, 'liar.csv.gz'), liar);
+    p = await newPage();
+    r = await load(p, path.join(outDir, 'liar.csv.gz'));
+    if (!r.ok && !/too large/i.test(r.err)) bad('a gzip with a wrong stored size: ' + r.err);
+    await p.close();
+    // a DuckDB export zipped by Windows PowerShell (backslashes), with a damaged entry nobody needs (never decompressed)
+    p = await newPage();
+    r = await load(p, F('duckdb-windows.zip'));
+    d = r.ok && await p.evaluate(() => { const x = window.DataBrief.getState().doc; return { k: x.formatKey, rows: x.sections.map((s) => s.name + ':' + s.rows.length).join(' ') }; });
+    if (!d || d.k !== 'duckdb' || !/customers:6/.test(d.rows)) bad('DuckDB export zipped on Windows: ' + JSON.stringify(d || r.err));
+    await p.close();
+    // file names of other files (COPY ... FROM a file) are hidden with the file name, not only with the names
+    p = await newPage();
+    r = await load(p, path.join(outDir, 'duck.sql'));
+    if (r.ok) {
+      await p.click('#nsOn'); await new Promise((res) => setTimeout(res, 400));
+      await p.evaluate(() => document.querySelector('[data-sw="file"]').click()); await new Promise((res) => setTimeout(res, 400));
+      const s = await p.evaluate(() => window.DataBrief.getMarkdown());
+      if (s.includes('customers.csv')) bad('names of other files must be hidden with the file name');
+      await p.evaluate(() => localStorage.clear());
+    } else bad('duck.sql: ' + r.err);
     await p.close();
     // every message exists in all 15 languages
     p = await newPage();

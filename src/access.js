@@ -19,7 +19,7 @@
   };
 
   // Access type -> a SQL-like name (the same words as the other database formats)
-  function sqlType(c) {
+  function sqlType(c, jet3) {
     switch (c.type) {
       case 'boolean': return 'BOOLEAN';
       case 'byte': return 'BYTE';
@@ -29,7 +29,7 @@
       case 'float': return 'REAL';
       case 'double': return 'DOUBLE';
       case 'datetime': return 'DATETIME';
-      case 'text': return 'TEXT(' + Math.round((c.size || 0) / (c.unicode === false ? 1 : 2)) + ')';
+      case 'text': return 'TEXT(' + Math.round((c.size || 0) / (jet3 ? 1 : 2)) + ')';   // Jet 3 (Access 97): one byte per character; later: 2
       case 'memo': return 'MEMO';
       case 'binary': return 'BINARY(' + (c.size || 0) + ')';
       case 'ole': return 'OLE';
@@ -59,7 +59,7 @@
       return new R(window.Buffer.from(u8.buffer, u8.byteOffset, u8.byteLength));
     } catch (e) {
       // a protected database: the encryption libraries are not part of the page (stubs raise code ENCRYPTED)
-      if (e && (e.code === 'ENCRYPTED' || /password|encrypt|decrypt|codec|unsupported/i.test(String(e.message)))) throw new DB.UserError('errAccessProtected');
+      if (e && (e.code === 'ENCRYPTED' || /password|encrypt|decrypt|codec|unsupported (encryption|hash)/i.test(String(e.message)))) throw new DB.UserError('errAccessProtected');
       throw new DB.UserError('errCorrupt', { ext: '.mdb' });
     }
   }
@@ -68,6 +68,7 @@
     const maxRows = (opts && opts.maxRows) || 0;
     const reader = open(u8);
     const sections = [], skipped = [];
+    const jet3 = u8.length > 0x14 && u8[0x14] === 0;   // the Jet version byte: 0 = Jet 3
     let names;
     try { names = reader.getTableNames(); } catch (e) { throw new DB.UserError('errCorrupt', { ext: '.mdb' }); }
     for (const name of names) {
@@ -78,7 +79,7 @@
         const data = maxRows && total > maxRows ? t.getData({ rowLimit: maxRows }) : t.getData();
         const rows = data.map((r) => cols.map((c) => cell(r[c.name], c.type)));
         sections.push({
-          name, columns: cols.map((c) => ({ name: c.name, meta: { sqlType: sqlType(c) } })), rows, rowsTotal: total,
+          name, columns: cols.map((c) => ({ name: c.name, meta: { sqlType: sqlType(c, jet3) } })), rows, rowsTotal: total,
           constraints: { pk: [], fks: [], unique: [], indexes: [], ddl: '' },
         });
       } catch (e) { skipped.push(name); }

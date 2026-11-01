@@ -4499,6 +4499,7 @@ window.DB_I18N = {
   // File metadata that is free text written by people (it may hold anything): shown only when the user allows it.
   const FREE_TEXT_META = new Set(['mFileLabel', 'mDocs', 'mEmbedded']);
   // File metadata made of names: hidden when names are replaced. Embedded pandas / Spark metadata lists the columns.
+  const FILE_META = new Set(['mExternal']);   // names of other files (COPY FROM a file, linked tables): hidden with the file name too
   const NAME_META = new Set(['mViews', 'mSkipped', 'mNames', 'mRoot', 'mWeight', 'mEmbedded', 'mExternal', 'mMemo']);
   const copy = (v) => (v == null ? v : JSON.parse(JSON.stringify(v)));
   const baseOf = (name) => (name || 'data').replace(/\.[^.]+$/, '') || 'data';
@@ -4532,7 +4533,7 @@ window.DB_I18N = {
   DB.makeNoShareSource = function (doc, level) {
     level = [1, 2, 3].includes(level) ? level : 1;
     const profile = level >= 2 && DB.getProfile ? DB.getProfile(doc) : null;
-    const fileBase = baseOf(doc.fileName);
+    const fileBase = baseOf(doc.fileName), innerBase = baseOf(String(doc.fileName || '').replace(/.(gz|gzip)$/i, '')); // data.csv.gz: the section is "data"
     const sections = doc.sections.map((s, i) => {
       const c = s.constraints || null;
       const columns = s.columns.map((col) => {
@@ -4551,7 +4552,7 @@ window.DB_I18N = {
       const si = s.sheetInfo;
       return {
         name: s.name, rows: s.totalRows || s.rows.length, hidden: !!s.hidden, caption: s.caption || '', description: s.description || '', columns,
-        fromFile: s.name === fileBase,                                   // a section named after the file
+        fromFile: s.name === fileBase || s.name === innerBase,                                   // a section named after the file
         nameIsText: ['caption', 'label', 'summary'].includes(s.nameFrom), // an HTML table named by its caption
         headerWeak: !!s.headerWeak,                                      // the column names may be the first record
         constraints: copy(c),
@@ -4564,7 +4565,7 @@ window.DB_I18N = {
     });
     const views = (doc.views || []).map((v) => ({ name: v.name, sql: v.sql }));
     const fileMeta = (doc.fileMeta || [])
-      .map(([key, value]) => ({ key, value: key === 'mNames' ? keepRanges(String(value)) : String(value), freeText: FREE_TEXT_META.has(key), names: NAME_META.has(key) }))
+      .map(([key, value]) => ({ key, value: key === 'mNames' ? keepRanges(String(value)) : String(value), freeText: FREE_TEXT_META.has(key), names: NAME_META.has(key), files: FILE_META.has(key) }))
       .filter((m) => m.value !== '');
     return {
       level, fileName: doc.fileName, fileSize: doc.fileSize, formatName: doc.formatName, formatKey: doc.formatKey, sectionKind: doc.sectionKind,
@@ -5095,7 +5096,7 @@ window.DB_I18N = {
   };
 
   // Access type -> a SQL-like name (the same words as the other database formats)
-  function sqlType(c) {
+  function sqlType(c, jet3) {
     switch (c.type) {
       case 'boolean': return 'BOOLEAN';
       case 'byte': return 'BYTE';
@@ -5105,7 +5106,7 @@ window.DB_I18N = {
       case 'float': return 'REAL';
       case 'double': return 'DOUBLE';
       case 'datetime': return 'DATETIME';
-      case 'text': return 'TEXT(' + Math.round((c.size || 0) / (c.unicode === false ? 1 : 2)) + ')';
+      case 'text': return 'TEXT(' + Math.round((c.size || 0) / (jet3 ? 1 : 2)) + ')';   // Jet 3 (Access 97): one byte per character; later: 2
       case 'memo': return 'MEMO';
       case 'binary': return 'BINARY(' + (c.size || 0) + ')';
       case 'ole': return 'OLE';
@@ -5135,7 +5136,7 @@ window.DB_I18N = {
       return new R(window.Buffer.from(u8.buffer, u8.byteOffset, u8.byteLength));
     } catch (e) {
       // a protected database: the encryption libraries are not part of the page (stubs raise code ENCRYPTED)
-      if (e && (e.code === 'ENCRYPTED' || /password|encrypt|decrypt|codec|unsupported/i.test(String(e.message)))) throw new DB.UserError('errAccessProtected');
+      if (e && (e.code === 'ENCRYPTED' || /password|encrypt|decrypt|codec|unsupported (encryption|hash)/i.test(String(e.message)))) throw new DB.UserError('errAccessProtected');
       throw new DB.UserError('errCorrupt', { ext: '.mdb' });
     }
   }
@@ -5144,6 +5145,7 @@ window.DB_I18N = {
     const maxRows = (opts && opts.maxRows) || 0;
     const reader = open(u8);
     const sections = [], skipped = [];
+    const jet3 = u8.length > 0x14 && u8[0x14] === 0;   // the Jet version byte: 0 = Jet 3
     let names;
     try { names = reader.getTableNames(); } catch (e) { throw new DB.UserError('errCorrupt', { ext: '.mdb' }); }
     for (const name of names) {
@@ -5154,7 +5156,7 @@ window.DB_I18N = {
         const data = maxRows && total > maxRows ? t.getData({ rowLimit: maxRows }) : t.getData();
         const rows = data.map((r) => cols.map((c) => cell(r[c.name], c.type)));
         sections.push({
-          name, columns: cols.map((c) => ({ name: c.name, meta: { sqlType: sqlType(c) } })), rows, rowsTotal: total,
+          name, columns: cols.map((c) => ({ name: c.name, meta: { sqlType: sqlType(c, jet3) } })), rows, rowsTotal: total,
           constraints: { pk: [], fks: [], unique: [], indexes: [], ddl: '' },
         });
       } catch (e) { skipped.push(name); }
@@ -5227,7 +5229,20 @@ window.DB_I18N = {
     return null;
   }
   // "[dbo].[Customers].[Id]" -> ["dbo", "Customers", "Id"]   ("]]" is a closing bracket inside a name)
-  const parts = (n) => (String(n || '').match(/\[(?:[^\]]|\]\])*\]/g) || []).map((x) => x.slice(1, -1).replace(/\]\]/g, ']'));
+  const parts = (n) => {   // a plain scan (a regular expression was quadratic on "[[[[..." without a closing bracket)
+    const s = String(n || ''), out = [];
+    let i = s.indexOf('[');
+    while (i >= 0) {
+      let j = i + 1, v = '', done = false;
+      while (!done) {
+        const k = s.indexOf(']', j);
+        if (k < 0) return out;
+        v += s.slice(j, k);
+        if (s[k + 1] === ']') { v += ']'; j = k + 2; } else { out.push(v); i = s.indexOf('[', k + 1); done = true; }
+      }
+    }
+    return out;
+  };
   // N'text with ''quotes''' -> text with 'quotes'
   const unliteral = (s) => { const m = /^N?'([\s\S]*)'$/.exec(String(s || '').trim()); return m ? m[1].replace(/''/g, "'") : String(s || ''); };
 
@@ -5489,10 +5504,17 @@ window.DB.DBF_CODEPAGES = {
       f.index = cols.length;
       cols.push({ name: f.name || 'column_' + (cols.length + 1), meta: { sqlType: sqlTypeOf(f) } });
     }
-    // VFP: one bit per nullable field in the _NullFlags bytes (varchar / varbinary fields add bits of their own: then it is not used)
-    const nullable = fields.filter((f) => f.type !== '0' && (f.flags & 0x02));
-    const useNull = nullAt >= 0 && nullable.length && !fields.some((f) => f.type === 'V' || f.type === 'Q');
-    nullable.forEach((f, k) => { f.nullBit = k; });
+    // VFP _NullFlags: in field order, one bit per nullable field, then one more per varchar / varbinary field ("shorter than
+    // the field": its real length is then in the field's last byte). Same order as Harbour's DBF driver; from the format's
+    // description, no VFP-written varchar file here (tests/test_dbf.cjs marks that case synthetic).
+    let bits = 0;
+    for (const f of fields) {
+      if (f.type === '0') continue;
+      if (f.flags & 0x02) f.nullBit = bits++;
+      if (f.type === 'V' || f.type === 'Q') f.lenBit = bits++;
+    }
+    const useNull = nullAt >= 0 && bits > 0;
+    const bit = (o, n) => (u8[o + nullAt + (n >> 3)] >> (n & 7)) & 1;
 
     const rows = [];
     let deleted = 0, total = 0, truncatedAt = false;
@@ -5508,11 +5530,12 @@ window.DB.DBF_CODEPAGES = {
         if (f.type === '0') continue;
         const a = o + f.off, e = a + f.len;
         let v = '';
-        if (useNull && f.nullBit !== undefined && (u8[o + nullAt + (f.nullBit >> 3)] >> (f.nullBit & 7)) & 1) { row[f.index] = ''; continue; }
+        if (useNull && f.nullBit !== undefined && bit(o, f.nullBit)) { row[f.index] = ''; continue; }
         switch (f.type) {
           case 'C': case 'V': {
             if (f.flags & 0x04) { v = '[binary ' + f.len + ' bytes]'; break; }
             let z = e;
+            if (useNull && f.lenBit !== undefined && bit(o, f.lenBit)) z = a + Math.min(u8[e - 1], f.len - 1);   // varchar shorter than the field
             while (z > a && (u8[z - 1] === 0x20 || u8[z - 1] === 0)) z--;
             v = z > a ? dec.decode(u8.subarray(a, z)) : '';
             break;
@@ -5594,6 +5617,8 @@ window.DB.DBF_CODEPAGES = {
     ['postgres', /^\\(connect|restrict)\b/m, 3],
     ['mysql', /^-- (MySQL|MariaDB) dump/mi, 6], ['mysql', /\/\*M?!\d{5}/, 3], ['mysql', /\bENGINE\s*=\s*(InnoDB|MyISAM|Aria|MEMORY|CSV|ARCHIVE)\b/i, 4],
     ['mysql', /^LOCK TABLES `/m, 3], ['mysql', /\bAUTO_INCREMENT\b/i, 1],
+    // mysqldump --compact --no-create-info: no comment, no ENGINE=, only INSERT INTO `t` with \' escapes
+    ['mysql', /^INSERT (IGNORE )?INTO `/m, 3], ['mysql', /[^\\]\\'/, 1],
     ['mssql', /^\s*GO\s*$/mi, 3], ['mssql', /\[dbo\]\./i, 4], ['mssql', /\bSET ANSI_NULLS (ON|OFF)\b/i, 3], ['mssql', /\bIDENTITY\s*\(\s*\d/i, 2],
     ['mssql', /\bN?VARCHAR\s*\(\s*MAX\s*\)/i, 2],
     ['oracle', /\bVARCHAR2\b/i, 4], ['oracle', /\bNUMBER\s*\(\s*\d/i, 2], ['oracle', /\bALTER SESSION SET\b/i, 2], ['oracle', /^\s*\/\s*$/m, 1],
@@ -5613,6 +5638,7 @@ window.DB.DBF_CODEPAGES = {
   function lexFor(d) {
     return {
       backslash: d === 'mysql' || d === 'clickhouse',   // \' \n ... inside every string
+      esc: d === 'mysql' ? 'my' : d === 'clickhouse' ? 'ch' : 'pg', // which escapes: MySQL has no octal, \x or \u
       dollar: d === 'postgres' || d === 'generic',      // $tag$ ... $tag$ strings
       nested: d === 'postgres',                          // /* /* */ */
       hash: d === 'mysql',                               // # comment
@@ -5629,6 +5655,8 @@ window.DB.DBF_CODEPAGES = {
   // dollar quote, a COPY ... FROM stdin data block. The result does not depend on where the chunks are cut.
   const LOOK = 256; // characters kept back at the end of a chunk so that every look-ahead is complete
   const ROUTINE_HEAD = /^\s*(?:CREATE|ALTER)\s+(?:OR\s+(?:REPLACE|ALTER)\s+)?(?:(?:NON)?EDITIONABLE\s+)?(?:PROCEDURE|PROC|FUNCTION|PACKAGE|TRIGGER|TYPE\s+BODY)\b|^\s*(?:DECLARE|BEGIN)\b/i;
+  // SQL Server: BEGIN TRANSACTION, BEGIN TRY, DECLARE @x are ordinary statements (an Oracle PL/SQL block starts with them)
+  const ROUTINE_HEAD_MSSQL = /^\s*(?:CREATE|ALTER)\s+(?:OR\s+ALTER\s+)?(?:PROCEDURE|PROC|FUNCTION|TRIGGER)\b/i;
   const esc = (s) => s.replace(/[\\^\]\-[]/g, '\\$&');
 
   class Splitter {
@@ -5719,9 +5747,10 @@ window.DB.DBF_CODEPAGES = {
         switch (this.mode) {
           case 'q': {
             const close = this.q === '[' ? ']' : this.q;
+            let k = buf.indexOf(close, i), b = this.qbs ? buf.indexOf('\\', i) : -1;   // kept while ahead: linear
             for (;;) {
-              const k = buf.indexOf(close, i);
-              const b = this.qbs ? buf.indexOf('\\', i) : -1;
+              if (k >= 0 && k < i) k = buf.indexOf(close, i);
+              if (b >= 0 && b < i) b = buf.indexOf('\\', i);
               if (b >= 0 && (k < 0 || b < k)) {
                 if (b + 1 >= buf.length && !final) { this.i = b; return; }
                 i = b + 2; continue;
@@ -5740,9 +5769,10 @@ window.DB.DBF_CODEPAGES = {
             continue;
           }
           case 'b': {
+            let k = buf.indexOf('*/', i), o = lex.nested ? buf.indexOf('/*', i) : -1;   // both kept while ahead: linear
             for (;;) {
-              const k = buf.indexOf('*/', i);
-              const o = lex.nested ? buf.indexOf('/*', i) : -1;
+              if (k >= 0 && k < i) k = buf.indexOf('*/', i);
+              if (o >= 0 && o < i) o = buf.indexOf('/*', i);
               if (o >= 0 && (k < 0 || o < k)) { this.depth++; i = o + 2; continue; }
               if (k < 0) { i = Math.max(i, buf.length - 1); if (!final) { this.i = i; return; } i = buf.length; break outer; }
               i = k + 2;
@@ -5774,7 +5804,7 @@ window.DB.DBF_CODEPAGES = {
         i = k;
         if (c === '\n') { this.lineStart = true; i = k + 1; continue; }
         if (buf.startsWith(this.delim, k)) {
-          if (lex.routines && this.delim === ';' && ROUTINE_HEAD.test(stripComments(buf.slice(this.start, Math.min(k, this.start + 400))))) {
+          if (lex.routines && this.delim === ';' && (lex.go ? ROUTINE_HEAD_MSSQL : ROUTINE_HEAD).test(stripComments(buf.slice(this.start, Math.min(k, this.start + 400))))) {
             this.has = true; i = k + 1; continue;              // a ';' inside a procedure body
           }
           this.emit(k, k + this.delim.length);
@@ -5838,9 +5868,17 @@ window.DB.DBF_CODEPAGES = {
   const OPS = ['::', '||', '->>', '->', '<=', '>=', '<>', '!=', ':=', '=>', '<<', '>>', '&&', '#>>', '#>'];
   const CHARSET_INTRO = /^_(utf8mb4|utf8mb3|utf8|latin1|latin2|binary|ascii|ucs2|utf16|utf16le|utf32|cp1250|cp1251|cp1252|cp850|gbk|big5|sjis|euckr|ujis|koi8r|greek|hebrew|tis620|armscii8|geostd8|swe7|dec8|hp8|keybcs2|macce|macroman|cp852|cp866|cp932|eucjpms|gb2312|gb18030)$/i;
 
-  function escapeAt(t, j) {
+  // mode: 'my' MySQL / MariaDB (\0 is NUL, \x \u \U are plain letters, \% \_ keep the backslash), 'ch' ClickHouse (\xHH),
+  // 'pg' PostgreSQL E'' strings (octal, \xHH, \uXXXX, \UXXXXXXXX)
+  function escapeAt(t, j, mode) {
     const c = t[j + 1];
     if (c === undefined) return { v: '\\', e: j + 1 };
+    if (mode === 'my' || mode === 'ch') {
+      if (c === '0') return { v: '\0', e: j + 2 };
+      if (c === '%' || c === '_') return { v: mode === 'my' ? '\\' + c : c, e: j + 2 };
+      if (c === 'u' || c === 'U' || (c === 'x' && mode === 'my')) return { v: c, e: j + 2 };
+    }
+    if (mode === 'pg' && (c === '%' || c === '_')) return { v: c, e: j + 2 };
     switch (c) {
       case 'n': return { v: '\n', e: j + 2 };
       case 'r': return { v: '\r', e: j + 2 };
@@ -5849,23 +5887,28 @@ window.DB.DBF_CODEPAGES = {
       case 'f': return { v: '\f', e: j + 2 };
       case 'v': return { v: '\v', e: j + 2 };
       case 'Z': return { v: '\x1a', e: j + 2 };
-      case '%': case '_': return { v: '\\' + c, e: j + 2 }; // MySQL keeps the backslash before % and _
       case 'x': { const m = /^[0-9a-fA-F]{1,2}/.exec(t.slice(j + 2, j + 4)); if (m) return { v: String.fromCharCode(parseInt(m[0], 16)), e: j + 2 + m[0].length }; break; }
       case 'u': { const m = /^[0-9a-fA-F]{4}/.exec(t.slice(j + 2, j + 6)); if (m) return { v: String.fromCharCode(parseInt(m[0], 16)), e: j + 6 }; break; }
-      case 'U': { const m = /^[0-9a-fA-F]{8}/.exec(t.slice(j + 2, j + 10)); if (m) return { v: String.fromCodePoint(parseInt(m[0], 16)), e: j + 10 }; break; }
+      case 'U': {   // beyond U+10FFFF is not a character: kept as written (String.fromCodePoint would throw)
+        const m = /^[0-9a-fA-F]{8}/.exec(t.slice(j + 2, j + 10));
+        if (m && parseInt(m[0], 16) <= 0x10ffff) return { v: String.fromCodePoint(parseInt(m[0], 16)), e: j + 10 };
+        break;
+      }
       default: {
-        const m = /^[0-7]{1,3}/.exec(t.slice(j + 1, j + 4));
+        const m = mode === 'pg' && /^[0-7]{1,3}/.exec(t.slice(j + 1, j + 4));
         if (m) return { v: String.fromCharCode(parseInt(m[0], 8)), e: j + 1 + m[0].length };
       }
     }
     return { v: c, e: j + 2 };
   }
+  // bs: the escape mode of escapeAt ('my', 'ch', 'pg'), or nothing when a backslash is an ordinary character
   function readQuoted(t, i, close, bs) {
     let out = '', from = i + 1, j = i + 1;
+    let k = t.indexOf(close, j), b = bs ? t.indexOf('\\', j) : -1;   // both kept while ahead: linear
     for (;;) {
-      const k = t.indexOf(close, j);
-      const b = bs ? t.indexOf('\\', j) : -1;
-      if (b >= 0 && (k < 0 || b < k)) { out += t.slice(from, b); const r = escapeAt(t, b); out += r.v; j = from = r.e; continue; }
+      if (k >= 0 && k < j) k = t.indexOf(close, j);
+      if (b >= 0 && b < j) b = t.indexOf('\\', j);
+      if (b >= 0 && (k < 0 || b < k)) { out += t.slice(from, b); const r = escapeAt(t, b, bs); out += r.v; j = from = r.e; continue; }
       if (k < 0) return { v: out + t.slice(from), e: t.length, open: true };
       if (t[k + 1] === close) { out += t.slice(from, k) + close; j = from = k + 2; continue; }
       return { v: out + t.slice(from, k), e: k + 1 };
@@ -5894,8 +5937,8 @@ window.DB.DBF_CODEPAGES = {
       }
       if (c === '*' && text[i + 1] === '/' && exec > 0) { hidden.push([i, i + 2]); exec--; i += 2; continue; }
       const s = i;
-      if (c === "'") { const r = readQuoted(text, i, "'", lex.backslash || noStd); toks.push({ k: 's', v: r.v, s, e: r.e }); open = open || !!r.open; i = r.e; continue; }
-      if (c === '"') { const r = readQuoted(text, i, '"', lex.backslash); toks.push({ k: 'd', v: r.v, s, e: r.e }); open = open || !!r.open; i = r.e; continue; }
+      if (c === "'") { const r = readQuoted(text, i, "'", lex.backslash ? lex.esc : noStd ? 'pg' : ''); toks.push({ k: 's', v: r.v, s, e: r.e }); open = open || !!r.open; i = r.e; continue; }
+      if (c === '"') { const r = readQuoted(text, i, '"', lex.backslash ? lex.esc : ''); toks.push({ k: 'd', v: r.v, s, e: r.e }); open = open || !!r.open; i = r.e; continue; }
       if (c === '`') { const r = readQuoted(text, i, '`', false); toks.push({ k: 'i', v: r.v, s, e: r.e }); i = r.e; continue; }
       if (c === '[' && lex.brackets) { const r = readQuoted(text, i, ']', false); toks.push({ k: 'i', v: r.v, s, e: r.e }); i = r.e; continue; }
       if (c === '$') {
@@ -5927,7 +5970,7 @@ window.DB.DBF_CODEPAGES = {
         const U = w.toUpperCase();
         // prefixed strings: E'..' (escapes), N'..', X'..' (hex), B'..' (bits), _utf8mb4'..' (character set)
         if (text[j] === "'" && (U === 'E' || U === 'N' || U === 'X' || U === 'B' || U === 'U&')) {
-          const r = readQuoted(text, j, "'", U === 'E' || lex.backslash || noStd);
+          const r = readQuoted(text, j, "'", lex.backslash ? lex.esc : (U === 'E' || noStd) ? 'pg' : '');
           if (U === 'X') toks.push({ k: 'x', v: blobText(r.v), s, e: r.e });
           else toks.push({ k: 's', v: r.v, s, e: r.e });
           i = r.e; continue;
@@ -5935,7 +5978,7 @@ window.DB.DBF_CODEPAGES = {
         if (CHARSET_INTRO.test(w)) {
           let q = j; while (text[q] === ' ') q++;
           if (text[q] === "'") {
-            const r = readQuoted(text, q, "'", lex.backslash || noStd);
+            const r = readQuoted(text, q, "'", lex.backslash ? lex.esc : noStd ? 'pg' : '');
             toks.push(U === '_BINARY' ? { k: 'x', v: '[binary ' + r.v.length + ' bytes]', s, e: r.e } : { k: 's', v: r.v, s, e: r.e });
             i = r.e; continue;
           }
@@ -5970,7 +6013,7 @@ window.DB.DBF_CODEPAGES = {
   function splitBatch(st) {
     const t = st.toks;
     const w = (k) => (t[k] && t[k].k === 'w' ? t[k].u : '');
-    if (ROUTINE_HEAD.test(t.slice(0, 6).map((x) => x.v).join(' ')) || /^(CREATE|ALTER)$/.test(w(0)) && ['VIEW', 'PROCEDURE', 'PROC', 'FUNCTION', 'TRIGGER'].includes(w(1))) return [st];
+    if (ROUTINE_HEAD_MSSQL.test(t.slice(0, 6).map((x) => x.v).join(' ')) || /^(CREATE|ALTER)$/.test(w(0)) && ['VIEW', 'PROCEDURE', 'PROC', 'FUNCTION', 'TRIGGER'].includes(w(1))) return [st];
     const cuts = [0];
     let d = 0;
     for (let k = 1; k < t.length; k++) {
@@ -6077,7 +6120,9 @@ window.DB.DBF_CODEPAGES = {
     let out = '', at = 0;
     for (let k = 0; k < t.length; k++) {
       const x = t[k];
-      if (!((x.k === 'w' && !BUILTIN_TYPE.has(x.u)) || x.k === 'i' || x.k === 'd')) continue;
+      // a quoted or bracketed built-in type ([int], "varchar") is not a name chosen by people: SQL Server scripts write [int]
+      const word = x.k === 'w' ? x.u : (x.k === 'i' || x.k === 'd') ? String(x.v).toUpperCase() : null;
+      if (word === null || BUILTIN_TYPE.has(word)) continue;
       let e = k;
       while (t[e + 1] && t[e + 1].k === 'p' && t[e + 1].v === '.' && t[e + 2] && (t[e + 2].k === 'w' || t[e + 2].k === 'i' || t[e + 2].k === 'd')) e += 2;
       out += type.slice(at, x.s) + 'custom_type'; at = t[e].e; k = e;
@@ -6117,6 +6162,12 @@ window.DB.DBF_CODEPAGES = {
       for (const [x, y] of cat) { const v = evalPure(st, x, y); if (v === NOVAL) return NOVAL; if (v === null) return null; out += v; }
       return out;
     }
+    // CAST('x' AS type): SQL Server "Generate Scripts" writes every date and decimal like this
+    if (one.k === 'w' && one.u === 'CAST' && t[a + 1] && t[a + 1].v === '(' && t[b - 1].v === ')') {
+      const parts = topSplit(t, a + 2, b - 1, (x) => x.k === 'w' && x.u === 'AS');
+      if (parts.length === 2) return evalPure(st, parts[0][0], parts[0][1]);
+      return NOVAL;
+    }
     // function calls with literal arguments only
     if (one.k === 'w' && t[a + 1] && t[a + 1].k === 'p' && t[a + 1].v === '(' && t[b - 1].k === 'p' && t[b - 1].v === ')') {
       const args = topSplit(t, a + 2, b - 1, (x) => x.k === 'p' && x.v === ',').filter(([x, y]) => y > x).map(([x, y]) => evalPure(st, x, y));
@@ -6137,14 +6188,8 @@ window.DB.DBF_CODEPAGES = {
         case 'CONCAT':
           if (args.some((x) => x === null)) return null;
           return args.join('');
-        case 'CAST': return NOVAL;
         default: return NOVAL;
       }
-    }
-    // CAST('x' AS type)
-    if (one.k === 'w' && one.u === 'CAST' && t[a + 1] && t[a + 1].v === '(' && t[b - 1].v === ')') {
-      const parts = topSplit(t, a + 2, b - 1, (x) => x.k === 'w' && x.u === 'AS');
-      if (parts.length === 2) return evalPure(st, parts[0][0], parts[0][1]);
     }
     return NOVAL;
   }
@@ -6274,8 +6319,7 @@ window.DB.DBF_CODEPAGES = {
     }
     addColumn(t, name) {
       t.columns.push({ name, sqlType: '', notNull: false, generated: '', comment: '', values: '' });
-      for (const r of t.rows) r.push('');
-      return t.columns.length - 1;
+      return t.columns.length - 1;           // the rows read before are padded once, at the end (padding here was quadratic)
     }
 
     /* --- one statement --- */
@@ -6312,8 +6356,16 @@ window.DB.DBF_CODEPAGES = {
       if (/^SET standard_conforming_strings = off/i.test(text)) return { noStd: true };
       if (/^SET standard_conforming_strings = on/i.test(text)) return { noStd: false };
       if (this.dialect === 'mysql' && /SQL_MODE/i.test(text)) {
-        const s = c.st.toks.filter((t) => t.k === 's').map((t) => t.v).join(',');
-        if (/NO_BACKSLASH_ESCAPES/i.test(s)) return { backslash: false };
+        // mysqldump sets a mode (with a literal) before a trigger and restores it after (SQL_MODE = @saved_sql_mode):
+        // a literal pushes the backslash setting, a variable brings the previous one back
+        const t = c.st.toks;
+        this.modeStack = this.modeStack || [];
+        for (let k = 1; k < t.length - 2; k++) {
+          if (!(t[k].k === 'w' && t[k].u === 'SQL_MODE' && t[k + 1].v === '=') || (t[k - 1].k === 'o' && t[k - 1].v === '@')) continue;
+          const v = t[k + 2];
+          if (v.k === 's') { this.modeStack.push(this.lex.backslash); return { backslash: !/NO_BACKSLASH_ESCAPES/i.test(v.v) }; }
+          if (v.k === 'o' && v.v === '@') return this.modeStack.length ? { backslash: this.modeStack.pop() } : null;
+        }
       }
       return null;
     }
@@ -6390,10 +6442,12 @@ window.DB.DBF_CODEPAGES = {
     // MySQL "KEY name (cols)", "INDEX (cols)", "FULLTEXT KEY name (cols)"; a column NAMED key would be quoted in a dump
     isIndexItem(c, b) {
       if (!c.isW('KEY', 'INDEX', 'FULLTEXT', 'SPATIAL')) return false;
-      if (c.isW('FULLTEXT', 'SPATIAL')) return true;
       const n1 = c.peek(1), n2 = c.peek(2);
       if (!n1 || c.i + 1 >= b) return false;
       if (n1.k === 'p' && n1.v === '(') return true;
+      if (c.isW('FULLTEXT', 'SPATIAL') && n1.k === 'w' && (n1.u === 'KEY' || n1.u === 'INDEX')) return true;
+      // pg_dump and SQLite leave a column named key or index unquoted: "key numeric(10,2)" is a column, not an index
+      if (n1.k === 'w' && BUILTIN_TYPE.has(n1.u)) return false;
       return ['w', 'i', 'd'].includes(n1.k) && !!n2 && ((n2.k === 'p' && n2.v === '(') || (n2.k === 'w' && (n2.u === 'USING' || n2.u === 'TYPE'))) ||
         (['w', 'i', 'd'].includes(n1.k) && st2HasType(c, b));
     }
@@ -6463,6 +6517,7 @@ window.DB.DBF_CODEPAGES = {
       const cuts = [];                                         // [start, end] source spans replaced by "(…)"
       for (let k = a; k < b; k++) {
         const x = t[k];
+        if (x.k === 's') { cuts.push([x.s, x.e, "'…'"]); continue; }   // any other quoted text: possibly a value, never kept
         if (!(x.k === 'w' && /^(ENUM|ENUM8|ENUM16|SET)$/.test(x.u) && t[k + 1] && t[k + 1].k === 'p' && t[k + 1].v === '(')) continue;
         let d = 0, m = k + 1;
         for (; m < b; m++) {
@@ -6480,7 +6535,7 @@ window.DB.DBF_CODEPAGES = {
         k = m;
       }
       let type = '', at = t[a].s;
-      for (const [x, y] of cuts) { type += st.text.slice(at, x) + '(…)'; at = y; }
+      for (const [x, y, r] of cuts) { type += st.text.slice(at, x) + (r || '(…)'); at = y; }
       type = oneLine(type + st.text.slice(at, t[b - 1].e));
       if (labels.length) col.values = labels.join(', ');
       else {
@@ -6582,9 +6637,13 @@ window.DB.DBF_CODEPAGES = {
             if (k.isW('DEFAULT')) continue;
             k.i = save;
             this.tableItem(t, c.st, k.i, b);
+          } else if (k.isW('DEFAULT', 'PARTITION', 'PARTITIONS', 'PERIOD', 'SUBPARTITION', 'PROJECTION', 'STATISTICS', 'TTL', 'ROWGUIDCOL', 'PERSISTED', 'MASKED')) {
+            continue;                                          // SQL Server ADD DEFAULT ('x') FOR [col], partitions ...: never a column
           } else {
             k.eatW('COLUMN'); k.eatSeq('IF', 'NOT', 'EXISTS');
-            if (k.i < b) this.columnDef(t, k, b);
+            // a column is a name followed by its type; anything else (ADD (..), ADD 'x') is not read as one
+            const n0 = k.peek(), n1 = k.peek(1);
+            if (k.i < b && n0 && ['w', 'i', 'd'].includes(n0.k) && n1 && ['w', 'i', 'd'].includes(n1.k)) this.columnDef(t, k, b);
           }
           continue;
         }
@@ -6732,6 +6791,8 @@ window.DB.DBF_CODEPAGES = {
           if (col.values) meta.values = col.values;
           return { name: col.name, meta };
         });
+        const width = t.columns.length;
+        for (const r of t.rows) for (let k = r.length; k < width; k++) r.push('');   // columns added after these rows
         return {
           name: display(t), columns, rows: t.rows, rowsTotal: t.rowsTotal, description: t.description, externalData: t.externalData, externalInfo: t.externalInfo || null,
           constraints: { pk: t.pk.slice(), fks, unique: t.unique, indexes: t.indexes, ddl: t.ddl },
@@ -6885,13 +6946,16 @@ window.DB.DBF_CODEPAGES = {
             const token = src[ip++];
             let lit = token >> 4;
             if (lit === 15) { let x; do { x = src[ip++]; lit += x; } while (x === 255 && ip < end); }
+            if (ip > end || ip + lit > end) throw fail('pgArchiveCorrupt', 'truncated lz4 sequence');   // never NaN or a short copy
             ensure(lit);
             out.set(src.subarray(ip, ip + lit), op); op += lit; ip += lit;
             if (ip >= end) break;                                                     // the last sequence has no match
+            if (ip + 2 > end) throw fail('pgArchiveCorrupt', 'truncated lz4 sequence');
             const off = src[ip] | (src[ip + 1] << 8); ip += 2;
             if (!off || off > op) throw fail('pgArchiveCorrupt', 'bad lz4 offset');
             let ml = token & 15;
             if (ml === 15) { let x; do { x = src[ip++]; ml += x; } while (x === 255 && ip < end); }
+            if (ip > end) throw fail('pgArchiveCorrupt', 'truncated lz4 sequence');
             ml += 4;
             ensure(ml);
             for (let k = 0; k < ml; k++, op++) out[op] = out[op - off];               // may overlap: byte by byte
@@ -7508,7 +7572,7 @@ window.DB.DBF_CODEPAGES = {
   /* ---------- a zipped DuckDB "EXPORT DATABASE" folder: schema.sql + load.sql + one CSV or Parquet file per table ---------- */
   function zipNames(u8) {
     const names = [];
-    try { window.fflate.unzipSync(u8, { filter: (f) => { names.push(f.name); return false; } }); } catch (e) { /* not readable as a zip: the spreadsheet reader says so */ }
+    try { window.fflate.unzipSync(u8, { filter: (f) => { names.push(f.name.replace(/\\/g, '/')); return false; } }); } catch (e) { /* not readable as a zip: the spreadsheet reader says so */ }
     return names;
   }
   // What a zip really is, besides a spreadsheet: an exported DuckDB folder, or a SQL Server data-tier package
@@ -7521,7 +7585,7 @@ window.DB.DBF_CODEPAGES = {
   /* ---------- a SQL Server data-tier package (.dacpac, and the schema of a .bacpac): dacpac.js ---------- */
   function parseDacpacFile(u8) {
     let files;
-    try { files = window.fflate.unzipSync(u8, { filter: (f) => f.name === 'model.xml' || f.name === 'Origin.xml' }); } catch (e) { throw new UserError('errCorrupt', { ext: '.dacpac' }); }
+    try { files = window.fflate.unzipSync(u8, { filter: (f) => (f.name === 'model.xml' || f.name === 'Origin.xml') && f.originalSize < 512 * 1024 * 1024 }); } catch (e) { throw new UserError('errCorrupt', { ext: '.dacpac' }); }
     if (!files['model.xml']) throw new UserError('errCorrupt', { ext: '.dacpac' });
     const hasData = zipNames(u8).some((n) => /^Data\//.test(n));
     const origin = files['Origin.xml'] ? DB.decodeText(files['Origin.xml']).text : '';
@@ -7531,13 +7595,31 @@ window.DB.DBF_CODEPAGES = {
     return doc;
   }
   async function parseDuckdbZip(u8) {
-    let files;
-    try { files = window.fflate.unzipSync(u8, { filter: (f) => !/\/$/.test(f.name) && f.originalSize < 1024 * 1024 * 1024 }); } catch (e) { throw new UserError('errCorrupt', { ext: '.zip' }); }
-    const names = Object.keys(files);
-    const schema = names.find((n) => /(^|\/)schema\.sql$/.test(n)), load = names.find((n) => /(^|\/)load\.sql$/.test(n));
-    const r = DB.parseSqlDump([DB.decodeText(files[schema]).text, '\n', DB.decodeText(files[load]).text], { maxRows: DB.SQL_MAX_ROWS, dialect: 'generic' });
+    const all = zipNames(u8).filter((n) => !/\/$/.test(n));
+    const schema = all.find((n) => /(^|\/)schema\.sql$/.test(n)), load = all.find((n) => /(^|\/)load\.sql$/.test(n));
+    let total = 0;
+    const take = (wanted) => {   // decompresses only the wanted entries; the sizes are limited all together (a zip bomb stops here)
+      let got;
+      try {
+        got = window.fflate.unzipSync(u8, { filter: (f) => {
+          if (!wanted(f.name.replace(/\\/g, '/'))) return false;
+          total += f.originalSize;
+          if (total > 1024 * 1024 * 1024) throw new UserError('errTooLarge');
+          return true;
+        } });
+      } catch (e) { if (e instanceof UserError) throw e; throw new UserError('errCorrupt', { ext: '.zip' }); }
+      const out = {};
+      for (const k of Object.keys(got)) out[k.replace(/\\/g, '/')] = got[k];
+      return out;
+    };
+    const head = take((n) => n === schema || n === load);
+    if (!head[schema] || !head[load]) throw new UserError('errCorrupt', { ext: '.zip' });
+    const r = DB.parseSqlDump([DB.decodeText(head[schema]).text, '\n', DB.decodeText(head[load]).text], { maxRows: DB.SQL_MAX_ROWS, dialect: 'generic' });
+    const needed = new Set(r.sections.map((s) => s.externalData).filter(Boolean));
+    const files = take((n) => n !== schema && n !== load && needed.has(n.split('/').pop()));
+    const names = all;
     const byBase = {};
-    for (const n of names) byBase[n.split('/').pop()] = n;
+    for (const n of Object.keys(files)) byBase[n.split('/').pop()] = n;
     const missing = [];
     let cut = false;
     const read = new Set();
@@ -7739,10 +7821,25 @@ window.DB.DBF_CODEPAGES = {
   async function parseGzip(u8, fileName, depth) {
     if (depth) throw new UserError('errCorrupt', { ext: '.gz' });            // a gzip inside a gzip is not followed
     const n = u8.length;
-    const size = (u8[n - 4] | (u8[n - 3] << 8) | (u8[n - 2] << 16) | (u8[n - 1] << 24)) >>> 0;   // stored size modulo 4 GB
-    if (size > 1024 * 1024 * 1024) throw new UserError('errTooLarge');
-    let inner;
-    try { inner = window.fflate.gunzipSync(u8); } catch (e) { throw new UserError('errCorrupt', { ext: '.gz' }); }
+    const parts = [];
+    let size = 0, members = 0;
+    try {
+      const g = new window.fflate.Gunzip((chunk) => {
+        size += chunk.length;
+        if (size > 1024 * 1024 * 1024) throw new UserError('errTooLarge');
+        parts.push(chunk);
+      });
+      g.onmember = () => { members++; };
+      // fflate starts the next member only on a new push: push empty input until no member starts any more
+      for (let i = 0; i < n; i += 1 << 20) {
+        g.push(u8.subarray(i, Math.min(n, i + (1 << 20))), false);
+        let m;
+        do { m = members; g.push(new Uint8Array(0), false); } while (members !== m);
+      }
+      g.push(new Uint8Array(0), true);
+    } catch (e) { if (e instanceof UserError) throw e; throw new UserError('errCorrupt', { ext: '.gz' }); }
+    let inner = parts.length === 1 ? parts[0] : new Uint8Array(size);
+    if (parts.length !== 1) { let at = 0; for (const p of parts) { inner.set(p, at); at += p.length; } }
     const innerName = /\.(gz|gzip)$/i.test(fileName) ? fileName.replace(/\.(gz|gzip)$/i, '') : fileName;
     const doc = await DB.parseFile(inner, innerName, 1);
     doc.fileName = fileName;
@@ -8328,7 +8425,7 @@ window.DB.DBF_CODEPAGES = {
     b.lock('- **'); say('rows'); b.lock(':** ' + N(ns.sections.reduce((a, s) => a + s.rows, 0)) + '\n');
     b.lock('- **'); say('nsLevelLabel'); b.lock(':** '); say('nsL' + level); b.lock('\n');
     for (const m of ns.fileMeta) {
-      if ((m.freeText && !sw.text) || (m.names && !sw.names) || m.key === 'mViews') continue;
+      if ((m.freeText && !sw.text) || (m.names && !sw.names) || (m.files && !sw.file) || m.key === 'mViews') continue;
       b.lock('- **'); say(m.key); b.lock(':**');
       if (m.value.includes('\n')) b.lock('\n' + m.value.split('\n').map((l) => '  > ' + l).join('\n') + '\n');
       else b.lock(' ' + m.value + '\n');

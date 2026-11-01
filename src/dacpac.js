@@ -29,7 +29,20 @@
     return null;
   }
   // "[dbo].[Customers].[Id]" -> ["dbo", "Customers", "Id"]   ("]]" is a closing bracket inside a name)
-  const parts = (n) => (String(n || '').match(/\[(?:[^\]]|\]\])*\]/g) || []).map((x) => x.slice(1, -1).replace(/\]\]/g, ']'));
+  const parts = (n) => {   // a plain scan (a regular expression was quadratic on "[[[[..." without a closing bracket)
+    const s = String(n || ''), out = [];
+    let i = s.indexOf('[');
+    while (i >= 0) {
+      let j = i + 1, v = '', done = false;
+      while (!done) {
+        const k = s.indexOf(']', j);
+        if (k < 0) return out;
+        v += s.slice(j, k);
+        if (s[k + 1] === ']') { v += ']'; j = k + 2; } else { out.push(v); i = s.indexOf('[', k + 1); done = true; }
+      }
+    }
+    return out;
+  };
   // N'text with ''quotes''' -> text with 'quotes'
   const unliteral = (s) => { const m = /^N?'([\s\S]*)'$/.exec(String(s || '').trim()); return m ? m[1].replace(/''/g, "'") : String(s || ''); };
 

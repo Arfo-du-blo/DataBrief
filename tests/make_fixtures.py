@@ -455,3 +455,26 @@ shutil.copy(os.path.join(_acc, "CONFIDENTIAL_FILE_access.accdb"), Q("access", "a
 _dac = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dacpac-fixtures")
 shutil.copy(os.path.join(_dac, "shop.dacpac"), P("shop.dacpac"))
 shutil.copy(os.path.join(_dac, "CONFIDENTIAL_FILE_dacpac.dacpac"), Q("dacpac", "dacpac"))
+
+# --- gzip: the canary CSV compressed. The section is named after the file inside (CONFIDENTIAL_FILE_csvgz): it is the file
+#     name, hidden with the file-name switch (found in the review of v1.3) ---
+import gzip  # noqa: E402
+with open(Q("csv", "csv"), "rb") as _f:
+    _b = _f.read()
+with open(Q("csvgz", "csv.gz"), "wb") as _f:
+    _f.write(gzip.compress(_b))
+
+# --- a DuckDB export zipped by Windows PowerShell 5.1 (Compress-Archive): entry names with backslashes; plus an entry that
+#     DataBrief does not need and whose data is damaged: it must not be decompressed at all (zip bombs) ---
+_d = os.path.join(_sqlfix, "duckdb-export-csv")
+with zipfile.ZipFile(P("duckdb-windows.zip"), "w", zipfile.ZIP_DEFLATED) as _z:
+    for _f in sorted(os.listdir(_d)):
+        _z.write(os.path.join(_d, _f), "export\\" + _f)
+    _z.writestr("export\\unused.bin", b"x" * 5000)
+with zipfile.ZipFile(P("duckdb-windows.zip")) as _z:
+    _i = _z.getinfo("export\\unused.bin")
+with open(P("duckdb-windows.zip"), "r+b") as _f:
+    _f.seek(_i.header_offset + 26)
+    _n, _e = int.from_bytes(_f.read(2), "little"), int.from_bytes(_f.read(2), "little")
+    _f.seek(_i.header_offset + 30 + _n + _e)
+    _f.write(b"\xff" * _i.compress_size)   # block type 3: not a valid deflate stream
