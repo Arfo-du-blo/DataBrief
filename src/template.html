@@ -62,6 +62,12 @@
     <span class="drop-sub" id="dropSub" data-i18n="dropSub">or click to browse</span>
   </label>
 
+  <!-- Before any file is read: in "Do not share data" the parsed rows are never kept nor shown -->
+  <div class="ns-pre" id="nsToggleWrap">
+    <label class="check ns-toggle"><input type="checkbox" id="nsOn"> <span data-i18n="nsToggle">Do not share data</span></label>
+    <div class="hint" data-i18n="nsToggleHint"></div>
+  </div>
+
   <section class="card error hidden" id="errorBox" role="alert">
     <div class="card-body">
       <h2 data-i18n="errTitle">This file could not be read</h2>
@@ -81,11 +87,7 @@
         <button class="link-btn" type="button" id="anotherBtn" data-i18n="another">Choose another file</button>
       </div>
 
-      <div class="share-box" id="shareBox">
-        <div id="nsToggleWrap">
-          <label class="check ns-toggle"><input type="checkbox" id="nsOn"> <span data-i18n="nsToggle">Do not share data</span></label>
-          <div class="hint" data-i18n="nsToggleHint"></div>
-        </div>
+      <div class="share-box hidden" id="shareBox">
         <div class="ns-banner hidden" id="nsBanner" role="status"><strong data-i18n="nsBanner"></strong> <span class="hidden" id="nsTeam" data-i18n="nsTeamLock"></span></div>
         <div class="ns-options hidden" id="nsOptions">
           <div class="opt-label" data-i18n="nsLevelUi">Information included</div>

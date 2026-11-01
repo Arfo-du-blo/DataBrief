@@ -24,7 +24,14 @@
 
   const cellMd = (v) => String(v).replace(/\|/g, '\\|').replace(/\r\n|\r|\n/g, '<br>');
   const csvCell = (v) => (/[",\r\n]/.test(v) || /^\s|\s$/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v);
-  const code = (s) => (String(s).includes('`') ? String(s) : '`' + s + '`');
+  // Inline code. A name that contains backticks gets a longer fence, so it cannot end the code span early.
+  const code = (s) => {
+    s = String(s);
+    if (!s.includes('`')) return '`' + s + '`';
+    let f = '``';
+    while (s.includes(f)) f += '`';
+    return f + ' ' + s + ' ' + f;
+  };
 
   function fenceFor(text) {
     let f = '```';
@@ -444,11 +451,26 @@
     const say = (key, vars) => b.say(key, vars);
     const line = (prefix, key, vars) => { b.lock(prefix); say(key, vars); b.lock('\n'); };
 
-    // Neutral names when the real ones are not to be shared
+    // Neutral names when the real ones are not to be shared, and for names that may be data themselves:
+    // a guessed header over all-text columns (maybe the first record), keys of JSON / XML / YAML that look like
+    // values (an e-mail, a number, an identifier, a date), a section named after the file, a table named by its caption.
+    const TREE = ['json', 'ndjson', 'yaml', 'xml'].includes(ns.formatKey);
+    const looksLikeValue = (seg) => /@|^\d+$|^[0-9a-f]{8}-[0-9a-f]{4}-|^\d{4}-\d{2}-\d{2}/i.test(seg) || seg.length > 40;
+    let replacedAsData = false;
     const secMap = new Map(), colMap = new Map();
     ns.sections.forEach((s, i) => {
-      secMap.set(s.name, sw.names ? s.name : 'table_' + (i + 1));
-      s.columns.forEach((c, j) => colMap.set(s.name + '\u0001' + c.name, sw.names ? c.name : 'column_' + (j + 1)));
+      let name = s.name;
+      if (!sw.names || (s.nameIsText && !sw.labels)) name = 'table_' + (i + 1);
+      else if (s.fromFile && !sw.file) name = t('nsDataset') + (ns.sections.length > 1 ? '_' + (i + 1) : '');
+      else if (TREE && name.split('.').some(looksLikeValue)) { name = name.split('.').map((x) => (looksLikeValue(x) ? 'key' : x)).join('.'); replacedAsData = true; }
+      secMap.set(s.name, name);
+      s.columns.forEach((c, j) => {
+        let col = c.name;
+        if (!sw.names) col = 'column_' + (j + 1);
+        else if (s.headerWeak) { col = 'column_' + (j + 1); replacedAsData = true; }
+        else if (TREE && col.split('.').some(looksLikeValue)) { col = col.split('.').map((x) => (looksLikeValue(x) ? 'key' : x)).join('.'); replacedAsData = true; }
+        colMap.set(s.name + '\u0001' + c.name, col);
+      });
     });
     const S = (n) => (secMap.has(n) ? secMap.get(n) : sw.names ? n : '?');
     const C = (sec, col) => { const k = sec + '\u0001' + col; return colMap.has(k) ? colMap.get(k) : sw.names ? col : '?'; };
@@ -558,11 +580,10 @@
       ns.sections.forEach((s, i) => {
         const p = s.profile;
         if (!p || !p.columns.length) return;
-        const small = s.rows < DB.NS_MIN_ROWS;
         const rows = p.columns.map((c) => {
           const cells = [code(C(s.name, c.name)), t(KIND[c.kind]), c.missing ? c.missing + ' (' + pct((c.missing / c.n) * 100) + ')' : '0',
             c.kind === 'categorical' ? String(c.distinct) : '']; // distinct counts: categorical columns only
-          if (level >= 3) cells.push(nsSummary(c, small, t));
+          if (level >= 3) cells.push(nsSummary(c, c.n - c.missing < DB.NS_MIN_ROWS, t)); // few values: no range
           return cells;
         });
         let out = '### ' + (i + 1) + '. ' + code(S(s.name)) + '\n\n' +
@@ -579,6 +600,8 @@
     if (level < 2) missing.push('nsMCounts');
     if (level < 3) missing.push('nsMSummaries');
     if (!sw.names) missing.push('nsMNames');
+    else if (replacedAsData) missing.push('nsMNamesData');
+    if (level < 2 && sw.rel && ns.hadInferred) missing.push('nsMInferred');
     if (!sw.labels && ns.hasLabels) missing.push('nsMLabels');
     if (!sw.rel && ns.relationships.length) missing.push('nsMRel');
     if (!sw.sql && ns.hasSql) missing.push('nsMSql');

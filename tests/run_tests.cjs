@@ -342,7 +342,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
 
     await page.click('#nsLevelGroup button[data-level="3"]'); await wait();
     const l3 = await md(page);
-    ok(l3.includes('gold: 6 (50%) · silver: 5 (42%) · groups of fewer than 5 records: 1'), 'L3 categories with small groups hidden');
+    ok(l3.includes('gold: 6 (50%) · hidden groups: 6') && !l3.includes('silver'), 'L3 categories: the small group hidden, plus one more so it cannot be worked out by subtraction');
     ok(!leaks(l3).length, 'L3 leaks ' + leaks(l3));
     ok(await page.evaluate(() => !document.getElementById('nsL3Warn').classList.contains('hidden')), 'L3 warning shown');
 
@@ -436,7 +436,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     const FILES = [
       { f: 'csv.csv' }, { f: 'tsv.tsv' }, { f: 'txt.txt' },
       { f: 'xlsx.xlsx', txt: true, frm: true }, { f: 'xls.xls' }, { f: 'ods.ods' },
-      { f: 'json.json' }, { f: 'ndjson.ndjson' }, { f: 'yaml.yaml' }, { f: 'xml.xml' }, { f: 'html.html' },
+      { f: 'json.json' }, { f: 'ndjson.ndjson' }, { f: 'yaml.yaml' }, { f: 'xml.xml' }, { f: 'html.html', cap: true },
       { f: 'sav.sav', txt: true, lab: true }, { f: 'zsav.zsav', txt: true, lab: true },
       { f: 'parquet.parquet', txt: true }, { f: 'sqlite.sqlite', sql: true },
     ];
@@ -468,13 +468,22 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       // level 3 (the most permissive): the other outputs of the page
       never(await page.$eval('#preview', (el) => el.textContent), 'preview');
       never(await page.evaluate(() => JSON.stringify(window.DataBrief.getState(), (k, v) => (typeof v === 'bigint' ? String(v) : v))), 'page state');
-      // names and file name off
-      await sw(page, 'names'); await sw(page, 'file'); await wait();
+      // file name off alone (a section can be named after the file), then names off alone
+      await sw(page, 'file'); await wait();
       let s = await md(page);
-      never(s, 'names and file name off'); notByDefault(s, 'names and file name off');
+      never(s, 'file name off'); notByDefault(s, 'file name off');
+      if (s.includes('CONFIDENTIAL_FILE')) bad('file name should be hidden when off, even with names on');
+      await sw(page, 'file');
+      await sw(page, 'names'); await wait();
+      s = await md(page);
+      never(s, 'names off'); notByDefault(s, 'names off');
       if (s.includes('CONFIDENTIAL_COL')) bad('names should be replaced when off');
-      if (s.includes('CONFIDENTIAL_FILE')) bad('file name should be hidden when off');
-      await sw(page, 'names'); await sw(page, 'file');
+      await sw(page, 'names');
+      if (c.cap) { // a table named by its caption: the caption is a label
+        await sw(page, 'labels'); await wait(); s = await md(page);
+        if (s.includes('CONFIDENTIAL_COL_CAPTION')) bad('a caption used as table name should be hidden when labels are off');
+        await sw(page, 'labels');
+      }
       if (c.lab) {
         await sw(page, 'labels'); await wait(); s = await md(page);
         never(s, 'labels off');
@@ -493,6 +502,119 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     }
     if (checks.length) fail('do not share data: every format', checks.join(' | '));
     else pass('do not share data: every format', FILES.length + ' formats x 3 levels x switches: no record, formula, free text, SQL, name, label or file name beyond what is allowed');
+  }
+
+  // ---------- "Do not share data": regression tests for the findings of the independent review ----------
+  {
+    const checks = [];
+    const ok = (cond, msg) => { if (!cond) checks.push(msg); };
+    const wait = (ms) => new Promise((res) => setTimeout(res, ms || 200));
+    const md = (p) => p.evaluate(() => window.DataBrief.getMarkdown());
+    const level = async (p, n) => { await p.click('#nsLevelGroup button[data-level="' + n + '"]'); await p.waitForFunction((x) => window.DataBrief.getState().nsLevel === x && !window.DataBrief.getState().busy, {}, n); await wait(); };
+    const nsPage = async (file, lv) => {
+      const p = await newPage();
+      await p.click('#nsOn'); await wait(); // set before the file is read (the switch is next to the drop zone)
+      await load(p, F(file));
+      if (lv && lv > 1) await level(p, lv);
+      return p;
+    };
+
+    // 8: the switch is reachable before any file is read, and then the rows are never kept
+    {
+      const p = await newPage();
+      ok(await p.evaluate(() => document.getElementById('nsOn').offsetParent !== null), '8: switch not visible before a file is read');
+      await p.click('#nsOn'); await wait();
+      const r = await load(p, F('confidential.csv'));
+      ok(r.md.includes('(data not shared)') && await p.evaluate(() => window.DataBrief.getState().doc === null), '8: switched on before reading: no-share prompt, no rows kept');
+      await p.evaluate(() => localStorage.clear()); await p.close();
+    }
+    // 1: a file without header row: the first record is not used as column names
+    {
+      const p = await nsPage('headerless.csv');
+      const s = await md(p);
+      ok(!s.includes('CONFIDENTIAL_REC') && s.includes('`column_1`') && s.includes('Some names that look like data'), '1: headerless CSV leaks its first record as column names');
+      await p.evaluate(() => localStorage.clear()); await p.close();
+    }
+    // 2: level 3 shows no range for a column with only 1 or 2 values
+    {
+      const p = await nsPage('fewvalues.csv', 3);
+      const s = await md(p);
+      ok(!/987654|111111|222222|2019-03-14/.test(s), '2: a column with 1-2 values shows them at level 3');
+      await p.evaluate(() => localStorage.clear()); await p.close();
+    }
+    // 3: a "date" with text after it is not printed as a range (even beyond the type-detection window)
+    {
+      const p = await nsPage('longdates.csv', 3);
+      ok(!(await md(p)).includes('CONFIDENTIAL_REC'), '3: text after a date leaks through the date range');
+      await p.evaluate(() => localStorage.clear()); await p.close();
+    }
+    // 5: page state: no file handle, no error details, no statistics the level does not allow
+    {
+      const p = await nsPage('confidential.csv');
+      const st1 = await p.evaluate(() => { const s = window.DataBrief.getState(); return { file: s.file, prof: s.ns.sections.every((x) => x.profile === null) }; });
+      ok(st1.file === null && st1.prof, '5: at level 1 the state holds a file handle or statistics');
+      await level(p, 2);
+      ok(await p.evaluate(() => window.DataBrief.getState().ns.sections.every((x) => x.profile && x.profile.columns.every((c) => !c.summary))), '5: at level 2 the state holds summaries (values)');
+      await level(p, 3);
+      ok(await p.evaluate(() => window.DataBrief.getState().ns.sections.some((x) => x.profile && x.profile.columns.some((c) => c.summary))), '5: level 3 should have summaries (control)');
+      await level(p, 1);
+      ok(await p.evaluate(() => window.DataBrief.getState().ns.sections.every((x) => x.profile === null)), '5: going back to level 1 should drop the statistics');
+      const bad = await load(p, F('broken.json'));
+      const err = await p.evaluate(() => JSON.stringify(window.DataBrief.getState().lastErr));
+      ok(!bad.ok && !err.includes('CONFIDENTIAL_REC') && bad.detail === '', '5: error details reach the state or the screen: ' + err);
+      await p.evaluate(() => localStorage.clear()); await p.close();
+    }
+    // 6: embedded pandas metadata lists the real column names: hidden when names are off, even with free text on
+    {
+      const p = await nsPage('nested.parquet');
+      await p.evaluate(() => { document.querySelector('[data-sw="names"]').click(); document.querySelector('[data-sw="text"]').click(); }); await wait();
+      const s = await md(p);
+      ok(!s.includes('rowkey') && !s.includes('`geo.lat`'), '6: pandas metadata or nested names leak with names off');
+      await p.evaluate(() => localStorage.clear()); await p.close();
+    }
+    // 7: JSON keys that are data (e-mails) are not shown as column names
+    {
+      const p = await nsPage('mapkeys.json');
+      const s = await md(p);
+      ok(!s.includes('@example.org') && s.includes('scores.key'), '7: data keys shown as names');
+      await p.evaluate(() => localStorage.clear()); await p.close();
+    }
+    // 9: one hidden group could be worked out by subtraction: one more group is hidden
+    {
+      const p = await nsPage('flags.csv', 3);
+      const s = await md(p);
+      ok(!s.includes('false: 27') && s.includes('hidden groups: 30'), '9: a hidden group can be worked out by subtraction');
+      await p.evaluate(() => localStorage.clear()); await p.close();
+    }
+    // 10, 16: settings fail closed; a team default "no" wins over a stored "yes"
+    {
+      const BLOCK = /(<script id="databrief-config" type="application\/json">)[\s\S]*?(<\/script>)/;
+      const variant = (name, cfg) => { const f = path.join(outDir, name); fs.writeFileSync(f, fs.readFileSync(htmlPath, 'utf8').replace(BLOCK, (m, a, b) => a + '\n' + cfg + '\n' + b)); return 'file://' + f; };
+      for (const [name, cfg] of [['cfg_share_NO.html', '{"share":"NO"}'], ['cfg_share_false.html', '{"share":"false"}']]) {
+        const p = await newPage(); await p.goto(variant(name, cfg), { waitUntil: 'load' });
+        ok((await load(p, F('confidential.csv'))).md.includes('(data not shared)'), '10: ' + cfg + ' should mean "do not share"');
+        await p.evaluate(() => localStorage.clear()); await p.close();
+      }
+      const p = await newPage(); await p.goto(url + '?share=0', { waitUntil: 'load' });
+      ok((await load(p, F('confidential.csv'))).md.includes('(data not shared)'), '10: ?share=0 should mean "do not share"');
+      await p.evaluate(() => localStorage.setItem('databrief.share', 'yes'));
+      await p.goto(variant('cfg_share_no.html', '{"share":"no"}'), { waitUntil: 'load' });
+      ok((await load(p, F('confidential.csv'))).md.includes('(data not shared)'), '16: a stored "yes" overrides the team default "no"');
+      await p.evaluate(() => localStorage.clear()); await p.close();
+    }
+    // 12: inferred relationships (computed from the values) are not at level 1; their ratios only at level 3
+    {
+      const p = await nsPage('relations.xlsx');
+      const s1 = await md(p);
+      await level(p, 2); const s2 = await md(p);
+      await level(p, 3); const s3 = await md(p);
+      ok(!s1.includes('Inferred candidates') && s1.includes('Relationships inferred by comparing the values'), '12: inferred relationships at level 1');
+      ok(s2.includes('Inferred candidates') && !s2.includes('% of the distinct values'), '12: level 2 should list them without ratios');
+      ok(s3.includes('% of the distinct values'), '12: level 3 should give the ratios');
+      await p.evaluate(() => localStorage.clear()); await p.close();
+    }
+    if (checks.length) fail('do not share data: review findings', checks.join(' | '));
+    else pass('do not share data: review findings', 'headerless files, few values, dates with text, page state per level, embedded metadata, data keys, subtraction, fail-closed settings, team default, relationships per level, switch before reading');
   }
 
   // ---------- "Do not share data": the same promise in all 15 languages, and the strings are really translated ----------
@@ -516,7 +638,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       if (/\{\w+\}/.test(r.s)) bad('unreplaced placeholder');
       if (r.s.includes('CONFIDENTIAL_REC')) bad('a record leaked');
       // the thresholds written in the text must be the ones the code applies (groups under 5, tables under 10 rows)
-      if (!/5/.test(r.ctx) || !/10/.test(r.ctx) || !/5/.test(r.small) || !/5/.test(r.warn)) bad('the thresholds 5 / 10 are not in the text');
+      if (!/5/.test(r.ctx) || !/10/.test(r.ctx) || !/5/.test(r.warn)) bad('the thresholds 5 / 10 are not in the text');
     }
     // Translations: a new string identical to English is a missed translation, except for words that really are the same
     const same = await page.evaluate(() => {
@@ -936,7 +1058,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
 
   if (external.length) fail('NO NETWORK', external.length + ' external request(s): ' + [...new Set(external)].join(', '));
   else pass('NO NETWORK', 'zero external requests; file requests: ' + [...fileRequests].map((u) => path.basename(u)).join(', '));
-  const otherFiles = [...fileRequests].filter((u) => !u.split('?')[0].endsWith('/databrief.html')); // ?share=no links are the same page
+  const otherFiles = [...fileRequests].filter((u) => !u.split('?')[0].endsWith('/databrief.html') && !/\/cfg_[^/]*\.html$/.test(u)); // ?share=no links and the tests' own cfg_*.html variants
   if (otherFiles.length) fail('single file', 'page loaded other files: ' + otherFiles.join(', '));
   if (problems.length) fail('console/page errors', [...new Set(problems)].join(' | '));
 

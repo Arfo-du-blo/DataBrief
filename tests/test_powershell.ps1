@@ -58,6 +58,11 @@ try {
 
 $out = & powershell -NoProfile -ExecutionPolicy Bypass -File $serve -Html $html -Mode bogus -Check 2>&1 | Out-String
 Check 'powershell: invalid value rejected' ($LASTEXITCODE -eq 2 -and $out -match 'DATABRIEF_MODE') $out
+# "Do not share data": "NO" must not be accepted and then ignored by the page (which would share): it is refused
+$out = & powershell -NoProfile -ExecutionPolicy Bypass -File $serve -Html $html -Share NO -Check 2>&1 | Out-String
+Check 'powershell: -Share NO refused (no silent sharing)' ($LASTEXITCODE -eq 2 -and $out -cmatch 'DATABRIEF_SHARE') $out
+$out = & powershell -NoProfile -ExecutionPolicy Bypass -File $serve -Html $html -Share no -Lock share -Check 2>&1 | Out-String
+Check 'powershell: -Share no -Lock share in the page' ($LASTEXITCODE -eq 0 -and $out -match '"share":\s*"no"' -and $out -match '"lock":\s*\[?\s*"share"') $out
 $out = & powershell -NoProfile -ExecutionPolicy Bypass -File $serve -Html $html -Config (Join-Path $root 'deploy\databrief.conf') -Check 2>&1 | Out-String
 Check 'powershell: repository databrief.conf is valid' ($LASTEXITCODE -eq 0) $out
 

@@ -222,19 +222,20 @@
     rows = rows.map(norm);
     let header = opts.headerRow ? norm(opts.headerRow) : null;
     let noHeader = false;
+    let headerGuessed = false; // the first row was taken as the header by guess (it could also be a record)
     if (!header && rows.length) {
       const first = rows[0];
       const looksHeader = opts.header === 'yes' ||
         (opts.header !== 'no' && first.some((c) => c.trim() !== '') &&
           first.every((c) => c.trim() === '' || DB.typeOf(c) === 'text') && rows.length > 1);
-      if (looksHeader) header = rows.shift();
+      if (looksHeader) { header = rows.shift(); headerGuessed = opts.header !== 'yes'; }
       else noHeader = true;
     }
     const names = DB.uniqueNames(new Array(width).fill(0).map((_, i) => {
       const h = header ? header[i].replace(/\s+/g, ' ').trim() : '';
       return h || genName(i);
     }));
-    return { name, columns: names.map((n) => ({ name: n, meta: {} })), rows, noHeader: noHeader && width > 0 };
+    return { name, columns: names.map((n) => ({ name: n, meta: {} })), rows, noHeader: noHeader && width > 0, headerGuessed };
   };
 
   /* ---------- Text decoding ---------- */

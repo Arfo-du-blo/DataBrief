@@ -248,6 +248,8 @@
       let h = t.tHead ? t.tHead.rows.length : 0;
       if (!h) while (h < allTh.length && allTh[h] && h < 3) h++;
       const caption = t.caption ? cellText(t.caption) : '';
+      // Where the name comes from: a caption, label or summary is free text written by people (see "Do not share data")
+      const nameFrom = caption ? 'caption' : t.getAttribute('aria-label') ? 'label' : t.id ? 'id' : t.getAttribute('summary') ? 'summary' : 'auto';
       let name = caption || t.getAttribute('aria-label') || t.id || t.getAttribute('summary') || ('table_' + (ti + 1));
       name = name.replace(/\s+/g, ' ').trim().slice(0, 80);
       while (used.has(name)) name += ' (' + (ti + 1) + ')';
@@ -265,6 +267,7 @@
         sec = DB.gridToSection(grid, name);
       }
       if (caption) sec.caption = caption;
+      sec.nameFrom = nameFrom;
       return sec;
     });
     // Tables that contain other tables (page layout) are not read: say how many, so nothing disappears silently.
@@ -572,6 +575,8 @@
     for (const s of doc.sections) {
       s.columns.forEach((c, i) => { c.type = DB.detectColumnType(s.rows, i); });
       s.totalRows = s.rows.length;
+      // A guessed header over columns that are all text may well be the first record (a file without header row)
+      s.headerWeak = !!s.headerGuessed && s.columns.length > 0 && s.columns.every((c) => c.type === 'text' || c.type === 'empty');
     }
     doc.notes = doc.notes || {};
     if (!doc.sections.some((s) => s.rows.length || s.columns.length)) throw new UserError('errEmpty');

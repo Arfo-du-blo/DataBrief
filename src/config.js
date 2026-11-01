@@ -62,11 +62,14 @@
   const locks = new Set(lockList.map((s) => String(s).trim()).filter((x) => DB.LOCKABLE.includes(x)));
   const defaults = {};
   for (const k of Object.keys(VALID)) if (raw[k] != null && VALID[k](String(raw[k]))) defaults[k] = String(raw[k]);
+  // "share" fails closed: any value other than "yes" (NO, false, 0, a typo...) means "Do not share data".
+  if (raw.share != null && String(raw.share).trim() !== '') defaults.share = String(raw.share).trim().toLowerCase() === 'yes' ? 'yes' : 'no';
   const url = readUrl();
   const fromUrl = {};
   for (const k of Object.keys(VALID)) if (url[k] && VALID[k](url[k]) && !locks.has(k)) fromUrl[k] = url[k];
-  // A link may switch "Do not share data" on, never off: it can only make the page more private.
-  if (fromUrl.share === 'yes') delete fromUrl.share;
+  // A link may switch "Do not share data" on (any value but "yes"), never off: it can only make the page more private.
+  delete fromUrl.share;
+  if (url.share && url.share !== 'yes' && !locks.has('share')) fromUrl.share = 'no';
 
   DB.CONFIG = {
     raw,

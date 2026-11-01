@@ -139,7 +139,7 @@ function Test-Settings {
   $choices = @{ Mode = @('DATABRIEF_MODE', 'inline', 'files'); Layout = @('DATABRIEF_LAYOUT', 'auto', 'table', 'csv'); Theme = @('DATABRIEF_THEME', 'system', 'light', 'dark'); Share = @('DATABRIEF_SHARE', 'yes', 'no') }
   foreach ($k in $choices.Keys) {
     $allowed = $choices[$k][1..($choices[$k].Count - 1)]
-    if ($allowed -notcontains $eff[$k]) { $errors += "$($choices[$k][0]): '$($eff[$k])' must be one of $($allowed -join ', ')" }
+    if ($allowed -cnotcontains $eff[$k]) { $errors += "$($choices[$k][0]): '$($eff[$k])' must be one of $($allowed -join ', ')" }
   }
   foreach ($r in @(@('SampleRows', 'DATABRIEF_SAMPLE_ROWS', 1, 100), @('WarnTokens', 'DATABRIEF_WARN_TOKENS', 1000, 100000000), @('Port', 'DATABRIEF_PORT', 1, 65535), @('Threads', 'DATABRIEF_THREADS', 1, 1000))) {
     $n = 0

@@ -10,6 +10,9 @@ case "$BASE" in */) ;; *) BASE="$BASE/" ;; esac
 FRAME="${DATABRIEF_FRAME_ANCESTORS:-'self'}"
 MAXCONN="${DATABRIEF_MAX_CONNECTIONS:-1024}"
 case "$PORT$MAXCONN" in *[!0-9]*) echo "DataBrief: DATABRIEF_PORT and DATABRIEF_MAX_CONNECTIONS must be numbers" >&2; exit 1 ;; esac
+# "Do not share data" is a privacy setting: a value that is not understood stops the container instead of sharing.
+SHARE="$(printf '%s' "${DATABRIEF_SHARE:-}" | tr 'A-Z' 'a-z')"
+case "$SHARE" in ""|yes|no) ;; *) echo "DataBrief: DATABRIEF_SHARE must be yes or no (got '${DATABRIEF_SHARE}')" >&2; exit 1 ;; esac
 
 # ---- page settings -> JSON config block (only values that differ from the built-in defaults)
 # -s: read the whole value as one string, so an empty DATABRIEF_LOCK gives [] (without -s, jq outputs nothing).
@@ -21,7 +24,7 @@ jq -n \
   --arg mode "${DATABRIEF_MODE:-}" \
   --arg layout "${DATABRIEF_LAYOUT:-}" \
   --arg theme "${DATABRIEF_THEME:-}" \
-  --arg share "${DATABRIEF_SHARE:-}" \
+  --arg share "$SHARE" \
   --arg sample "${DATABRIEF_SAMPLE_ROWS:-}" \
   --arg warn "${DATABRIEF_WARN_TOKENS:-}" \
   --arg intro "${DATABRIEF_PROMPT_INTRO:-}" \

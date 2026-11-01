@@ -35,7 +35,8 @@
     return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
   };
 
-  const ISO = /^(\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2}(\.\d+)?)?)?|\d{2}:\d{2}(:\d{2}(\.\d+)?)?)/;
+  // The whole value must be a date / time (anchored at both ends): a value with text after the date is not a date
+  const ISO = /^(\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?|\d{2}:\d{2}(:\d{2}(\.\d+)?)?)$/;
 
   function profileColumn(sec, ci) {
     const col = sec.columns[ci];

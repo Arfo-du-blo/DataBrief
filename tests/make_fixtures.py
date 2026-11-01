@@ -313,6 +313,7 @@ for i, (r, n, c) in enumerate(zip(C_REC, C_NUM, C_CAT)):
     csh.append([r, n, c, ('=IF(A%d="CONFIDENTIAL_FORMULA","x","y")' % (i + 2)) if i < 3 else None])
 csh["A2"].comment = Comment("CONFIDENTIAL_TEXT_COMMENT", "tester")
 cwb.defined_names["CONFIDENTIAL_COL_NAME"] = _DefinedName("CONFIDENTIAL_COL_NAME", attr_text="CONFIDENTIAL_COL_SHEET!$B$2:$B$13")
+cwb.defined_names["CONFIDENTIAL_COL_CONST"] = _DefinedName("CONFIDENTIAL_COL_CONST", attr_text='"CONFIDENTIAL_REC_CONSTVAL"')  # a constant is a value
 cwb.save(Q("xlsx", "xlsx"))
 c_rows = [{CA: r, CB: n, CC: c, "CONFIDENTIAL_COL_NEST": {"CONFIDENTIAL_COL_DEEP": f"CONFIDENTIAL_REC_DEEP_{i + 1:02d}"}}
           for i, (r, n, c) in enumerate(zip(C_REC, C_NUM, C_CAT))]
@@ -362,6 +363,28 @@ CREATE VIEW CONFIDENTIAL_COL_VIEW AS SELECT {CA} FROM CONFIDENTIAL_COL_TABLE WHE
 ccon.executemany("INSERT INTO CONFIDENTIAL_COL_TABLE (CONFIDENTIAL_COL_A, CONFIDENTIAL_COL_B, CONFIDENTIAL_COL_C, CONFIDENTIAL_COL_PID) VALUES (?, ?, ?, 1)", list(zip(C_REC, C_NUM, C_CAT)))
 ccon.commit()
 ccon.close()
+
+# --- "Do not share data": the scenarios found by the independent review (stage 7), as regression fixtures ---
+with open(P("headerless.csv"), "w", encoding="utf-8", newline="") as f:   # no header row: the first record looks like one
+    for i in range(6):
+        f.write(f"CONFIDENTIAL_REC_NAME_{i},person{i}.CONFIDENTIAL_REC@corp.com,CONFIDENTIAL_REC_DIAG_{i % 2}\n")
+with open(P("fewvalues.csv"), "w", encoding="utf-8", newline="") as f:     # columns with 1 or 2 values in a 12-row table
+    f.write("id,salary,two,day\n")
+    for i in range(12):
+        f.write(f"{i + 1},{'987654' if i == 0 else ''},{('111111' if i == 0 else '222222') if i < 2 else ''},{'2019-03-14' if i == 0 else ''}\n")
+with open(P("longdates.csv"), "w", encoding="utf-8", newline="") as f:     # text after a date, beyond the type-detection window
+    f.write("id,day\n")
+    for i in range(20010):
+        day = "2099-12-31 CONFIDENTIAL_REC_DATENOTE" if i >= 20005 else f"2024-{(i % 12) + 1:02d}-{(i % 28) + 1:02d}"
+        f.write(f"{i},{day}\n")
+with open(P("broken.json"), "w", encoding="utf-8") as f:                   # a parse error message would quote the file
+    f.write('{"a": CONFIDENTIAL_REC_ERR }')
+with open(P("mapkeys.json"), "w", encoding="utf-8") as f:                  # keys that are data (e-mails)
+    json.dump({"scores": {"alice@example.org": 3, "bob@example.org": 5}, "team": "x"}, f)
+with open(P("flags.csv"), "w", encoding="utf-8", newline="") as f:         # one hidden group could be worked out by subtraction
+    f.write("id,flag\n")
+    for i in range(30):
+        f.write(f"{i},{'true' if i < 3 else 'false'}\n")
 
 # --- "Do not share data": values that must never reach the prompt, whatever the level ---
 with open(P("confidential.csv"), "w", encoding="utf-8", newline="") as f:

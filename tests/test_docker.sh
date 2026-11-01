@@ -43,8 +43,10 @@ check "nginx: runs as non-root" '[ "$(docker exec db-test-nginx id -u)" = "101" 
 for _ in $(seq 1 20); do [ "$(docker inspect -f '{{.State.Health.Status}}' db-test-nginx)" = "healthy" ] && break; sleep 2; done
 check "nginx: Docker healthcheck" '[ "$(docker inspect -f "{{.State.Health.Status}}" db-test-nginx)" != "unhealthy" ]'
 # regression (v1.0.0): without DATABRIEF_LOCK, the other settings were silently dropped
-docker run -d --name db-test-nginx-nolock -p 18095:8080 -e DATABRIEF_LANG=it -e DATABRIEF_MODE=files -e DATABRIEF_SHARE=no databrief-test:nginx >/dev/null
+docker run -d --name db-test-nginx-nolock -p 18095:8080 -e DATABRIEF_LANG=it -e DATABRIEF_MODE=files -e DATABRIEF_SHARE=NO databrief-test:nginx >/dev/null
 check "nginx: settings work without DATABRIEF_LOCK" 'wait_http localhost:18095/healthz && [ "$(curl -s localhost:18095/ | config_of)" = "{\"lang\": \"it\", \"mode\": \"files\", \"share\": \"no\"}" ]' "$(docker logs db-test-nginx-nolock 2>&1 | grep -v io_setup | tail -10)"
+# "Do not share data" fails closed: a value that is not yes or no stops the container (it never starts sharing)
+check "nginx: DATABRIEF_SHARE=bogus stops the container" '! timeout 60 docker run --rm -e DATABRIEF_SHARE=bogus databrief-test:nginx > "$T/share.txt" 2>&1 && grep -q "DATABRIEF_SHARE must be yes or no" "$T/share.txt"' "$(tail -5 "$T/share.txt" 2>/dev/null)"
 
 # ---- Python variant
 docker run -d --name db-test-python -p 18091:8080 -e DATABRIEF_LANG=ko -e DATABRIEF_THREADS=4 databrief-test:python >/dev/null

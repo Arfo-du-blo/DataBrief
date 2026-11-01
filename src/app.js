@@ -43,7 +43,9 @@
   state.mode = DB.setting('mode', null, 'inline');
   state.layout = DB.setting('layout', null, 'auto');
   // The visitor's choice is remembered, so the page never silently goes back to sharing the data.
-  state.share = DB.setting('share', store.get('share'), 'yes');
+  // A team default of "no" wins over a "yes" stored by another copy of the page (copies opened from disk share it).
+  const storedShare = store.get('share');
+  state.share = DB.setting('share', CFG.defaults.share === 'no' && storedShare === 'yes' ? null : storedShare, 'yes');
   // Started in "Do not share data" (link, team default or earlier choice): remember it, so a reload without the
   // link never switches back to sharing behind the user's back. Only an explicit "Include my data" does.
   if (state.share === 'no' && !CFG.locked('share')) store.set('share', 'no');
@@ -137,8 +139,9 @@
   }
   function hideError() { state.lastErr = null; $('errorBox').classList.add('hidden'); }
 
-  /* keepEdits: reading the same file again after leaving "Do not share data" keeps the user's edits. */
-  async function handleFile(file, keepEdits) {
+  /* keepEdits: reading the same file again (leaving "Do not share data", a higher level) keeps the user's edits.
+   * quiet: do not scroll to the result (the user is already there). */
+  async function handleFile(file, keepEdits, quiet) {
     if (!file || state.busy || state.editing) return; // finish or cancel the edit first
     hideError();
     setBusy(true, file.name);
@@ -149,7 +152,7 @@
       state.file = file;
       if (noShare()) {
         // Only the record-free copy is kept: the parsed rows are never stored in the page state.
-        state.ns = DB.makeNoShareSource(doc);
+        state.ns = DB.makeNoShareSource(doc, state.nsLevel);
         state.doc = null;
       } else {
         state.doc = doc;
@@ -162,12 +165,13 @@
       rebuild(true);
       $('result').classList.remove('hidden');
       renderResult();
-      $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (!quiet) $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (e) {
       if (!noShare()) console.error(e); // an error can quote part of the file
       state.doc = null;
       state.ns = null;
-      state.lastErr = e;
+      // In "Do not share data" only the kind of error is kept: its technical message can quote the file.
+      state.lastErr = noShare() ? new DB.UserError(e instanceof DB.UserError ? e.key : 'errGeneric', e instanceof DB.UserError ? e.vars : {}) : e;
       $('result').classList.add('hidden');
       showError(e);
     } finally {
@@ -408,6 +412,7 @@
     const ns = noShare();
     $('result').classList.toggle('ns-on', ns);
     $('nsOn').checked = ns;
+    $('shareBox').classList.toggle('hidden', !ns);
     $('nsBanner').classList.toggle('hidden', !ns);
     $('nsOptions').classList.toggle('hidden', !ns);
     $('nsTeam').classList.toggle('hidden', !(ns && CFG.locked('share')));
@@ -574,8 +579,9 @@
   function enterNoShare() {
     state.share = 'no';
     store.set('share', 'no');
+    $('mdBody').innerHTML = ''; // a formatted view opened in normal mode held the data
     if (state.doc) {
-      state.ns = DB.makeNoShareSource(state.doc);
+      state.ns = DB.makeNoShareSource(state.doc, state.nsLevel);
       state.doc = null; // the parsed rows are released: only the record-free copy remains
     }
     rebuild(true);
@@ -596,16 +602,19 @@
   $('nsOn').addEventListener('change', async (e) => {
     if (e.target.checked) { enterNoShare(); return; }
     e.target.checked = true; // stays on until the user confirms
-    if (CFG.locked('share') || !(await askLeave())) { renderResult(); return; }
+    if (CFG.locked('share') || state.busy || !(await askLeave())) { renderResult(); return; }
     state.share = 'yes';
     store.set('share', 'yes');
     state.ns = null;
     if (state.file) await handleFile(state.file, true); // read the file again: the rows were not kept
     else renderResult();
   });
-  document.querySelectorAll('#nsLevelGroup button').forEach((b) => b.addEventListener('click', () => {
+  // The copy holds only what its level needs: going up reads the file again, going down removes what is too much.
+  document.querySelectorAll('#nsLevelGroup button').forEach((b) => b.addEventListener('click', async () => {
     const v = Number(b.dataset.level);
-    applySetting(() => { state.nsLevel = v; });
+    if (v === state.nsLevel || state.busy) return;
+    if (state.ns && v > state.ns.level && state.file) { state.nsLevel = v; await handleFile(state.file, true, true); return; }
+    applySetting(() => { state.nsLevel = v; if (state.ns) DB.restrictNoShare(state.ns, v); });
   }));
   document.querySelectorAll('#nsOptions [data-sw]').forEach((x) => x.addEventListener('change', () => {
     applySetting(() => { state.nsSw[x.dataset.sw] = x.checked; });
@@ -674,5 +683,10 @@
   $('infoDialog').addEventListener('click', (e) => { if (e.target === $('infoDialog') && e.target.close) e.target.close(); });
 
   applyUi();
-  window.DataBrief = { handleFile, getMarkdown: () => state.md, getState: () => state };
+  $('nsOn').checked = noShare(); // the switch is next to the drop zone: it can be set before any file is read
+  // In "Do not share data" the state is given without the file handle and without error details (they can quote the file).
+  window.DataBrief = {
+    handleFile, getMarkdown: () => state.md,
+    getState: () => (noShare() ? Object.assign({}, state, { file: null, lastErr: state.lastErr ? { key: state.lastErr.key || 'errGeneric' } : null }) : state),
+  };
 })();

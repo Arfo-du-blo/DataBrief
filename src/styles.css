@@ -150,6 +150,7 @@ main { width: 100%; max-width: 780px; margin: 0 auto; padding: 8px 16px 32px; fl
 
 /* "Do not share data" */
 .share-box { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.ns-pre { margin-top: 12px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
 .ns-toggle { font-weight: 600; }
 .ns-banner { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--accent); color: #fff; font-size: 14px; }
 .ns-options { margin-top: 12px; }
