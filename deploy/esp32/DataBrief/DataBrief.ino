@@ -4,7 +4,7 @@
 
   - Works with the Arduino IDE 2 (open this file) and with PlatformIO (deploy/esp32/platformio.ini).
   - Boards: any ESP32 with 4 MB of flash or more (ESP32, ESP32-S3, Arduino Nano ESP32...).
-  - The page is stored gzip-compressed inside the firmware (databrief_html.h, about 0.9 MB) and sent as is:
+  - The page is stored gzip-compressed inside the firmware (databrief_html.h, about 1 MB) and sent as is:
     the browser decompresses it. Needs a "Huge APP" partition scheme on 4 MB boards (see the guide).
   - The board only sends the page. The data files people open never reach it: DataBrief works entirely
     in the browser.

@@ -81,7 +81,8 @@ check "arm64 images really are ARM (aarch64)" '[ "$(docker exec db-test-arm-ngin
 
 # ---- the tampered privacy demo (examples/tampered) must never be published
 check "demo pages are not in the Docker images" 'docker image inspect databrief-test:nginx databrief-test:python >/dev/null 2>&1 && [ -z "$(docker run --rm --entrypoint sh databrief-test:nginx -c "find / -xdev -name \"corrupted_databrief*\" 2>/dev/null")$(docker run --rm --entrypoint sh databrief-test:python -c "find / -xdev -name \"corrupted_databrief*\" 2>/dev/null")" ]'
-check "Pages and release jobs never copy examples/" '! grep -nE "examples|corrupted" .github/workflows/*.yml .gitlab-ci.yml deploy/docker/Dockerfile deploy/docker/Dockerfile.python' "$(grep -nE "examples|corrupted" .github/workflows/*.yml .gitlab-ci.yml deploy/docker/Dockerfile* 2>/dev/null)"
+# (tests.yml is not a publishing job: it only compares the demo pages with a fresh build)
+check "Pages and release jobs never copy examples/" '! grep -nE "examples|corrupted" .github/workflows/pages.yml .github/workflows/release.yml .gitlab-ci.yml deploy/docker/Dockerfile deploy/docker/Dockerfile.python' "$(grep -nE "examples|corrupted" .github/workflows/pages.yml .github/workflows/release.yml .gitlab-ci.yml deploy/docker/Dockerfile* 2>/dev/null)"
 check ".dockerignore excludes examples/" 'grep -qx "examples" .dockerignore'
 
 # ---- Raspberry Pi files

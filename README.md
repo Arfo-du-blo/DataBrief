@@ -477,7 +477,7 @@ The script installs the service, sets up `databrief.local` (mDNS) and a firewall
 ### ESP32 and Arduino
 
 A €5–15 ESP32 board serves DataBrief over Wi-Fi: it joins your network (`http://databrief.local`), or creates its own,
-with no router and no internet. The page is stored compressed (about 0.9 MB) inside the firmware.
+with no router and no internet. The page is stored compressed (about 1 MB) inside the firmware.
 
 - **Boards:** any ESP32 with 4 MB of flash or more, the ESP32-S3, and the **Arduino Nano ESP32**. Classic Arduinos
   (Uno, Nano, Mega) are far too small; the guide explains why.
