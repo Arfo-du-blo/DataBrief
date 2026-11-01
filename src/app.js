@@ -84,8 +84,8 @@
   const chips = $('chips');
   // One card per family of formats (what is read / the best file / good to know), opened by clicking a format.
   const CARD = { csv: 'Csv', tsv: 'Csv', txt: 'Csv', xlsx: 'Excel', xlsm: 'Excel', xls: 'Excel', ods: 'Excel', json: 'Json', ndjson: 'Json',
-    xml: 'Xml', yaml: 'Yaml', html: 'Html', sav: 'Spss', parquet: 'Parquet', sqlite: 'Sqlite' };
-  const GUIDE = { Csv: 'csv', Excel: 'excel', Json: 'json', Xml: 'xml', Yaml: 'yaml', Html: 'html', Spss: 'spss', Parquet: 'parquet', Sqlite: 'sqlite' };
+    xml: 'Xml', yaml: 'Yaml', html: 'Html', sav: 'Spss', parquet: 'Parquet', sqlite: 'Sqlite', sql: 'Sql', pgdump: 'Pgdump' };
+  const GUIDE = { Csv: 'csv', Excel: 'excel', Json: 'json', Xml: 'xml', Yaml: 'yaml', Html: 'html', Spss: 'spss', Parquet: 'parquet', Sqlite: 'sqlite', Sql: 'sql', Pgdump: 'pgdump' };
   function openCard(f) {
     const k = CARD[f.key];
     $('fmtTitle').textContent = (f.key === 'sav' ? 'SPSS .sav / .zsav' : f.label) + ' · ' + f.exts.map((e) => '.' + e).join(' ');
@@ -94,7 +94,7 @@
     $('fmtGood').textContent = tu('fc' + k + 'Good');
     $('fmtGuide').setAttribute('href', 'https://github.com/Arfo-du-blo/DataBrief/blob/main/docs/formats/' + GUIDE[k] + '.md');
     const dlg = $('fmtDialog');
-    dlg.classList.toggle('wide', ['Excel', 'Json', 'Xml', 'Spss', 'Parquet', 'Sqlite'].includes(k)); // the complex formats get a larger card
+    dlg.classList.toggle('wide', ['Excel', 'Json', 'Xml', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump'].includes(k)); // the complex formats get a larger card
     if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
   }
   for (const f of DB.FORMATS) {
@@ -415,7 +415,7 @@
   function renderResult() {
     const d = state.doc || state.ns;
     if (!d) return;
-    const rowsOf = (s) => (typeof s.rows === 'number' ? s.rows : s.rows.length); // the no-share copy keeps counts only
+    const rowsOf = (s) => (typeof s.rows === 'number' ? s.rows : (s.totalRows || s.rows.length)); // the no-share copy keeps counts only; a large SQL dump is read in part
     const fmtDef = DB.FORMATS.find((f) => f.key === d.formatKey || (d.formatKey === 'zsav' && f.key === 'sav'));
     $('fileName').textContent = d.fileName;
     $('fileSub').textContent = d.formatName + ' · ' + DB.fmtBytes(d.fileSize);

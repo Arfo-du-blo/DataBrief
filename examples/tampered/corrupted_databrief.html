@@ -3131,6 +3131,186 @@ window.DB_I18N = {
   for (const [lang, vals] of Object.entries(U)) KEYS.forEach((k, i) => { window.DB_I18N.ui[lang][k] = vals[i]; });
 })();
 </script>
+<script>/* DataBrief - translations for SQL dumps and PostgreSQL archives. GPL-3.0-or-later.
+ * Prompt order: mDialect, mArchive, mIgnored, mExternal, mRowsCut, profPartial, tblDescription
+ * UI order: fcSqlReads, fcSqlBest, fcSqlGood, fcPgdumpReads, fcPgdumpBest, fcPgdumpGood, errPgCorrupt, errPgVersion, errPgCompression */
+'use strict';
+(function () {
+  const PK = ['mDialect', 'mArchive', 'mIgnored', 'mExternal', 'mRowsCut', 'profPartial', 'tblDescription'];
+  const UK = ['fcSqlReads', 'fcSqlBest', 'fcSqlGood', 'fcPgdumpReads', 'fcPgdumpBest', 'fcPgdumpGood', 'errPgCorrupt', 'errPgVersion', 'errPgCompression'];
+  const P = {
+    en: ["SQL dialect", "Archive", "Statements not read", "Data stored in other files (not read)", "Rows read per table (limit; the row counts are complete)",
+      "Some tables are larger than what was read: their statistics describe the rows read ({n} per table at most), not all rows.", "Description (table comment)"],
+    fr: ["Dialecte SQL", "Archive", "Instructions non lues", "Données stockées dans d'autres fichiers (non lues)", "Lignes lues par table (limite ; les nombres de lignes sont complets)",
+      "Certaines tables sont plus grandes que ce qui a été lu : leurs statistiques décrivent les lignes lues ({n} par table au plus), pas toutes les lignes.", "Description (commentaire de la table)"],
+    es: ["Dialecto SQL", "Archivo de copia", "Instrucciones no leídas", "Datos guardados en otros archivos (no leídos)", "Filas leídas por tabla (límite; los recuentos de filas son completos)",
+      "Algunas tablas son más grandes que lo leído: sus estadísticas describen las filas leídas (como máximo {n} por tabla), no todas las filas.", "Descripción (comentario de la tabla)"],
+    de: ["SQL-Dialekt", "Archiv", "Nicht gelesene Anweisungen", "In anderen Dateien gespeicherte Daten (nicht gelesen)", "Gelesene Zeilen pro Tabelle (Grenze; die Zeilenzahlen sind vollständig)",
+      "Einige Tabellen sind größer als das Gelesene: ihre Statistiken beschreiben die gelesenen Zeilen (höchstens {n} pro Tabelle), nicht alle Zeilen.", "Beschreibung (Tabellenkommentar)"],
+    it: ["Dialetto SQL", "Archivio", "Istruzioni non lette", "Dati memorizzati in altri file (non letti)", "Righe lette per tabella (limite; i conteggi delle righe sono completi)",
+      "Alcune tabelle sono più grandi di quanto letto: le loro statistiche descrivono le righe lette (al massimo {n} per tabella), non tutte le righe.", "Descrizione (commento della tabella)"],
+    pt: ["Dialeto SQL", "Arquivo de backup", "Instruções não lidas", "Dados armazenados em outros arquivos (não lidos)", "Linhas lidas por tabela (limite; as contagens de linhas são completas)",
+      "Algumas tabelas são maiores do que o que foi lido: suas estatísticas descrevem as linhas lidas (no máximo {n} por tabela), não todas as linhas.", "Descrição (comentário da tabela)"],
+    nl: ["SQL-dialect", "Archief", "Niet gelezen instructies", "Gegevens in andere bestanden (niet gelezen)", "Gelezen rijen per tabel (limiet; de aantallen rijen zijn volledig)",
+      "Sommige tabellen zijn groter dan wat gelezen is: hun statistieken beschrijven de gelezen rijen (hooguit {n} per tabel), niet alle rijen.", "Beschrijving (tabelcommentaar)"],
+    pl: ["Dialekt SQL", "Archiwum", "Nieodczytane instrukcje", "Dane przechowywane w innych plikach (nieodczytane)", "Odczytane wiersze na tabelę (limit; liczby wierszy są pełne)",
+      "Niektóre tabele są większe niż to, co odczytano: ich statystyki opisują odczytane wiersze (najwyżej {n} na tabelę), a nie wszystkie wiersze.", "Opis (komentarz do tabeli)"],
+    ru: ["Диалект SQL", "Архив", "Непрочитанные инструкции", "Данные, хранящиеся в других файлах (не прочитаны)", "Прочитано строк на таблицу (лимит; общее число строк указано полностью)",
+      "Некоторые таблицы больше, чем прочитано: их статистика описывает прочитанные строки (не более {n} на таблицу), а не все строки.", "Описание (комментарий к таблице)"],
+    tr: ["SQL lehçesi", "Arşiv", "Okunmayan ifadeler", "Başka dosyalarda saklanan veriler (okunmadı)", "Tablo başına okunan satır (sınır; satır sayıları eksiksizdir)",
+      "Bazı tablolar okunandan daha büyük: istatistikleri tüm satırları değil, okunan satırları (tablo başına en fazla {n}) anlatır.", "Açıklama (tablo yorumu)"],
+    zh: ["SQL 方言", "归档", "未读取的语句", "存放在其他文件中的数据（未读取）", "每个表读取的行数（上限；行数统计是完整的）",
+      "有些表比读取的部分更大：它们的统计只描述已读取的行（每个表最多 {n} 行），而不是全部行。", "说明（表注释）"],
+    ja: ["SQL 方言", "アーカイブ", "読み取らなかったステートメント", "他のファイルに保存されたデータ（未読み取り）", "テーブルごとに読み取った行数（上限。行数の合計は完全です）",
+      "一部のテーブルは読み取った量より大きく、その統計は全行ではなく読み取った行（1 テーブルあたり最大 {n} 行）を表します。", "説明（テーブルのコメント）"],
+    ko: ["SQL 방언", "아카이브", "읽지 않은 구문", "다른 파일에 저장된 데이터(읽지 않음)", "테이블당 읽은 행 수(한도, 행 수 집계는 전체 기준)",
+      "일부 테이블은 읽은 양보다 큽니다. 해당 통계는 전체 행이 아니라 읽은 행(테이블당 최대 {n}행)을 설명합니다.", "설명(테이블 주석)"],
+    hi: ["SQL डायलेक्ट", "आर्काइव", "न पढ़े गए स्टेटमेंट", "अन्य फ़ाइलों में रखा डेटा (पढ़ा नहीं गया)", "प्रति तालिका पढ़ी गई पंक्तियाँ (सीमा; पंक्तियों की गिनती पूरी है)",
+      "कुछ तालिकाएँ पढ़े गए हिस्से से बड़ी हैं: उनके आँकड़े सभी पंक्तियों का नहीं, बल्कि पढ़ी गई पंक्तियों का (प्रति तालिका अधिकतम {n}) वर्णन करते हैं।", "विवरण (तालिका की टिप्पणी)"],
+    ar: ["لهجة SQL", "الأرشيف", "تعليمات لم تُقرأ", "بيانات مخزّنة في ملفات أخرى (لم تُقرأ)", "الصفوف المقروءة لكل جدول (الحدّ الأقصى؛ أعداد الصفوف كاملة)",
+      "بعض الجداول أكبر مما قُرئ: إحصاءاتها تصف الصفوف المقروءة (بحدّ أقصى {n} لكل جدول) وليس كل الصفوف.", "الوصف (تعليق الجدول)"],
+  };
+  const U = {
+    en: ["Table definitions (columns, types, primary, unique and foreign keys, indexes, comments), views and the rows written as INSERT statements or PostgreSQL COPY blocks. Dumps from PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite and ClickHouse are recognised. Nothing is ever executed.",
+      "A dump written by the database's own export tool (pg_dump, mysqldump, the SQLite .dump command...). If only the structure matters, a schema-only dump is the best file, and it fits \"Do not share data\" naturally.",
+      "Only the first 250,000 rows of each table are kept (the row counts stay exact). Procedures, functions and triggers are not read and are listed as such. Data stored in other files, like a DuckDB export, is not read.",
+      "PostgreSQL archives made by pg_dump in the custom (-Fc) or tar (-Ft) format, compressed with gzip, lz4 or zstd or not: the same tables, keys, comments and rows as the plain SQL dump. Archives from PostgreSQL 9 to 17.",
+      "pg_dump -Fc, or pg_dump -Fc --schema-only when the structure is enough. A plain SQL dump (.sql) works too.",
+      "The directory format (-Fd) is a folder and cannot be dropped as one file: use -Fc, -Ft or a plain SQL dump. Nothing is restored or executed, and large objects are not read.",
+      "This PostgreSQL archive is damaged or incomplete: it could not be read to the end.",
+      "This PostgreSQL archive is too old to be read (before PostgreSQL 9.0). Export it again with a recent pg_dump, or as a plain SQL dump.",
+      "This PostgreSQL archive uses a compression method that DataBrief does not know. Export it again with --compress=gzip, or as a plain SQL dump."],
+    fr: ["Les définitions de tables (colonnes, types, clés primaires, uniques et étrangères, index, commentaires), les vues et les lignes écrites en instructions INSERT ou en blocs COPY de PostgreSQL. Les exports de PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite et ClickHouse sont reconnus. Rien n'est jamais exécuté.",
+      "Un export produit par l'outil de la base elle-même (pg_dump, mysqldump, la commande .dump de SQLite...). Si seule la structure compte, un export du schéma seul est le meilleur fichier, et il convient naturellement à « Ne pas partager les données ».",
+      "Seules les 250 000 premières lignes de chaque table sont conservées (les nombres de lignes restent exacts). Les procédures, fonctions et déclencheurs ne sont pas lus et sont signalés comme tels. Les données stockées dans d'autres fichiers, comme un export DuckDB, ne sont pas lues.",
+      "Les archives PostgreSQL créées par pg_dump au format personnalisé (-Fc) ou tar (-Ft), compressées en gzip, lz4 ou zstd ou non : les mêmes tables, clés, commentaires et lignes que l'export SQL texte. Archives de PostgreSQL 9 à 17.",
+      "pg_dump -Fc, ou pg_dump -Fc --schema-only quand la structure suffit. Un export SQL texte (.sql) convient aussi.",
+      "Le format répertoire (-Fd) est un dossier et ne peut pas être déposé comme un seul fichier : utilisez -Fc, -Ft ou un export SQL texte. Rien n'est restauré ni exécuté, et les objets volumineux ne sont pas lus.",
+      "Cette archive PostgreSQL est endommagée ou incomplète : elle n'a pas pu être lue jusqu'au bout.",
+      "Cette archive PostgreSQL est trop ancienne pour être lue (avant PostgreSQL 9.0). Exportez-la de nouveau avec un pg_dump récent, ou en SQL texte.",
+      "Cette archive PostgreSQL utilise une méthode de compression que DataBrief ne connaît pas. Exportez-la de nouveau avec --compress=gzip, ou en SQL texte."],
+    es: ["Las definiciones de tablas (columnas, tipos, claves primarias, únicas y foráneas, índices, comentarios), las vistas y las filas escritas como instrucciones INSERT o bloques COPY de PostgreSQL. Se reconocen volcados de PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite y ClickHouse. Nunca se ejecuta nada.",
+      "Un volcado creado por la herramienta de exportación de la propia base de datos (pg_dump, mysqldump, el comando .dump de SQLite...). Si solo importa la estructura, un volcado solo del esquema es el mejor archivo y encaja de forma natural con «No compartir los datos».",
+      "Solo se conservan las primeras 250 000 filas de cada tabla (los recuentos de filas siguen siendo exactos). Los procedimientos, funciones y desencadenadores no se leen y se indican como tales. Los datos guardados en otros archivos, como una exportación de DuckDB, no se leen.",
+      "Archivos de PostgreSQL creados con pg_dump en formato personalizado (-Fc) o tar (-Ft), comprimidos con gzip, lz4 o zstd, o sin comprimir: las mismas tablas, claves, comentarios y filas que el volcado SQL de texto. Archivos de PostgreSQL 9 a 17.",
+      "pg_dump -Fc, o pg_dump -Fc --schema-only cuando basta con la estructura. Un volcado SQL de texto (.sql) también sirve.",
+      "El formato de directorio (-Fd) es una carpeta y no se puede soltar como un solo archivo: usa -Fc, -Ft o un volcado SQL de texto. No se restaura ni se ejecuta nada, y los objetos grandes no se leen.",
+      "Este archivo de PostgreSQL está dañado o incompleto: no se pudo leer hasta el final.",
+      "Este archivo de PostgreSQL es demasiado antiguo para leerse (anterior a PostgreSQL 9.0). Expórtalo de nuevo con un pg_dump reciente o como volcado SQL de texto.",
+      "Este archivo de PostgreSQL usa un método de compresión que DataBrief no conoce. Expórtalo de nuevo con --compress=gzip o como volcado SQL de texto."],
+    de: ["Tabellendefinitionen (Spalten, Typen, Primär-, Unique- und Fremdschlüssel, Indizes, Kommentare), Sichten und die Zeilen, die als INSERT-Anweisungen oder PostgreSQL-COPY-Blöcke geschrieben sind. Dumps von PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite und ClickHouse werden erkannt. Es wird nie etwas ausgeführt.",
+      "Ein Dump, den das Export-Werkzeug der Datenbank selbst erzeugt hat (pg_dump, mysqldump, der SQLite-Befehl .dump ...). Wenn nur die Struktur zählt, ist ein Dump nur des Schemas die beste Datei – und er passt von Natur aus zu „Daten nicht teilen“.",
+      "Von jeder Tabelle werden nur die ersten 250.000 Zeilen behalten (die Zeilenzahlen bleiben exakt). Prozeduren, Funktionen und Trigger werden nicht gelesen und als solche aufgeführt. In anderen Dateien gespeicherte Daten, etwa bei einem DuckDB-Export, werden nicht gelesen.",
+      "PostgreSQL-Archive, die pg_dump im benutzerdefinierten (-Fc) oder tar-Format (-Ft) erzeugt hat, mit gzip, lz4 oder zstd komprimiert oder nicht: dieselben Tabellen, Schlüssel, Kommentare und Zeilen wie im SQL-Textdump. Archive von PostgreSQL 9 bis 17.",
+      "pg_dump -Fc oder pg_dump -Fc --schema-only, wenn die Struktur genügt. Ein SQL-Textdump (.sql) funktioniert ebenfalls.",
+      "Das Verzeichnisformat (-Fd) ist ein Ordner und kann nicht als einzelne Datei abgelegt werden: Verwenden Sie -Fc, -Ft oder einen SQL-Textdump. Es wird nichts wiederhergestellt oder ausgeführt, und große Objekte werden nicht gelesen.",
+      "Dieses PostgreSQL-Archiv ist beschädigt oder unvollständig: Es konnte nicht bis zum Ende gelesen werden.",
+      "Dieses PostgreSQL-Archiv ist zu alt, um gelesen zu werden (vor PostgreSQL 9.0). Exportieren Sie es erneut mit einem aktuellen pg_dump oder als SQL-Textdump.",
+      "Dieses PostgreSQL-Archiv verwendet ein Komprimierungsverfahren, das DataBrief nicht kennt. Exportieren Sie es erneut mit --compress=gzip oder als SQL-Textdump."],
+    it: ["Le definizioni delle tabelle (colonne, tipi, chiavi primarie, univoche ed esterne, indici, commenti), le viste e le righe scritte come istruzioni INSERT o blocchi COPY di PostgreSQL. Si riconoscono i dump di PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite e ClickHouse. Non viene mai eseguito nulla.",
+      "Un dump creato dallo strumento di esportazione del database stesso (pg_dump, mysqldump, il comando .dump di SQLite...). Se conta solo la struttura, un dump del solo schema è il file migliore e si adatta naturalmente a «Non condividere i dati».",
+      "Di ogni tabella si conservano solo le prime 250.000 righe (i conteggi delle righe restano esatti). Procedure, funzioni e trigger non vengono letti e sono indicati come tali. I dati memorizzati in altri file, come in un'esportazione DuckDB, non vengono letti.",
+      "Gli archivi PostgreSQL creati da pg_dump nel formato personalizzato (-Fc) o tar (-Ft), compressi con gzip, lz4 o zstd oppure no: le stesse tabelle, chiavi, commenti e righe del dump SQL di testo. Archivi da PostgreSQL 9 a 17.",
+      "pg_dump -Fc, oppure pg_dump -Fc --schema-only quando basta la struttura. Va bene anche un dump SQL di testo (.sql).",
+      "Il formato directory (-Fd) è una cartella e non si può trascinare come un solo file: usa -Fc, -Ft o un dump SQL di testo. Non viene ripristinato né eseguito nulla, e i large object non vengono letti.",
+      "Questo archivio PostgreSQL è danneggiato o incompleto: non è stato possibile leggerlo fino alla fine.",
+      "Questo archivio PostgreSQL è troppo vecchio per essere letto (precedente a PostgreSQL 9.0). Esportalo di nuovo con un pg_dump recente o come dump SQL di testo.",
+      "Questo archivio PostgreSQL usa un metodo di compressione che DataBrief non conosce. Esportalo di nuovo con --compress=gzip o come dump SQL di testo."],
+    pt: ["As definições das tabelas (colunas, tipos, chaves primárias, únicas e estrangeiras, índices, comentários), as visões e as linhas escritas como instruções INSERT ou blocos COPY do PostgreSQL. São reconhecidos dumps de PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite e ClickHouse. Nada é executado.",
+      "Um dump criado pela própria ferramenta de exportação do banco de dados (pg_dump, mysqldump, o comando .dump do SQLite...). Se só a estrutura importa, um dump apenas do esquema é o melhor arquivo e combina naturalmente com «Não compartilhar os dados».",
+      "Apenas as primeiras 250.000 linhas de cada tabela são mantidas (as contagens de linhas continuam exatas). Procedimentos, funções e gatilhos não são lidos e são indicados como tais. Dados armazenados em outros arquivos, como em uma exportação do DuckDB, não são lidos.",
+      "Arquivos do PostgreSQL criados pelo pg_dump no formato personalizado (-Fc) ou tar (-Ft), compactados com gzip, lz4 ou zstd ou não: as mesmas tabelas, chaves, comentários e linhas do dump SQL em texto. Arquivos do PostgreSQL 9 ao 17.",
+      "pg_dump -Fc, ou pg_dump -Fc --schema-only quando a estrutura basta. Um dump SQL em texto (.sql) também serve.",
+      "O formato de diretório (-Fd) é uma pasta e não pode ser solto como um único arquivo: use -Fc, -Ft ou um dump SQL em texto. Nada é restaurado nem executado, e objetos grandes não são lidos.",
+      "Este arquivo do PostgreSQL está danificado ou incompleto: não foi possível lê-lo até o fim.",
+      "Este arquivo do PostgreSQL é antigo demais para ser lido (anterior ao PostgreSQL 9.0). Exporte-o novamente com um pg_dump recente ou como dump SQL em texto.",
+      "Este arquivo do PostgreSQL usa um método de compressão que o DataBrief não conhece. Exporte-o novamente com --compress=gzip ou como dump SQL em texto."],
+    nl: ["De tabeldefinities (kolommen, typen, primaire, unieke en refererende sleutels, indexen, commentaar), de views en de rijen die als INSERT-instructies of PostgreSQL-COPY-blokken zijn geschreven. Dumps van PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite en ClickHouse worden herkend. Er wordt nooit iets uitgevoerd.",
+      "Een dump die is gemaakt met het eigen exportprogramma van de database (pg_dump, mysqldump, het SQLite-commando .dump...). Als alleen de structuur telt, is een dump van alleen het schema het beste bestand, en past die vanzelf bij ‘Gegevens niet delen’.",
+      "Van elke tabel worden alleen de eerste 250.000 rijen bewaard (de aantallen rijen blijven exact). Procedures, functies en triggers worden niet gelezen en als zodanig vermeld. Gegevens in andere bestanden, zoals bij een DuckDB-export, worden niet gelezen.",
+      "PostgreSQL-archieven die pg_dump heeft gemaakt in het aangepaste (-Fc) of tar-formaat (-Ft), met gzip, lz4 of zstd gecomprimeerd of niet: dezelfde tabellen, sleutels, commentaren en rijen als in de SQL-tekstdump. Archieven van PostgreSQL 9 tot 17.",
+      "pg_dump -Fc, of pg_dump -Fc --schema-only als de structuur genoeg is. Een SQL-tekstdump (.sql) werkt ook.",
+      "Het mapformaat (-Fd) is een map en kan niet als één bestand worden neergezet: gebruik -Fc, -Ft of een SQL-tekstdump. Er wordt niets hersteld of uitgevoerd, en grote objecten worden niet gelezen.",
+      "Dit PostgreSQL-archief is beschadigd of onvolledig: het kon niet tot het einde worden gelezen.",
+      "Dit PostgreSQL-archief is te oud om te lezen (van vóór PostgreSQL 9.0). Exporteer het opnieuw met een recente pg_dump of als SQL-tekstdump.",
+      "Dit PostgreSQL-archief gebruikt een compressiemethode die DataBrief niet kent. Exporteer het opnieuw met --compress=gzip of als SQL-tekstdump."],
+    pl: ["Definicje tabel (kolumny, typy, klucze główne, unikalne i obce, indeksy, komentarze), widoki oraz wiersze zapisane jako instrukcje INSERT lub bloki COPY PostgreSQL. Rozpoznawane są zrzuty z PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite i ClickHouse. Nic nigdy nie jest wykonywane.",
+      "Zrzut utworzony przez narzędzie eksportu samej bazy danych (pg_dump, mysqldump, polecenie .dump w SQLite...). Jeśli liczy się tylko struktura, najlepszym plikiem jest zrzut samego schematu — pasuje naturalnie do opcji „Nie udostępniaj danych”.",
+      "Z każdej tabeli zachowywane jest tylko pierwsze 250 000 wierszy (liczby wierszy pozostają dokładne). Procedury, funkcje i wyzwalacze nie są odczytywane i są wymienione jako takie. Dane przechowywane w innych plikach, jak w eksporcie DuckDB, nie są odczytywane.",
+      "Archiwa PostgreSQL utworzone przez pg_dump w formacie niestandardowym (-Fc) lub tar (-Ft), skompresowane gzip, lz4 lub zstd albo nie: te same tabele, klucze, komentarze i wiersze co w tekstowym zrzucie SQL. Archiwa z PostgreSQL 9–17.",
+      "pg_dump -Fc albo pg_dump -Fc --schema-only, gdy wystarczy struktura. Tekstowy zrzut SQL (.sql) też działa.",
+      "Format katalogowy (-Fd) to folder i nie można go upuścić jako jednego pliku: użyj -Fc, -Ft lub tekstowego zrzutu SQL. Nic nie jest przywracane ani wykonywane, a duże obiekty nie są odczytywane.",
+      "To archiwum PostgreSQL jest uszkodzone lub niekompletne: nie udało się go odczytać do końca.",
+      "To archiwum PostgreSQL jest zbyt stare, by je odczytać (sprzed PostgreSQL 9.0). Wyeksportuj je ponownie nowszym pg_dump albo jako tekstowy zrzut SQL.",
+      "To archiwum PostgreSQL używa metody kompresji, której DataBrief nie zna. Wyeksportuj je ponownie z opcją --compress=gzip albo jako tekstowy zrzut SQL."],
+    ru: ["Определения таблиц (столбцы, типы, первичные, уникальные и внешние ключи, индексы, комментарии), представления и строки, записанные как инструкции INSERT или блоки COPY PostgreSQL. Распознаются дампы PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite и ClickHouse. Ничего и никогда не выполняется.",
+      "Дамп, созданный собственным средством экспорта базы данных (pg_dump, mysqldump, команда .dump в SQLite...). Если важна только структура, лучший файл — дамп только схемы; он естественно подходит для режима «Не передавать данные».",
+      "Из каждой таблицы сохраняются только первые 250 000 строк (общее число строк остаётся точным). Процедуры, функции и триггеры не читаются и указываются как таковые. Данные, хранящиеся в других файлах, например при экспорте DuckDB, не читаются.",
+      "Архивы PostgreSQL, созданные pg_dump в специальном (-Fc) или tar-формате (-Ft), сжатые gzip, lz4 или zstd либо несжатые: те же таблицы, ключи, комментарии и строки, что и в текстовом SQL-дампе. Архивы PostgreSQL с 9 по 17 версию.",
+      "pg_dump -Fc или pg_dump -Fc --schema-only, если достаточно структуры. Текстовый SQL-дамп (.sql) тоже подходит.",
+      "Каталожный формат (-Fd) — это папка, её нельзя перетащить как один файл: используйте -Fc, -Ft или текстовый SQL-дамп. Ничего не восстанавливается и не выполняется, большие объекты не читаются.",
+      "Этот архив PostgreSQL повреждён или неполон: его не удалось прочитать до конца.",
+      "Этот архив PostgreSQL слишком старый для чтения (до PostgreSQL 9.0). Экспортируйте его заново свежей версией pg_dump или как текстовый SQL-дамп.",
+      "Этот архив PostgreSQL использует метод сжатия, который DataBrief не знает. Экспортируйте его заново с --compress=gzip или как текстовый SQL-дамп."],
+    tr: ["Tablo tanımları (sütunlar, türler, birincil, benzersiz ve yabancı anahtarlar, dizinler, yorumlar), görünümler ve INSERT ifadeleri ya da PostgreSQL COPY blokları olarak yazılmış satırlar. PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite ve ClickHouse dökümleri tanınır. Hiçbir şey asla çalıştırılmaz.",
+      "Veritabanının kendi dışa aktarma aracının (pg_dump, mysqldump, SQLite .dump komutu...) ürettiği bir döküm. Yalnızca yapı önemliyse, yalnızca şemayı içeren bir döküm en iyi dosyadır ve doğal olarak “Verileri paylaşma” seçeneğine uyar.",
+      "Her tablonun yalnızca ilk 250.000 satırı tutulur (satır sayıları kesin kalır). Prosedürler, işlevler ve tetikleyiciler okunmaz ve bu şekilde belirtilir. DuckDB dışa aktarımı gibi başka dosyalarda saklanan veriler okunmaz.",
+      "pg_dump'ın özel (-Fc) veya tar (-Ft) biçiminde oluşturduğu, gzip, lz4 veya zstd ile sıkıştırılmış ya da sıkıştırılmamış PostgreSQL arşivleri: düz SQL dökümüyle aynı tablolar, anahtarlar, yorumlar ve satırlar. PostgreSQL 9'dan 17'ye kadar arşivler.",
+      "pg_dump -Fc veya yapı yeterliyse pg_dump -Fc --schema-only. Düz SQL dökümü (.sql) de çalışır.",
+      "Dizin biçimi (-Fd) bir klasördür ve tek dosya olarak bırakılamaz: -Fc, -Ft veya düz SQL dökümü kullanın. Hiçbir şey geri yüklenmez veya çalıştırılmaz, büyük nesneler okunmaz.",
+      "Bu PostgreSQL arşivi hasarlı veya eksik: sonuna kadar okunamadı.",
+      "Bu PostgreSQL arşivi okunamayacak kadar eski (PostgreSQL 9.0 öncesi). Güncel bir pg_dump ile veya düz SQL dökümü olarak yeniden dışa aktarın.",
+      "Bu PostgreSQL arşivi, DataBrief'in bilmediği bir sıkıştırma yöntemi kullanıyor. --compress=gzip ile veya düz SQL dökümü olarak yeniden dışa aktarın."],
+    zh: ["表定义（列、类型、主键、唯一键和外键、索引、注释）、视图，以及以 INSERT 语句或 PostgreSQL COPY 块写出的行。可识别 PostgreSQL、MySQL、MariaDB、SQL Server、Oracle、SQLite 和 ClickHouse 的转储文件。绝不会执行任何内容。",
+      "由数据库自带导出工具生成的转储文件（pg_dump、mysqldump、SQLite 的 .dump 命令等）。如果只需要结构，仅含架构的转储是最佳文件，也天然适合“不共享数据”。",
+      "每个表只保留前 250,000 行（行数统计保持准确）。存储过程、函数和触发器不会被读取，并会如实列出。存放在其他文件中的数据（例如 DuckDB 导出）不会被读取。",
+      "pg_dump 以自定义格式（-Fc）或 tar 格式（-Ft）生成的 PostgreSQL 归档，无论是否用 gzip、lz4 或 zstd 压缩：表、键、注释和行与纯文本 SQL 转储相同。支持 PostgreSQL 9 到 17 的归档。",
+      "pg_dump -Fc；只需要结构时用 pg_dump -Fc --schema-only。纯文本 SQL 转储（.sql）同样可用。",
+      "目录格式（-Fd）是一个文件夹，无法作为单个文件拖入：请使用 -Fc、-Ft 或纯文本 SQL 转储。不会还原或执行任何内容，大对象也不会被读取。",
+      "此 PostgreSQL 归档已损坏或不完整：无法读取到末尾。",
+      "此 PostgreSQL 归档版本过旧，无法读取（早于 PostgreSQL 9.0）。请用较新的 pg_dump 重新导出，或导出为纯文本 SQL 转储。",
+      "此 PostgreSQL 归档使用了 DataBrief 不认识的压缩方式。请用 --compress=gzip 重新导出，或导出为纯文本 SQL 转储。"],
+    ja: ["テーブル定義（列、型、主キー・一意キー・外部キー、インデックス、コメント）、ビュー、そして INSERT 文や PostgreSQL の COPY ブロックとして書かれた行。PostgreSQL、MySQL、MariaDB、SQL Server、Oracle、SQLite、ClickHouse のダンプを認識します。何も実行されません。",
+      "データベース自身のエクスポートツール（pg_dump、mysqldump、SQLite の .dump コマンドなど）で作ったダンプ。構造だけが必要なら、スキーマのみのダンプが最適で、「データを共有しない」にも自然に合います。",
+      "各テーブルの最初の 250,000 行だけを保持します（行数は正確なままです）。プロシージャ、関数、トリガーは読み取らず、その旨を記載します。DuckDB のエクスポートのように他のファイルに保存されたデータは読み取りません。",
+      "pg_dump がカスタム形式（-Fc）または tar 形式（-Ft）で作成した PostgreSQL アーカイブ（gzip、lz4、zstd で圧縮されていても、いなくても）：テキストの SQL ダンプと同じテーブル、キー、コメント、行。PostgreSQL 9〜17 のアーカイブに対応。",
+      "pg_dump -Fc。構造だけで足りるなら pg_dump -Fc --schema-only。テキストの SQL ダンプ（.sql）でも構いません。",
+      "ディレクトリ形式（-Fd）はフォルダーなので、1 つのファイルとしてドロップできません。-Fc、-Ft、またはテキストの SQL ダンプを使ってください。復元や実行は一切行わず、ラージオブジェクトは読み取りません。",
+      "この PostgreSQL アーカイブは破損しているか不完全で、最後まで読み取れませんでした。",
+      "この PostgreSQL アーカイブは古すぎて読み取れません（PostgreSQL 9.0 より前）。新しい pg_dump で、またはテキストの SQL ダンプとして、もう一度エクスポートしてください。",
+      "この PostgreSQL アーカイブは DataBrief が知らない圧縮方式を使っています。--compress=gzip で、またはテキストの SQL ダンプとして、もう一度エクスポートしてください。"],
+    ko: ["테이블 정의(열, 형식, 기본 키·고유 키·외래 키, 인덱스, 주석), 뷰, 그리고 INSERT 문이나 PostgreSQL COPY 블록으로 작성된 행. PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite, ClickHouse 덤프를 인식합니다. 아무것도 실행하지 않습니다.",
+      "데이터베이스 자체의 내보내기 도구(pg_dump, mysqldump, SQLite의 .dump 명령 등)로 만든 덤프. 구조만 필요하다면 스키마만 담은 덤프가 가장 좋은 파일이며, ‘데이터 공유 안 함’과도 자연스럽게 어울립니다.",
+      "각 테이블의 처음 250,000행만 보관합니다(행 수는 정확하게 유지됩니다). 프로시저, 함수, 트리거는 읽지 않으며 그렇게 표시됩니다. DuckDB 내보내기처럼 다른 파일에 저장된 데이터는 읽지 않습니다.",
+      "pg_dump가 사용자 지정(-Fc) 또는 tar(-Ft) 형식으로 만든 PostgreSQL 아카이브(gzip, lz4, zstd로 압축되었거나 아니거나): 텍스트 SQL 덤프와 같은 테이블, 키, 주석, 행. PostgreSQL 9~17 아카이브를 지원합니다.",
+      "pg_dump -Fc, 구조만 필요하면 pg_dump -Fc --schema-only. 텍스트 SQL 덤프(.sql)도 됩니다.",
+      "디렉터리 형식(-Fd)은 폴더라서 하나의 파일로 끌어다 놓을 수 없습니다. -Fc, -Ft 또는 텍스트 SQL 덤프를 사용하세요. 복원이나 실행은 하지 않으며 라지 오브젝트는 읽지 않습니다.",
+      "이 PostgreSQL 아카이브는 손상되었거나 불완전하여 끝까지 읽을 수 없었습니다.",
+      "이 PostgreSQL 아카이브는 너무 오래되어 읽을 수 없습니다(PostgreSQL 9.0 이전). 최신 pg_dump로 다시 내보내거나 텍스트 SQL 덤프로 내보내세요.",
+      "이 PostgreSQL 아카이브는 DataBrief가 모르는 압축 방식을 사용합니다. --compress=gzip으로 다시 내보내거나 텍스트 SQL 덤프로 내보내세요."],
+    hi: ["तालिका की परिभाषाएँ (स्तंभ, प्रकार, प्राथमिक, अद्वितीय और विदेशी कुंजियाँ, इंडेक्स, टिप्पणियाँ), व्यू, और INSERT स्टेटमेंट या PostgreSQL के COPY ब्लॉक के रूप में लिखी पंक्तियाँ। PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite और ClickHouse के डंप पहचाने जाते हैं। कभी कुछ भी चलाया नहीं जाता।",
+      "डेटाबेस के अपने एक्सपोर्ट टूल (pg_dump, mysqldump, SQLite की .dump कमांड...) से बना डंप। अगर केवल संरचना मायने रखती है, तो केवल स्कीमा वाला डंप सबसे अच्छी फ़ाइल है और यह स्वाभाविक रूप से “डेटा साझा न करें” के अनुकूल है।",
+      "हर तालिका की केवल पहली 250,000 पंक्तियाँ रखी जाती हैं (पंक्तियों की गिनती सटीक रहती है)। प्रक्रियाएँ (प्रोसीजर), फ़ंक्शन और ट्रिगर नहीं पढ़े जाते और उन्हें वैसा ही सूचीबद्ध किया जाता है। DuckDB एक्सपोर्ट जैसी अन्य फ़ाइलों में रखा डेटा नहीं पढ़ा जाता।",
+      "pg_dump द्वारा कस्टम (-Fc) या tar (-Ft) फ़ॉर्मैट में बनाए गए PostgreSQL आर्काइव, चाहे gzip, lz4 या zstd से संपीड़ित हों या नहीं: सादे SQL डंप जैसी ही तालिकाएँ, कुंजियाँ, टिप्पणियाँ और पंक्तियाँ। PostgreSQL 9 से 17 तक के आर्काइव।",
+      "pg_dump -Fc, या जब संरचना काफ़ी हो तब pg_dump -Fc --schema-only। सादा SQL डंप (.sql) भी चलता है।",
+      "डायरेक्टरी फ़ॉर्मैट (-Fd) एक फ़ोल्डर है और उसे एक फ़ाइल के रूप में छोड़ा नहीं जा सकता: -Fc, -Ft या सादा SQL डंप इस्तेमाल करें। कुछ भी बहाल या निष्पादित नहीं किया जाता, और बड़े ऑब्जेक्ट नहीं पढ़े जाते।",
+      "यह PostgreSQL आर्काइव क्षतिग्रस्त या अधूरा है: इसे अंत तक नहीं पढ़ा जा सका।",
+      "यह PostgreSQL आर्काइव पढ़ने के लिए बहुत पुराना है (PostgreSQL 9.0 से पहले का)। इसे नए pg_dump से या सादे SQL डंप के रूप में फिर से एक्सपोर्ट करें।",
+      "यह PostgreSQL आर्काइव ऐसी संपीड़न विधि इस्तेमाल करता है जिसे DataBrief नहीं जानता। इसे --compress=gzip के साथ या सादे SQL डंप के रूप में फिर से एक्सपोर्ट करें।"],
+    ar: ["تعريفات الجداول (الأعمدة، الأنواع، المفاتيح الأساسية والفريدة والأجنبية، الفهارس، التعليقات)، وطرق العرض، والصفوف المكتوبة كتعليمات INSERT أو كتل COPY في PostgreSQL. يتعرّف على نُسخ التفريغ من PostgreSQL وMySQL وMariaDB وSQL Server وOracle وSQLite وClickHouse. لا يُنفَّذ أي شيء أبدًا.",
+      "ملف تفريغ أنشأته أداة التصدير الخاصة بقاعدة البيانات نفسها (pg_dump أو mysqldump أو أمر ‎.dump في SQLite...). إذا كانت البنية وحدها تكفي فأفضل ملف هو تفريغ المخطط فقط، وهو يناسب «عدم مشاركة البيانات» بطبيعته.",
+      "يُحتفَظ فقط بأول 250,000 صف من كل جدول (وتبقى أعداد الصفوف دقيقة). لا تُقرأ الإجراءات والدوال والمشغّلات ويُشار إليها على هذا النحو. ولا تُقرأ البيانات المخزّنة في ملفات أخرى مثل تصدير DuckDB.",
+      "أرشيفات PostgreSQL التي ينشئها pg_dump بالصيغة المخصّصة (‎-Fc) أو tar (‎-Ft)، مضغوطة بـ gzip أو lz4 أو zstd أو غير مضغوطة: الجداول والمفاتيح والتعليقات والصفوف نفسها كما في تفريغ SQL النصي. أرشيفات PostgreSQL من 9 إلى 17.",
+      "‎pg_dump -Fc، أو ‎pg_dump -Fc --schema-only عندما تكفي البنية. كما يصلح تفريغ SQL النصي (‎.sql).",
+      "صيغة المجلد (‎-Fd) هي مجلد ولا يمكن إفلاتها كملف واحد: استخدم ‎-Fc أو ‎-Ft أو تفريغ SQL نصيًا. لا يُستعاد ولا يُنفَّذ أي شيء، ولا تُقرأ الكائنات الكبيرة.",
+      "أرشيف PostgreSQL هذا تالف أو غير مكتمل: تعذّرت قراءته حتى النهاية.",
+      "أرشيف PostgreSQL هذا قديم جدًا ولا يمكن قراءته (قبل PostgreSQL 9.0). صدّره من جديد باستخدام pg_dump حديث أو كتفريغ SQL نصي.",
+      "يستخدم أرشيف PostgreSQL هذا طريقة ضغط لا يعرفها DataBrief. صدّره من جديد باستخدام ‎--compress=gzip أو كتفريغ SQL نصي."],
+  };
+  for (const [lang, vals] of Object.entries(P)) PK.forEach((k, i) => { window.DB_I18N.prompt[lang][k] = vals[i]; });
+  for (const [lang, vals] of Object.entries(U)) UK.forEach((k, i) => { window.DB_I18N.ui[lang][k] = vals[i]; });
+})();
+</script>
 <script>/* DataBrief - shared helpers. GPL-3.0-or-later. */
 'use strict';
 (function () {
@@ -3724,7 +3904,7 @@ window.DB_I18N = {
       duplicateRows = n - seen.size;
     }
     return {
-      name: sec.name, rows: n, columns, duplicateRows,
+      name: sec.name, rows: n, partial: (sec.totalRows || n) > n ? sec.totalRows : null, columns, duplicateRows,
       constantColumns: columns.filter((c) => c.distinct === 1 && c.missing === 0).map((c) => c.name),
     };
   }
@@ -3753,7 +3933,7 @@ window.DB_I18N = {
   // File metadata that is free text written by people (it may hold anything): shown only when the user allows it.
   const FREE_TEXT_META = new Set(['mFileLabel', 'mDocs', 'mEmbedded']);
   // File metadata made of names: hidden when names are replaced. Embedded pandas / Spark metadata lists the columns.
-  const NAME_META = new Set(['mViews', 'mSkipped', 'mNames', 'mRoot', 'mWeight', 'mEmbedded']);
+  const NAME_META = new Set(['mViews', 'mSkipped', 'mNames', 'mRoot', 'mWeight', 'mEmbedded', 'mExternal']);
   const copy = (v) => (v == null ? v : JSON.parse(JSON.stringify(v)));
   const baseOf = (name) => (name || 'data').replace(/\.[^.]+$/, '') || 'data';
   // Excel defined names: keep only references to cells ("Sheet!$A$1:$B$9"), not constants (="Smith" is a value).
@@ -3804,7 +3984,7 @@ window.DB_I18N = {
       });
       const si = s.sheetInfo;
       return {
-        name: s.name, rows: s.rows.length, hidden: !!s.hidden, caption: s.caption || '', columns,
+        name: s.name, rows: s.totalRows || s.rows.length, hidden: !!s.hidden, caption: s.caption || '', description: s.description || '', columns,
         fromFile: s.name === fileBase,                                   // a section named after the file
         nameIsText: ['caption', 'label', 'summary'].includes(s.nameFrom), // an HTML table named by its caption
         headerWeak: !!s.headerWeak,                                      // the column names may be the first record
@@ -3826,7 +4006,7 @@ window.DB_I18N = {
       hadInferred: (doc.relationships || []).some((r) => r.source === 'inferred'),
       hasLabels: sections.some((s) => s.caption || s.columns.some((c) => c.meta.label || c.meta.values)),
       hasSql: views.length > 0 || sections.some((s) => s.constraints && s.constraints.ddl),
-      hasFreeText: sections.some((s) => s.comments.length) || fileMeta.some((m) => m.freeText),
+      hasFreeText: sections.some((s) => s.comments.length || s.description) || fileMeta.some((m) => m.freeText),
     };
   };
 
@@ -4323,6 +4503,1503 @@ window.DB_I18N = {
   };
 })();
 </script>
+<script>/* DataBrief - SQL dump reader (.sql). GPL-3.0-or-later.
+ *
+ * Reads the TEXT of a dump. It never executes anything: no statement is run, no function is called, no file or URL is
+ * opened. Values written as function calls stay as their text (nextval(...), now(), pg_sleep(10)); only the pure
+ * literal forms that dump tools use to write a string are decoded (unistr('\u000a'), char(10), replace(..), ||).
+ *
+ *   DB.parseSqlDump(text | [chunks], opts) -> { sections, views, fileMeta, notes, info }
+ *   new DB.SqlDumpReader(opts): .push(textChunk) ... .end() -> same result (streaming: the text is never held whole)
+ *
+ * sections[]: { name, columns: [{ name, meta: { sqlType, key, notNull, generated, label, values } }], rows: [[string]],
+ *               constraints: { pk, fks: [{ table, from, to, onDelete, onUpdate }], unique, indexes, ddl },
+ *               description, rowsTotal, externalData }   (same shape as the SQLite reader: relationships.js works as is)
+ * info: { dialect, statements, tables, views, rows, ignored: { kind: n }, errors: { kind: n }, externalFiles, schemas,
+ *         truncated, unterminated }   -- counts and names only, never a value of the data.
+ *
+ * Dialects (detected from the start of the file): postgres, mysql (MySQL, MariaDB), mssql, oracle, sqlite, clickhouse,
+ * generic (DuckDB exports, hand-written SQL). The dialect only changes how quotes, comments and statement ends are read.
+ *
+ * Tested on real dumps (tests/sql-fixtures, tests/test_sql_parser.cjs). Known limits, counted in info.ignored, never guessed:
+ *   - PostgreSQL custom / tar archives are binary: read by pgarchive.js, which gives this reader their SQL text.
+ *     COPY ... (FORMAT binary) is not read.
+ *   - INSERT ... SELECT and CREATE TABLE ... AS SELECT have no values / columns to read.
+ *   - DuckDB EXPORT DATABASE and COPY ... FROM 'file': the data is in other files, only their names are kept.
+ *   - Not handled: Oracle q'[...]' strings, PostgreSQL U&'...' UESCAPE, MySQL ANSI_QUOTES dumps ("x" read as text).
+ *   - SQL Server batches without ';' are cut before INSERT, session SET options, CREATE/ALTER TABLE and INDEX only.
+ * Notes for the "Do not share data" mode: table comments (description), column comments (meta.label), enum labels
+ * (meta.values), definitions with literals (constraints.ddl, views) and external file names are written by people. */
+'use strict';
+(function () {
+  const DB = window.DB;
+
+  /* ---------------------------------------------------------------- dialect ---------- */
+  const DIALECT_NAMES = { postgres: 'PostgreSQL', mysql: 'MySQL / MariaDB', mssql: 'SQL Server', oracle: 'Oracle', sqlite: 'SQLite', clickhouse: 'ClickHouse', generic: 'SQL' };
+  const SIGNS = [
+    ['postgres', /PostgreSQL database dump|-- Dumped (from|by) (database version|pg_dump)/i, 6], ['postgres', /\bFROM stdin;/i, 3],
+    ['postgres', /^SET (standard_conforming_strings|client_encoding|search_path|default_tablespace)\b/mi, 2], ['postgres', /\bpg_catalog\./, 3],
+    ['postgres', /^\\(connect|restrict)\b/m, 3],
+    ['mysql', /^-- (MySQL|MariaDB) dump/mi, 6], ['mysql', /\/\*M?!\d{5}/, 3], ['mysql', /\bENGINE\s*=\s*(InnoDB|MyISAM|Aria|MEMORY|CSV|ARCHIVE)\b/i, 4],
+    ['mysql', /^LOCK TABLES `/m, 3], ['mysql', /\bAUTO_INCREMENT\b/i, 1],
+    ['mssql', /^\s*GO\s*$/mi, 3], ['mssql', /\[dbo\]\./i, 4], ['mssql', /\bSET ANSI_NULLS (ON|OFF)\b/i, 3], ['mssql', /\bIDENTITY\s*\(\s*\d/i, 2],
+    ['mssql', /\bN?VARCHAR\s*\(\s*MAX\s*\)/i, 2],
+    ['oracle', /\bVARCHAR2\b/i, 4], ['oracle', /\bNUMBER\s*\(\s*\d/i, 2], ['oracle', /\bALTER SESSION SET\b/i, 2], ['oracle', /^\s*\/\s*$/m, 1],
+    ['sqlite', /^PRAGMA foreign_keys\s*=/mi, 4], ['sqlite', /\bsqlite_sequence\b/, 3], ['sqlite', /\bunistr\(/, 1], ['sqlite', /^BEGIN TRANSACTION;/mi, 1],
+    ['clickhouse', /\bENGINE\s*=\s*(Replicated)?(Replacing|Summing|Aggregating|Collapsing|VersionedCollapsing|Graphite)?MergeTree\b/, 6],
+    ['clickhouse', /\bENGINE\s*=\s*(Log|TinyLog|StripeLog|Memory|Null|Distributed)\b/, 4],
+    ['clickhouse', /\b(U?Int(8|16|32|64|128|256)|Float(32|64)|LowCardinality|Nullable|DateTime64)\b/, 2],
+  ];
+  function detectDialect(head) {
+    const score = {};
+    for (const [d, re, w] of SIGNS) if (re.test(head)) score[d] = (score[d] || 0) + w;
+    let best = 'generic', top = 0;
+    for (const [d, v] of Object.entries(score)) if (v > top) { best = d; top = v; }
+    return best;
+  }
+  // How the text is read in each dialect.
+  function lexFor(d) {
+    return {
+      backslash: d === 'mysql' || d === 'clickhouse',   // \' \n ... inside every string
+      dollar: d === 'postgres' || d === 'generic',      // $tag$ ... $tag$ strings
+      nested: d === 'postgres',                          // /* /* */ */
+      hash: d === 'mysql',                               // # comment
+      mysqlDash: d === 'mysql',                          // "--" starts a comment only when followed by a space
+      brackets: d === 'mssql',                           // [identifier]
+      go: d === 'mssql',                                 // GO on its own line ends a batch
+      slash: d === 'oracle',                             // / on its own line ends a block
+      routines: d === 'mssql' || d === 'oracle',         // ';' inside procedure bodies does not end the statement
+    };
+  }
+
+  /* ---------------------------------------------------------------- statement splitter (streaming) ---------- */
+  // Splits the text into statements, chunk by chunk, keeping its state between chunks: inside a string, a comment, a
+  // dollar quote, a COPY ... FROM stdin data block. The result does not depend on where the chunks are cut.
+  const LOOK = 256; // characters kept back at the end of a chunk so that every look-ahead is complete
+  const ROUTINE_HEAD = /^\s*(?:CREATE|ALTER)\s+(?:OR\s+(?:REPLACE|ALTER)\s+)?(?:(?:NON)?EDITIONABLE\s+)?(?:PROCEDURE|PROC|FUNCTION|PACKAGE|TRIGGER|TYPE\s+BODY)\b|^\s*(?:DECLARE|BEGIN)\b/i;
+  const esc = (s) => s.replace(/[\\^\]\-[]/g, '\\$&');
+
+  class Splitter {
+    constructor(lex, sink) {
+      this.lex = lex; this.sink = sink;
+      this.buf = ''; this.i = 0; this.start = 0;
+      this.mode = 'n';          // n normal, q quoted, l line comment, b block comment, d dollar quote
+      this.q = ''; this.qbs = false; this.depth = 0; this.tag = '';
+      this.exec = 0;            // open MySQL executable comments /*!40101 ... */
+      this.has = false;         // the current statement has code (not only spaces and comments)
+      this.lineStart = true;
+      this.delim = ';';
+      this.copy = 0;            // 0 no, 1 skip the rest of the COPY line, 2 data lines
+      this.noStd = false;       // PostgreSQL standard_conforming_strings = off: backslashes in every string
+      this.buildRe();
+    }
+    buildRe() {
+      const set = new Set(["'", '"', '`', '-', '/', '\n', '\\', '*']);
+      if (this.lex.hash) set.add('#');
+      if (this.lex.dollar) set.add('$');
+      if (this.lex.brackets) set.add('[');
+      set.add(this.delim[0]);
+      this.reN = new RegExp('[' + Array.from(set).map(esc).join('') + ']', 'g');
+    }
+    push(chunk, final) {
+      const keep = this.copy ? this.i : this.start;
+      if (keep > 0) { this.buf = this.buf.slice(keep); this.i -= keep; this.start = this.copy ? 0 : this.start - keep; }
+      this.buf += chunk;
+      this.scan(!!final);
+    }
+    end() {
+      this.scan(true);
+      if (this.copy === 2) this.sink.copyEnd(false);
+      if (this.has) this.emit(this.buf.length, this.buf.length);
+      return { unterminated: this.mode === 'q' || this.mode === 'd' || this.mode === 'b' };
+    }
+    emit(endAt, next) {
+      const text = this.buf.slice(this.start, endAt);
+      const had = this.has;
+      this.start = next; this.has = false; this.exec = 0;
+      if (!had) return;
+      const r = this.sink.statement(text) || {};
+      if (r.copy) this.copy = 1;
+      if (r.noStd != null) this.noStd = r.noStd;
+      if (r.backslash != null) this.lex.backslash = r.backslash;
+    }
+    // A line at the start of which something special may stand: psql meta-command, DELIMITER, GO, a lone "/".
+    lineCheck(i, final) {
+      const buf = this.buf;
+      let nl = buf.indexOf('\n', i);
+      if (nl < 0 && !final && buf.length - i < LOOK) return -2; // wait for the rest of the line
+      if (nl < 0) nl = buf.length;
+      if (nl - i > 200) return -1;                              // special lines are short
+      const line = buf.slice(i, nl).replace(/\r$/, '');
+      const next = Math.min(nl + 1, buf.length);
+      if (!this.has && line.charAt(0) === '\\') {               // \connect, \restrict, \unrestrict ... (psql)
+        this.sink.ignore('psql');
+        this.start = next; this.lineStart = true; return next;
+      }
+      let m;
+      if (!this.has && (m = /^\s*DELIMITER\s+(\S+)\s*$/i.exec(line))) {
+        this.delim = m[1]; this.buildRe();
+        this.start = next; this.lineStart = true; return next;
+      }
+      if ((this.lex.go && /^\s*GO(\s+\d+)?\s*$/i.test(line)) || (this.lex.slash && /^\s*\/\s*$/.test(line))) {
+        this.emit(i, next); this.lineStart = true; return next;
+      }
+      return -1;
+    }
+    scan(final) {
+      const buf = this.buf, lex = this.lex;
+      const limit = final ? buf.length : buf.length - LOOK;
+      let i = this.i;
+      outer:
+      while (i < limit || (this.copy === 2 && i < buf.length)) {
+        /* COPY ... FROM stdin: one record per line, until a line "\." */
+        if (this.copy) {
+          const nl = buf.indexOf('\n', i);
+          if (nl < 0 && !final) break;
+          const end = nl < 0 ? buf.length : nl;
+          if (this.copy === 1) { this.copy = 2; i = end + 1; continue; }
+          const line = buf.slice(i, end).replace(/\r$/, '');
+          i = end + 1;
+          if (line === '\\.') { this.copy = 0; this.sink.copyEnd(true); this.start = i; this.lineStart = true; continue; }
+          this.sink.copyRow(line);
+          continue;
+        }
+        switch (this.mode) {
+          case 'q': {
+            const close = this.q === '[' ? ']' : this.q;
+            for (;;) {
+              const k = buf.indexOf(close, i);
+              const b = this.qbs ? buf.indexOf('\\', i) : -1;
+              if (b >= 0 && (k < 0 || b < k)) {
+                if (b + 1 >= buf.length && !final) { this.i = b; return; }
+                i = b + 2; continue;
+              }
+              if (k < 0) { i = buf.length; if (!final) { this.i = i; return; } break outer; }
+              if (k + 1 >= buf.length && !final) { this.i = k; return; }  // a doubled quote cannot be told yet
+              if (buf[k + 1] === close) { i = k + 2; continue; }
+              i = k + 1; this.mode = 'n'; break;
+            }
+            continue;
+          }
+          case 'l': {
+            const k = buf.indexOf('\n', i);
+            if (k < 0) { i = buf.length; if (!final) { this.i = i; return; } break outer; }
+            i = k; this.mode = 'n';
+            continue;
+          }
+          case 'b': {
+            for (;;) {
+              const k = buf.indexOf('*/', i);
+              const o = lex.nested ? buf.indexOf('/*', i) : -1;
+              if (o >= 0 && (k < 0 || o < k)) { this.depth++; i = o + 2; continue; }
+              if (k < 0) { i = Math.max(i, buf.length - 1); if (!final) { this.i = i; return; } i = buf.length; break outer; }
+              i = k + 2;
+              if (--this.depth === 0) { this.mode = 'n'; break; }
+            }
+            continue;
+          }
+          case 'd': {
+            const k = buf.indexOf(this.tag, i);
+            if (k < 0) { i = Math.max(i, buf.length - this.tag.length); if (!final) { this.i = i; return; } i = buf.length; break outer; }
+            i = k + this.tag.length; this.mode = 'n';
+            continue;
+          }
+          default: break;
+        }
+        /* normal code */
+        if (this.lineStart) {
+          this.lineStart = false;
+          const r = this.lineCheck(i, final);
+          if (r === -2) { this.lineStart = true; break; }
+          if (r >= 0) { i = r; continue; }
+        }
+        this.reN.lastIndex = i;
+        const m = this.reN.exec(buf);
+        const k = m ? m.index : buf.length;
+        if (!this.has && k > i && /\S/.test(buf.slice(i, k))) this.has = true;
+        if (k >= limit) { i = Math.max(i, limit); if (!m && final) i = buf.length; break; }
+        const c = buf[k];
+        i = k;
+        if (c === '\n') { this.lineStart = true; i = k + 1; continue; }
+        if (buf.startsWith(this.delim, k)) {
+          if (lex.routines && this.delim === ';' && ROUTINE_HEAD.test(stripComments(buf.slice(this.start, Math.min(k, this.start + 400))))) {
+            this.has = true; i = k + 1; continue;              // a ';' inside a procedure body
+          }
+          this.emit(k, k + this.delim.length);
+          i = k + this.delim.length;
+          continue;
+        }
+        switch (c) {
+          case "'": {
+            const p = buf[k - 1], pp = buf[k - 2];
+            const eStr = (p === 'E' || p === 'e') && !/[\w$]/.test(pp || '');
+            this.mode = 'q'; this.q = "'"; this.qbs = lex.backslash || this.noStd || eStr; this.has = true; i = k + 1; break;
+          }
+          case '"': this.mode = 'q'; this.q = '"'; this.qbs = lex.backslash; this.has = true; i = k + 1; break;
+          case '`': this.mode = 'q'; this.q = '`'; this.qbs = false; this.has = true; i = k + 1; break;
+          case '[': this.mode = 'q'; this.q = '['; this.qbs = false; this.has = true; i = k + 1; break;
+          case '-':
+            if (buf[k + 1] === '-' && (!lex.mysqlDash || /\s/.test(buf[k + 2] || '\n'))) { this.mode = 'l'; i = k + 2; }
+            else { this.has = true; i = k + 1; }
+            break;
+          case '#': this.mode = 'l'; i = k + 1; break;
+          case '/':
+            if (buf[k + 1] === '*') {
+              const x = /\/\*M?!\d*/y; x.lastIndex = k;
+              const mm = x.exec(buf);
+              if (mm && buf[k + mm[0].length] !== '\\') { this.exec++; i = k + mm[0].length; break; }
+              this.mode = 'b'; this.depth = 1; i = k + 2;
+            } else { this.has = true; i = k + 1; }
+            break;
+          case '*':
+            if (this.exec > 0 && buf[k + 1] === '/') { this.exec--; i = k + 2; } else { this.has = true; i = k + 1; }
+            break;
+          case '$': {
+            const x = /\$(?:[A-Za-z_\u0080-￿][\w\u0080-￿]*)?\$/y; x.lastIndex = k;
+            const mm = x.exec(buf);
+            if (mm && !/[\w$]/.test(buf[k - 1] || '')) { this.mode = 'd'; this.tag = mm[0]; i = k + mm[0].length; }
+            else i = k + 1;
+            this.has = true;
+            break;
+          }
+          case '\\':
+            if (!this.has) {                                     // psql meta-command after a ';' on the same line
+              const nl = buf.indexOf('\n', k);
+              if (nl < 0 && !final) { i = k; break outer; }
+              this.sink.ignore('psql');
+              i = nl < 0 ? buf.length : nl + 1; this.start = i; this.lineStart = true;
+            } else { this.has = true; i = k + 1; }
+            break;
+          default: this.has = true; i = k + 1;
+        }
+      }
+      this.i = i;
+    }
+  }
+  function stripComments(s) { return s.replace(/--[^\n]*|\/\*[\s\S]*?\*\//g, ' '); }
+  // ClickHouse data-skipping index: INDEX name expression TYPE kind GRANULARITY n
+  function st2HasType(c, b) { for (let k = c.i + 2; k < b; k++) { const x = c.t[k]; if (x.k === 'w' && x.u === 'TYPE') return true; } return false; }
+
+  /* ---------------------------------------------------------------- tokenizer (one statement) ---------- */
+  // Token kinds: w word, i quoted identifier (`x` [x]), d double-quoted (identifier, or a string in MySQL), s string,
+  // n number, x binary literal, p punctuation, o operator.
+  const OPS = ['::', '||', '->>', '->', '<=', '>=', '<>', '!=', ':=', '=>', '<<', '>>', '&&', '#>>', '#>'];
+  const CHARSET_INTRO = /^_(utf8mb4|utf8mb3|utf8|latin1|latin2|binary|ascii|ucs2|utf16|utf16le|utf32|cp1250|cp1251|cp1252|cp850|gbk|big5|sjis|euckr|ujis|koi8r|greek|hebrew|tis620|armscii8|geostd8|swe7|dec8|hp8|keybcs2|macce|macroman|cp852|cp866|cp932|eucjpms|gb2312|gb18030)$/i;
+
+  function escapeAt(t, j) {
+    const c = t[j + 1];
+    if (c === undefined) return { v: '\\', e: j + 1 };
+    switch (c) {
+      case 'n': return { v: '\n', e: j + 2 };
+      case 'r': return { v: '\r', e: j + 2 };
+      case 't': return { v: '\t', e: j + 2 };
+      case 'b': return { v: '\b', e: j + 2 };
+      case 'f': return { v: '\f', e: j + 2 };
+      case 'v': return { v: '\v', e: j + 2 };
+      case 'Z': return { v: '\x1a', e: j + 2 };
+      case '%': case '_': return { v: '\\' + c, e: j + 2 }; // MySQL keeps the backslash before % and _
+      case 'x': { const m = /^[0-9a-fA-F]{1,2}/.exec(t.slice(j + 2, j + 4)); if (m) return { v: String.fromCharCode(parseInt(m[0], 16)), e: j + 2 + m[0].length }; break; }
+      case 'u': { const m = /^[0-9a-fA-F]{4}/.exec(t.slice(j + 2, j + 6)); if (m) return { v: String.fromCharCode(parseInt(m[0], 16)), e: j + 6 }; break; }
+      case 'U': { const m = /^[0-9a-fA-F]{8}/.exec(t.slice(j + 2, j + 10)); if (m) return { v: String.fromCodePoint(parseInt(m[0], 16)), e: j + 10 }; break; }
+      default: {
+        const m = /^[0-7]{1,3}/.exec(t.slice(j + 1, j + 4));
+        if (m) return { v: String.fromCharCode(parseInt(m[0], 8)), e: j + 1 + m[0].length };
+      }
+    }
+    return { v: c, e: j + 2 };
+  }
+  function readQuoted(t, i, close, bs) {
+    let out = '', from = i + 1, j = i + 1;
+    for (;;) {
+      const k = t.indexOf(close, j);
+      const b = bs ? t.indexOf('\\', j) : -1;
+      if (b >= 0 && (k < 0 || b < k)) { out += t.slice(from, b); const r = escapeAt(t, b); out += r.v; j = from = r.e; continue; }
+      if (k < 0) return { v: out + t.slice(from), e: t.length, open: true };
+      if (t[k + 1] === close) { out += t.slice(from, k) + close; j = from = k + 2; continue; }
+      return { v: out + t.slice(from, k), e: k + 1 };
+    }
+  }
+  function blobText(hex) { return '[binary ' + Math.floor(hex.replace(/\s/g, '').length / 2) + ' bytes]'; }
+
+  function tokenize(text, lex, noStd) {
+    const toks = [], hidden = [];
+    const n = text.length;
+    let i = 0, exec = 0, open = false;
+    while (i < n) {
+      const c = text[i];
+      if (c === ' ' || c === '\n' || c === '\t' || c === '\r' || c === '\f' || c === '\v' || c === ' ' || c === '﻿') { i++; continue; }
+      if (c === '-' && text[i + 1] === '-' && (!lex.mysqlDash || i + 2 >= n || /\s/.test(text[i + 2]))) { const k = text.indexOf('\n', i); i = k < 0 ? n : k; continue; }
+      if (c === '#' && lex.hash) { const k = text.indexOf('\n', i); i = k < 0 ? n : k; continue; }
+      if (c === '/' && text[i + 1] === '*') {
+        const x = /\/\*M?!\d*/y; x.lastIndex = i;
+        const mm = x.exec(text);
+        if (mm && text[i + mm[0].length] !== '\\') { hidden.push([i, i + mm[0].length]); exec++; i += mm[0].length; continue; }
+        let depth = 1, j = i + 2;
+        while (j < n && depth) {
+          if (text[j] === '*' && text[j + 1] === '/') { depth--; j += 2; } else if (lex.nested && text[j] === '/' && text[j + 1] === '*') { depth++; j += 2; } else j++;
+        }
+        i = j; continue;
+      }
+      if (c === '*' && text[i + 1] === '/' && exec > 0) { hidden.push([i, i + 2]); exec--; i += 2; continue; }
+      const s = i;
+      if (c === "'") { const r = readQuoted(text, i, "'", lex.backslash || noStd); toks.push({ k: 's', v: r.v, s, e: r.e }); open = open || !!r.open; i = r.e; continue; }
+      if (c === '"') { const r = readQuoted(text, i, '"', lex.backslash); toks.push({ k: 'd', v: r.v, s, e: r.e }); open = open || !!r.open; i = r.e; continue; }
+      if (c === '`') { const r = readQuoted(text, i, '`', false); toks.push({ k: 'i', v: r.v, s, e: r.e }); i = r.e; continue; }
+      if (c === '[' && lex.brackets) { const r = readQuoted(text, i, ']', false); toks.push({ k: 'i', v: r.v, s, e: r.e }); i = r.e; continue; }
+      if (c === '$') {
+        const x = /\$(?:[A-Za-z_\u0080-￿][\w\u0080-￿]*)?\$/y; x.lastIndex = i;
+        const mm = lex.dollar && x.exec(text);
+        if (mm) {
+          const k = text.indexOf(mm[0], i + mm[0].length);
+          const e = k < 0 ? n : k + mm[0].length;
+          toks.push({ k: 's', v: text.slice(i + mm[0].length, k < 0 ? n : k), s, e }); i = e; continue;
+        }
+        const p = /\$\d+/y; p.lastIndex = i;
+        const pm = p.exec(text);
+        if (pm) { toks.push({ k: 'o', v: pm[0], s, e: i + pm[0].length }); i += pm[0].length; continue; }
+      }
+      if (c >= '0' && c <= '9' || (c === '.' && text[i + 1] >= '0' && text[i + 1] <= '9')) {
+        if (c === '0' && (text[i + 1] === 'x' || text[i + 1] === 'X') && /[0-9a-fA-F]/.test(text[i + 2] || '')) {
+          const x = /0[xX][0-9a-fA-F]+/y; x.lastIndex = i;
+          const mm = x.exec(text);
+          toks.push({ k: 'x', v: blobText(mm[0].slice(2)), s, e: i + mm[0].length }); i += mm[0].length; continue;
+        }
+        const x = /(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/y; x.lastIndex = i;
+        const mm = x.exec(text);
+        toks.push({ k: 'n', v: mm[0], s, e: i + mm[0].length }); i += mm[0].length; continue;
+      }
+      if (/[A-Za-z_\u0080-￿]/.test(c)) {
+        const x = /[A-Za-z_\u0080-￿][\w$\u0080-￿]*/y; x.lastIndex = i;
+        const w = x.exec(text)[0];
+        let j = i + w.length;
+        const U = w.toUpperCase();
+        // prefixed strings: E'..' (escapes), N'..', X'..' (hex), B'..' (bits), _utf8mb4'..' (character set)
+        if (text[j] === "'" && (U === 'E' || U === 'N' || U === 'X' || U === 'B' || U === 'U&')) {
+          const r = readQuoted(text, j, "'", U === 'E' || lex.backslash || noStd);
+          if (U === 'X') toks.push({ k: 'x', v: blobText(r.v), s, e: r.e });
+          else toks.push({ k: 's', v: r.v, s, e: r.e });
+          i = r.e; continue;
+        }
+        if (CHARSET_INTRO.test(w)) {
+          let q = j; while (text[q] === ' ') q++;
+          if (text[q] === "'") {
+            const r = readQuoted(text, q, "'", lex.backslash || noStd);
+            toks.push(U === '_BINARY' ? { k: 'x', v: '[binary ' + r.v.length + ' bytes]', s, e: r.e } : { k: 's', v: r.v, s, e: r.e });
+            i = r.e; continue;
+          }
+          if (/^0x/i.test(text.slice(q, q + 2))) { i = q; continue; } // _binary 0x... : the hex literal follows
+        }
+        if (text[j] === '&' && U === 'U' && text[j + 1] === "'") { i = j + 1; continue; } // U&'...' (rare): read as a plain string
+        toks.push({ k: 'w', v: w, u: U, s, e: j }); i = j; continue;
+      }
+      let op = null;
+      for (const o of OPS) if (text.startsWith(o, i)) { op = o; break; }
+      if (op) { toks.push({ k: 'o', v: op, s, e: i + op.length }); i += op.length; continue; }
+      if ('(),;.[]{}'.includes(c)) { toks.push({ k: 'p', v: c, s, e: i + 1 }); i++; continue; }
+      toks.push({ k: 'o', v: c, s, e: i + 1 }); i++;
+    }
+    return { toks, hidden, text, open };
+  }
+  // The source text between two positions, without MySQL executable-comment markers.
+  function srcSlice(st, a, b) {
+    let out = '', at = a;
+    for (const [x, y] of st.hidden) {
+      if (y <= a || x >= b) continue;
+      out += st.text.slice(at, Math.max(at, x)); at = Math.min(b, y);
+    }
+    return (out + st.text.slice(at, b)).trim();
+  }
+  const oneLine = (s) => s.replace(/\s+/g, ' ').trim();
+  const stEnd = (st) => (st.toks.length ? st.toks[st.toks.length - 1].e : 0);   // end of the last token of a statement
+
+  /* SQL Server scripts often have no ';': one GO batch can hold "SET IDENTITY_INSERT ... ON" and many INSERT lines.
+     The batch is cut before each top-level statement keyword (never inside a procedure, function, trigger or view). */
+  const MSSQL_SET = /^(IDENTITY_INSERT|ANSI_\w+|QUOTED_IDENTIFIER|NOCOUNT|XACT_ABORT|DATEFORMAT|ARITHABORT|CONCAT_NULL_YIELDS_NULL|NUMERIC_ROUNDABORT)$/;
+  function splitBatch(st) {
+    const t = st.toks;
+    const w = (k) => (t[k] && t[k].k === 'w' ? t[k].u : '');
+    if (ROUTINE_HEAD.test(t.slice(0, 6).map((x) => x.v).join(' ')) || /^(CREATE|ALTER)$/.test(w(0)) && ['VIEW', 'PROCEDURE', 'PROC', 'FUNCTION', 'TRIGGER'].includes(w(1))) return [st];
+    const cuts = [0];
+    let d = 0;
+    for (let k = 1; k < t.length; k++) {
+      const x = t[k];
+      if (x.k === 'p' && x.v === '(') d++; else if (x.k === 'p' && x.v === ')') d--;
+      if (d !== 0 || x.k !== 'w') continue;
+      const prev = t[k - 1].k === 'w' ? t[k - 1].u : t[k - 1].v;
+      if (x.u === 'INSERT' && !['INSTEAD', 'OF', 'FOR', 'AFTER', 'BEFORE', ','].includes(prev)) cuts.push(k);   // not "AFTER INSERT, UPDATE"
+      else if (x.u === 'SET' && MSSQL_SET.test(w(k + 1))) cuts.push(k);
+      else if ((x.u === 'CREATE' || x.u === 'ALTER') && ['TABLE', 'INDEX', 'UNIQUE', 'CLUSTERED', 'NONCLUSTERED'].includes(w(k + 1))) cuts.push(k);
+    }
+    if (cuts.length === 1) return [st];
+    cuts.push(t.length);
+    const out = [];
+    for (let k = 0; k + 1 < cuts.length; k++) out.push({ toks: t.slice(cuts[k], cuts[k + 1]), hidden: st.hidden, text: st.text, open: st.open });
+    return out;
+  }
+
+  /* ---------------------------------------------------------------- statement reading ---------- */
+  class Cur {
+    constructor(st) { this.st = st; this.t = st.toks; this.i = 0; }
+    get done() { return this.i >= this.t.length; }
+    peek(o) { return this.t[this.i + (o || 0)]; }
+    next() { return this.t[this.i++]; }
+    isW(...names) { const t = this.t[this.i]; return !!t && t.k === 'w' && names.includes(t.u); }
+    eatW(...names) { if (this.isW(...names)) { this.i++; return true; } return false; }
+    eatSeq(...names) { for (let k = 0; k < names.length; k++) { const t = this.t[this.i + k]; if (!t || t.k !== 'w' || t.u !== names[k]) return false; } this.i += names.length; return true; }
+    isP(v) { const t = this.t[this.i]; return !!t && t.k === 'p' && t.v === v; }
+    eatP(v) { if (this.isP(v)) { this.i++; return true; } return false; }
+    isO(v) { const t = this.t[this.i]; return !!t && t.k === 'o' && t.v === v; }
+    // Skips a balanced group starting at "(" (or "[" / "{"); returns the index after it.
+    skipGroup() {
+      const open = this.peek().v, close = open === '(' ? ')' : open === '[' ? ']' : '}';
+      let d = 0;
+      while (!this.done) {
+        const t = this.next();
+        if (t.k === 'p' && t.v === open) d++;
+        else if (t.k === 'p' && t.v === close && --d === 0) return;
+      }
+    }
+    ident() {
+      const t = this.peek();
+      if (!t || !(t.k === 'w' || t.k === 'i' || t.k === 'd')) return null;
+      this.i++;
+      return t.v;
+    }
+    name() {
+      const first = this.ident();
+      if (first == null) return null;
+      const parts = [first];
+      while (this.isP('.') && this.peek(1) && ['w', 'i', 'd'].includes(this.peek(1).k)) { this.i++; parts.push(this.ident()); }
+      return parts;
+    }
+    // A parenthesised list of column names: (a, b DESC, c(10), lower(d)) -> names, "<expression>" for expressions.
+    columnList() {
+      if (!this.isP('(')) return [];
+      const out = [];
+      this.i++;
+      let cur = [], d = 0;
+      const flush = () => {
+        const real = cur.filter((t) => !(t.k === 'w' && ['ASC', 'DESC', 'NULLS', 'FIRST', 'LAST'].includes(t.u)));
+        if (!real.length) return;
+        const idt = real[0];
+        const simple = ['w', 'i', 'd'].includes(idt.k) && (real.length === 1 || (real[1].k === 'p' && real[1].v === '(' && real.length <= 4 && real.slice(2).every((x) => x.k === 'n' || (x.k === 'p' && x.v === ')'))) ||
+          (real[1].k === 'w' && ['COLLATE'].includes(real[1].u)) || (real[1].k === 'w' && /_OPS$/.test(real[1].u)));
+        out.push(simple ? idt.v : '<expression>');
+      };
+      while (!this.done) {
+        const t = this.next();
+        if (t.k === 'p' && (t.v === '(' || t.v === '[')) { d++; cur.push(t); continue; }
+        if (t.k === 'p' && (t.v === ')' || t.v === ']')) { if (d === 0) { flush(); break; } d--; cur.push(t); continue; }
+        if (t.k === 'p' && t.v === ',' && d === 0) { flush(); cur = []; continue; }
+        cur.push(t);
+      }
+      return out;
+    }
+  }
+
+  /* Values in INSERT ... VALUES: literals are decoded; anything else stays as its source text (never evaluated). */
+  function topSplit(t, a, b, isSep) {
+    const parts = [];
+    let d = 0, from = a;
+    for (let k = a; k < b; k++) {
+      const x = t[k];
+      if (x.k === 'p' && (x.v === '(' || x.v === '[' || x.v === '{')) d++;
+      else if (x.k === 'p' && (x.v === ')' || x.v === ']' || x.v === '}')) d--;
+      else if (d === 0 && isSep(x)) { parts.push([from, k]); from = k + 1; }
+    }
+    parts.push([from, b]);
+    return parts;
+  }
+  /* Words of built-in SQL types (all dialects). Any other name in a type is a name chosen by people (a PostgreSQL enum or
+     domain, an Oracle object type): the "Do not share data" mode replaces it (meta.sqlTypeAnon) when names are hidden. */
+  const BUILTIN_TYPE = new Set(('INT INTEGER BIGINT SMALLINT TINYINT MEDIUMINT SERIAL BIGSERIAL SMALLSERIAL INT1 INT2 INT4 INT8 INT16 INT32 INT64 INT128 INT256 ' +
+    'UINT UINT8 UINT16 UINT32 UINT64 UINT128 UINT256 NUMERIC DECIMAL DEC NUMBER FLOAT FLOAT4 FLOAT8 FLOAT32 FLOAT64 DOUBLE PRECISION REAL MONEY SMALLMONEY ' +
+    'DECIMAL32 DECIMAL64 DECIMAL128 DECIMAL256 BINARY_FLOAT BINARY_DOUBLE CHAR CHARACTER VARCHAR VARCHAR2 NVARCHAR NVARCHAR2 NCHAR VARYING NATIONAL TEXT TINYTEXT ' +
+    'MEDIUMTEXT LONGTEXT NTEXT CLOB NCLOB BLOB TINYBLOB MEDIUMBLOB LONGBLOB BYTEA BINARY VARBINARY IMAGE RAW LONG BIT BOOL BOOLEAN DATE DATE32 TIME TIMESTAMP ' +
+    'TIMESTAMPTZ TIMETZ DATETIME DATETIME2 DATETIME64 DATETIMEOFFSET SMALLDATETIME INTERVAL YEAR MONTH DAY HOUR MINUTE SECOND TO WITH WITHOUT ZONE LOCAL UUID ' +
+    'UNIQUEIDENTIFIER JSON JSONB XML ENUM ENUM8 ENUM16 SET ARRAY GEOMETRY GEOGRAPHY POINT LINE LSEG BOX PATH POLYGON CIRCLE INET CIDR MACADDR MACADDR8 TSVECTOR ' +
+    'TSQUERY OID ROWID UROWID BFILE STRING FIXEDSTRING LOWCARDINALITY NULLABLE MAP TUPLE NESTED IPV4 IPV6 AGGREGATEFUNCTION SIMPLEAGGREGATEFUNCTION UNSIGNED ' +
+    'SIGNED ZEROFILL SQL_VARIANT HIERARCHYID ROWVERSION MAX …').split(' '));
+  function anonType(type, lex) {
+    const t = tokenize(type, lex, false).toks;
+    let out = '', at = 0;
+    for (let k = 0; k < t.length; k++) {
+      const x = t[k];
+      if (!((x.k === 'w' && !BUILTIN_TYPE.has(x.u)) || x.k === 'i' || x.k === 'd')) continue;
+      let e = k;
+      while (t[e + 1] && t[e + 1].k === 'p' && t[e + 1].v === '.' && t[e + 2] && (t[e + 2].k === 'w' || t[e + 2].k === 'i' || t[e + 2].k === 'd')) e += 2;
+      out += type.slice(at, x.s) + 'custom_type'; at = t[e].e; k = e;
+    }
+    return out + type.slice(at);
+  }
+  const NOVAL = {};
+  function evalExpr(st, a, b) {
+    const t = st.toks;
+    if (a >= b) return '';
+    // a cast written after the value: 'x'::type, 'x'::type[]
+    for (let k = a; k < b; k++) if (t[k].k === 'o' && t[k].v === '::') { const v = evalExpr(st, a, k); return v === NOVAL ? srcSlice(st, t[a].s, t[b - 1].e) : v; }
+    const v = evalPure(st, a, b);
+    return v === NOVAL ? srcSlice(st, t[a].s, t[b - 1].e) : v;
+  }
+  function evalPure(st, a, b) {
+    const t = st.toks;
+    const one = t[a];
+    if (b - a === 1) {
+      if (one.k === 's' || one.k === 'd' || one.k === 'x') return one.v;
+      if (one.k === 'n') return one.v;
+      if (one.k === 'w') {
+        if (one.u === 'NULL') return null;
+        if (one.u === 'TRUE') return 'true';
+        if (one.u === 'FALSE') return 'false';
+        if (one.u === 'DEFAULT') return '';
+      }
+      return NOVAL;
+    }
+    if (b - a === 2 && one.k === 'o' && (one.v === '-' || one.v === '+') && t[a + 1].k === 'n') return (one.v === '-' ? '-' : '') + t[a + 1].v;
+    // typed literal: DATE '2024-01-01', TIMESTAMP '...', b'0101'
+    if (b - a === 2 && one.k === 'w' && t[a + 1].k === 's' && ['DATE', 'TIME', 'TIMESTAMP', 'TIMESTAMPTZ', 'INTERVAL', 'JSON', 'JSONB', 'UUID'].includes(one.u)) return t[a + 1].v;
+    // concatenation: 'a' || char(10) || 'b'
+    const cat = topSplit(t, a, b, (x) => x.k === 'o' && x.v === '||');
+    if (cat.length > 1) {
+      let out = '';
+      for (const [x, y] of cat) { const v = evalPure(st, x, y); if (v === NOVAL) return NOVAL; if (v === null) return null; out += v; }
+      return out;
+    }
+    // function calls with literal arguments only
+    if (one.k === 'w' && t[a + 1] && t[a + 1].k === 'p' && t[a + 1].v === '(' && t[b - 1].k === 'p' && t[b - 1].v === ')') {
+      const args = topSplit(t, a + 2, b - 1, (x) => x.k === 'p' && x.v === ',').filter(([x, y]) => y > x).map(([x, y]) => evalPure(st, x, y));
+      if (args.some((x) => x === NOVAL)) return NOVAL;
+      switch (one.u) {
+        case 'CHAR': case 'CHR': case 'NCHAR':
+          if (args.every((x) => x != null && /^\d+$/.test(x))) return args.map((x) => String.fromCodePoint(Number(x))).join('');
+          return NOVAL;
+        case 'UNISTR':
+          if (args.length === 1 && typeof args[0] === 'string') {
+            return args[0].replace(/\\(?:u([0-9a-fA-F]{4})|\+([0-9a-fA-F]{6})|U([0-9a-fA-F]{8})|([0-9a-fA-F]{4})|(\\))/g,
+              (m, u, p, U8, h, bs) => (bs ? '\\' : String.fromCodePoint(parseInt(u || p || U8 || h, 16))));
+          }
+          return NOVAL;
+        case 'REPLACE':
+          if (args.length === 3 && args.every((x) => typeof x === 'string')) return args[1] ? args[0].split(args[1]).join(args[2]) : args[0];
+          return NOVAL;
+        case 'CONCAT':
+          if (args.some((x) => x === null)) return null;
+          return args.join('');
+        case 'CAST': return NOVAL;
+        default: return NOVAL;
+      }
+    }
+    // CAST('x' AS type)
+    if (one.k === 'w' && one.u === 'CAST' && t[a + 1] && t[a + 1].v === '(' && t[b - 1].v === ')') {
+      const parts = topSplit(t, a + 2, b - 1, (x) => x.k === 'w' && x.u === 'AS');
+      if (parts.length === 2) return evalPure(st, parts[0][0], parts[0][1]);
+    }
+    return NOVAL;
+  }
+
+  /* COPY ... FROM stdin, text format: tab-separated, \N is NULL, backslash escapes. */
+  function copyField(f) {
+    if (f === '\\N') return null;
+    if (f.indexOf('\\') < 0) return f;
+    let out = '', i = 0;
+    for (;;) {
+      const k = f.indexOf('\\', i);
+      if (k < 0) return out + f.slice(i);
+      out += f.slice(i, k);
+      const c = f[k + 1];
+      const map = { b: '\b', f: '\f', n: '\n', r: '\r', t: '\t', v: '\v' };
+      if (c in map) { out += map[c]; i = k + 2; continue; }
+      if (c === 'x') { const m = /^[0-9a-fA-F]{1,2}/.exec(f.slice(k + 2, k + 4)); if (m) { out += String.fromCharCode(parseInt(m[0], 16)); i = k + 2 + m[0].length; continue; } }
+      const o = /^[0-7]{1,3}/.exec(f.slice(k + 1, k + 4));
+      if (o) { out += String.fromCharCode(parseInt(o[0], 8)); i = k + 1 + o[0].length; continue; }
+      out += c === undefined ? '' : c; i = k + 2;
+    }
+  }
+  // COPY ... WITH (FORMAT csv): one line per record (pg_dump never writes it; hand-written dumps sometimes do)
+  function csvLine(line, sep, nullStr) {
+    const out = [];
+    let i = 0;
+    while (i <= line.length) {
+      if (line[i] === '"') {
+        let v = '', j = i + 1;
+        for (;;) { const k = line.indexOf('"', j); if (k < 0) { v += line.slice(j); j = line.length; break; } if (line[k + 1] === '"') { v += line.slice(j, k) + '"'; j = k + 2; continue; } v += line.slice(j, k); j = k + 1; break; }
+        out.push(v); i = j + 1;
+      } else {
+        const k = line.indexOf(sep, i);
+        const v = line.slice(i, k < 0 ? line.length : k);
+        out.push(v === nullStr ? null : v); i = k < 0 ? line.length + 1 : k + 1;
+      }
+    }
+    return out;
+  }
+
+  const COL_STOP = new Set(['CONSTRAINT', 'NOT', 'NULL', 'PRIMARY', 'UNIQUE', 'REFERENCES', 'DEFAULT', 'CHECK', 'GENERATED', 'AS', 'AUTO_INCREMENT', 'AUTOINCREMENT',
+    'IDENTITY', 'COMMENT', 'COLLATE', 'CODEC', 'MATERIALIZED', 'ALIAS', 'TTL', 'EPHEMERAL', 'ON', 'CHARSET', 'VISIBLE', 'INVISIBLE', 'MASKED', 'ENCODE',
+    'SPARSE', 'ROWGUIDCOL', 'FILESTREAM', 'STORAGE', 'COMPRESSION', 'COLUMN_FORMAT', 'SRID', 'SETTINGS', 'STATISTICS']);
+  const ACTIONS = ['CASCADE', 'RESTRICT', 'NO ACTION', 'SET NULL', 'SET DEFAULT'];
+
+  /* ---------------------------------------------------------------- the reader ---------- */
+  class Reader {
+    constructor(opts) {
+      this.opts = Object.assign({ maxRows: 0, dialect: null }, opts || {});
+      this.pending = '';
+      this.split = null;
+      this.tables = new Map();   // key schema\u0001name -> table
+      this.order = [];
+      this.views = new Map();
+      this.enums = new Map();    // type name (lower) -> labels
+      this.info = { dialect: '', statements: 0, tables: 0, views: 0, rows: 0, ignored: {}, errors: {}, externalFiles: [], schemas: [], truncated: false, unterminated: false };
+      this.copyTarget = null;
+    }
+    push(chunk) {
+      if (this.split) { this.split.push(chunk, false); return; }
+      this.pending += chunk;
+      if (this.opts.dialect || this.pending.length >= 65536) this.begin();   // the dialect is detected on the first 64 KB
+    }
+    begin() {
+      let head = this.pending.replace(/^﻿/, '');
+      const d = this.opts.dialect || detectDialect(head.slice(0, 262144));
+      this.dialect = d;
+      this.info.dialect = d;
+      this.lex = lexFor(d);
+      this.split = new Splitter(this.lex, this);
+      this.pending = '';
+      this.split.push(head, false);
+    }
+    end() {
+      if (!this.split) this.begin();
+      const r = this.split.end();
+      this.info.unterminated = r.unterminated;
+      return this.result();
+    }
+    count(bag, kind) { this.info[bag][kind] = (this.info[bag][kind] || 0) + 1; }
+    ignore(kind) { this.count('ignored', kind); }
+
+    /* --- table registry: tables are matched by schema and name, then by name alone (case as written, then any case) --- */
+    tableKey(parts) { return (parts.length > 1 ? parts[parts.length - 2] : '') + '\u0001' + parts[parts.length - 1]; }
+    findTable(parts) {
+      if (!parts) return null;
+      const exact = this.tables.get(this.tableKey(parts));
+      if (exact) return exact;
+      const name = parts[parts.length - 1];
+      const same = this.order.filter((t) => t.name === name);
+      if (same.length === 1) return same[0];
+      const ci = this.order.filter((t) => t.name.toLowerCase() === name.toLowerCase());
+      if (ci.length === 1) return ci[0];
+      return same[0] || ci[0] || null;
+    }
+    newTable(parts) {
+      const t = { name: parts[parts.length - 1], schema: parts.length > 1 ? parts[parts.length - 2] : '', columns: [], pk: [], fks: [], unique: [], indexes: [],
+        ddl: '', description: '', rows: [], rowsTotal: 0, declared: false, externalData: '' };
+      this.tables.set(this.tableKey(parts), t);
+      this.order.push(t);
+      return t;
+    }
+    // Data (INSERT, COPY) goes to the best match, or to a new table.
+    getTable(parts, create) {
+      const t = this.findTable(parts);
+      return t || (create ? this.newTable(parts) : null);
+    }
+    // CREATE TABLE: same schema and name only; "sales.items" and "stock.items" are two tables. A table met first without
+    // schema (data before its definition) is the same table.
+    defineTable(parts) {
+      const exact = this.tables.get(this.tableKey(parts));
+      if (exact) return exact;
+      const name = parts[parts.length - 1];
+      if (parts.length > 1) {
+        const loose = this.order.find((t) => !t.schema && !t.declared && t.name === name);
+        if (loose) { this.tables.delete(this.tableKey([name])); loose.schema = parts[parts.length - 2]; this.tables.set(this.tableKey(parts), loose); return loose; }
+      } else {
+        const same = this.order.filter((t) => t.name === name);
+        if (same.length === 1 && !same[0].declared) return same[0];
+      }
+      return this.newTable(parts);
+    }
+    colIndex(t, name) {
+      let i = t.columns.findIndex((c) => c.name === name);
+      if (i < 0) i = t.columns.findIndex((c) => c.name.toLowerCase() === String(name).toLowerCase());
+      return i;
+    }
+    addColumn(t, name) {
+      t.columns.push({ name, sqlType: '', notNull: false, generated: '', comment: '', values: '' });
+      for (const r of t.rows) r.push('');
+      return t.columns.length - 1;
+    }
+
+    /* --- one statement --- */
+    statement(text) {
+      const whole = tokenize(text, this.lex, this.split ? this.split.noStd : false);
+      if (!whole.toks.length) return null;
+      if (this.dialect !== 'mssql') return this.one(whole);
+      let r = null;
+      for (const st of splitBatch(whole)) r = this.one(st) || r;
+      return r;
+    }
+    one(st) {
+      this.info.statements++;
+      const c = new Cur(st);
+      const first = st.toks[0].k === 'w' ? st.toks[0].u : '';
+      try {
+        switch (first) {
+          case 'CREATE': return this.create(c);
+          case 'ALTER': return this.alter(c);
+          case 'INSERT': case 'REPLACE': return this.insert(c);
+          case 'COPY': return this.copyStmt(c);
+          case 'COMMENT': return this.comment(c);
+          case 'SET': return this.set(c);
+          default: this.ignore(first ? first.toLowerCase() : 'other'); return null;
+        }
+      } catch (e) {
+        this.count('errors', first ? first.toLowerCase() : 'other');
+        return null;
+      }
+    }
+    set(c) {
+      const text = c.st.toks.map((t) => t.v).join(' ');
+      this.ignore('set');
+      if (/^SET standard_conforming_strings = off/i.test(text)) return { noStd: true };
+      if (/^SET standard_conforming_strings = on/i.test(text)) return { noStd: false };
+      if (this.dialect === 'mysql' && /SQL_MODE/i.test(text)) {
+        const s = c.st.toks.filter((t) => t.k === 's').map((t) => t.v).join(',');
+        if (/NO_BACKSLASH_ESCAPES/i.test(s)) return { backslash: false };
+      }
+      return null;
+    }
+    create(c) {
+      c.next();
+      // modifiers before the object kind: OR REPLACE, TEMPORARY, UNLOGGED, ALGORITHM=.., DEFINER=.., SQL SECURITY ..
+      for (let guard = 0; guard < 20 && !c.done; guard++) {
+        if (c.eatSeq('OR', 'REPLACE') || c.eatSeq('OR', 'ALTER') || c.eatW('TEMP', 'TEMPORARY', 'GLOBAL', 'LOCAL', 'UNLOGGED', 'EXTERNAL', 'TRANSIENT', 'VOLATILE', 'EDITIONABLE', 'NONEDITIONABLE')) continue;
+        if (c.isW('ALGORITHM', 'DEFINER')) { c.next(); if (c.isO('=')) c.next(); c.next(); while (c.isO('@')) { c.next(); c.next(); } continue; }
+        if (c.eatSeq('SQL', 'SECURITY')) { c.next(); continue; }
+        break;
+      }
+      if (c.eatW('TABLE')) return this.createTable(c);
+      if (c.isW('UNIQUE', 'INDEX', 'CLUSTERED', 'NONCLUSTERED', 'BITMAP', 'FULLTEXT', 'SPATIAL')) return this.createIndex(c);
+      if (c.eatW('VIEW') || c.eatSeq('MATERIALIZED', 'VIEW') || c.eatSeq('LIVE', 'VIEW')) return this.createView(c);
+      if (c.eatW('TYPE')) return this.createType(c);
+      const kind = c.peek() && c.peek().k === 'w' ? c.peek().u.toLowerCase() : 'other';
+      this.ignore(kind === 'proc' ? 'procedure' : kind);
+      return null;
+    }
+    createTable(c) {
+      c.eatSeq('IF', 'NOT', 'EXISTS');
+      const parts = c.name();
+      if (!parts) { this.count('errors', 'create'); return null; }
+      if (c.eatW('PARTITION') || c.isW('AS', 'LIKE', 'CLONE', 'OF')) { this.ignore('table without columns'); return null; }
+      if (!c.isP('(')) { this.ignore('table without columns'); return null; }
+      const t = this.defineTable(parts);
+      if (t.declared) { t.columns = []; t.pk = []; t.fks = []; t.unique = []; t.indexes = []; } // defined again: the last definition wins
+      t.declared = true;
+      t.ddl = srcSlice(c.st, c.st.toks[0].s, stEnd(c.st));
+      const open = c.i;
+      c.skipGroup();
+      const close = c.i - 1;
+      for (const [a, b] of topSplit(c.st.toks, open + 1, close, (x) => x.k === 'p' && x.v === ',')) {
+        if (b > a) this.tableItem(t, c.st, a, b);
+      }
+      // table options after the definitions: MySQL COMMENT='..', ClickHouse COMMENT '..'
+      c.i = close + 1;
+      while (!c.done) {
+        if (c.eatW('COMMENT')) { if (c.isO('=')) c.next(); const s = c.peek(); if (s && s.k === 's') { t.description = s.v; c.next(); } continue; }
+        c.next();
+      }
+      return null;
+    }
+    // One element inside CREATE TABLE ( ... ): a column or a table constraint.
+    tableItem(t, st, a, b) {
+      const c = new Cur(st); c.i = a;
+      let cname = '';
+      if (c.isW('CONSTRAINT')) { c.next(); cname = c.ident() || ''; }
+      if (c.eatSeq('PRIMARY', 'KEY')) { c.eatW('CLUSTERED', 'NONCLUSTERED'); t.pk = c.columnList(); return; }
+      if (c.isW('UNIQUE') && !this.looksLikeColumn(c, b)) {
+        c.next(); c.eatW('KEY', 'INDEX'); c.eatW('CLUSTERED', 'NONCLUSTERED');
+        let n = cname; if (!c.isP('(')) n = c.ident() || n;
+        t.unique.push({ name: n, cols: c.columnList() }); return;
+      }
+      if (c.eatSeq('FOREIGN', 'KEY')) {
+        if (!c.isP('(')) c.ident();
+        const from = c.columnList();
+        this.references(c, t, from, b);
+        return;
+      }
+      if (c.isW('CHECK', 'EXCLUDE', 'PERIOD', 'PROJECTION', 'LIKE') && !this.looksLikeColumn(c, b)) return;
+      if (this.isIndexItem(c, b)) {
+        if (st.toks.slice(c.i, b).some((x) => x.k === 'w' && x.u === 'TYPE')) return;   // ClickHouse: INDEX name expr TYPE minmax
+        c.next(); c.eatW('KEY', 'INDEX');
+        const n = c.isP('(') ? '' : (c.ident() || '');
+        if (c.isW('USING')) { c.next(); c.next(); }
+        if (c.isP('(')) t.indexes.push({ name: n, cols: c.columnList() });
+        return;
+      }
+      if (cname) return; // CONSTRAINT name <something not understood>
+      this.columnDef(t, c, b);
+    }
+    // MySQL "KEY name (cols)", "INDEX (cols)", "FULLTEXT KEY name (cols)"; a column NAMED key would be quoted in a dump
+    isIndexItem(c, b) {
+      if (!c.isW('KEY', 'INDEX', 'FULLTEXT', 'SPATIAL')) return false;
+      if (c.isW('FULLTEXT', 'SPATIAL')) return true;
+      const n1 = c.peek(1), n2 = c.peek(2);
+      if (!n1 || c.i + 1 >= b) return false;
+      if (n1.k === 'p' && n1.v === '(') return true;
+      return ['w', 'i', 'd'].includes(n1.k) && !!n2 && ((n2.k === 'p' && n2.v === '(') || (n2.k === 'w' && (n2.u === 'USING' || n2.u === 'TYPE'))) ||
+        (['w', 'i', 'd'].includes(n1.k) && st2HasType(c, b));
+    }
+    // "unique text" or "key int" can be columns named like keywords: a column has a name followed by a type word.
+    looksLikeColumn(c, b) {
+      const n = c.peek(1);
+      return !!n && c.i + 1 < b && (n.k === 'w') && !['KEY', 'INDEX', 'CLUSTERED', 'NONCLUSTERED'].includes(n.u) && !(n.k === 'p');
+    }
+    columnDef(t, c, b) {
+      const name = c.ident();
+      if (name == null) return;
+      let idx = this.colIndex(t, name);
+      if (idx < 0) idx = this.addColumn(t, name);
+      const col = t.columns[idx];
+      // the type: everything up to the first column constraint, at depth 0
+      const st = c.st, typeFrom = c.i;
+      let d = 0;
+      while (c.i < b) {
+        const x = c.peek();
+        if (x.k === 'p' && (x.v === '(' || x.v === '[')) d++;
+        else if (x.k === 'p' && (x.v === ')' || x.v === ']')) d--;
+        else if (d === 0 && x.k === 'w' && COL_STOP.has(x.u)) break;
+        else if (d === 0 && x.k === 'w' && x.u === 'CHARACTER' && c.peek(1) && c.peek(1).u === 'SET') break; // "character varying" is a type
+        c.next();
+      }
+      if (c.i > typeFrom) this.setType(col, st, typeFrom, c.i);
+      // column constraints
+      while (c.i < b) {
+        if (c.eatW('CONSTRAINT')) { c.ident(); continue; }
+        if (c.eatSeq('NOT', 'NULL')) { col.notNull = true; continue; }
+        if (c.eatW('NULL')) { col.notNull = false; continue; }
+        if (c.eatSeq('PRIMARY', 'KEY')) { c.eatW('ASC', 'DESC'); c.eatW('CLUSTERED', 'NONCLUSTERED'); t.pk = [name]; col.notNull = true; continue; }
+        if (c.eatW('UNIQUE')) { c.eatW('KEY'); c.eatW('CLUSTERED', 'NONCLUSTERED'); t.unique.push({ name: '', cols: [name] }); continue; }
+        if (c.isW('REFERENCES')) { this.references(c, t, [name], b); continue; }
+        if (c.eatW('DEFAULT')) { this.skipExpr(c, b); continue; }
+        if (c.eatW('CHECK')) { if (c.isP('(')) c.skipGroup(); continue; }
+        if (c.eatW('GENERATED')) {
+          c.eatW('ALWAYS'); c.eatSeq('BY', 'DEFAULT');
+          if (c.eatW('AS')) {
+            if (c.eatW('IDENTITY')) { if (c.isP('(')) c.skipGroup(); continue; }
+            if (c.isP('(')) c.skipGroup();
+            col.generated = c.eatW('VIRTUAL') ? 'virtual' : c.eatW('STORED', 'PERSISTED') ? 'stored' : 'virtual';
+          }
+          continue;
+        }
+        if (c.eatW('AS')) {                                   // MySQL "AS (expr) STORED", SQL Server computed "AS expr [PERSISTED]"
+          if (c.isP('(')) c.skipGroup(); else this.skipExpr(c, b);
+          col.generated = c.eatW('STORED', 'PERSISTED') ? 'stored' : (c.eatW('VIRTUAL'), 'virtual');
+          continue;
+        }
+        if (c.eatW('MATERIALIZED')) { this.skipExpr(c, b); col.generated = 'stored'; continue; }   // ClickHouse
+        if (c.eatW('ALIAS')) { this.skipExpr(c, b); col.generated = 'virtual'; continue; }
+        if (c.eatW('COMMENT')) { const s = c.peek(); if (s && (s.k === 's' || s.k === 'd')) { col.comment = s.v; c.next(); } continue; }
+        if (c.eatW('COLLATE', 'CHARSET')) { c.next(); continue; }
+        if (c.eatSeq('CHARACTER', 'SET')) { c.next(); continue; }
+        if (c.eatSeq('ON', 'UPDATE')) { this.skipExpr(c, b); continue; }
+        if (c.eatW('IDENTITY')) { if (c.isP('(')) c.skipGroup(); continue; }
+        if (c.eatW('CODEC', 'TTL', 'EPHEMERAL', 'SETTINGS', 'STATISTICS')) { if (c.isP('(')) c.skipGroup(); else this.skipExpr(c, b); continue; }
+        c.next();
+      }
+    }
+    // The column type as written. The labels of an enum or a set are values of the data: they go to "values" (shown with
+    // the labels, hidden when the user hides labels) and are cut out of the type, at any depth: enum(..), Nullable(Enum8(..)).
+    setType(col, st, a, b) {
+      const t = st.toks;
+      const labels = [];
+      const cuts = [];                                         // [start, end] source spans replaced by "(…)"
+      for (let k = a; k < b; k++) {
+        const x = t[k];
+        if (!(x.k === 'w' && /^(ENUM|ENUM8|ENUM16|SET)$/.test(x.u) && t[k + 1] && t[k + 1].k === 'p' && t[k + 1].v === '(')) continue;
+        let d = 0, m = k + 1;
+        for (; m < b; m++) {
+          const y = t[m];
+          if (y.k === 'p' && y.v === '(') d++;
+          else if (y.k === 'p' && y.v === ')' && --d === 0) break;
+          else if (y.k === 's') {
+            let label = y.v;
+            if (t[m + 1] && t[m + 1].v === '=' && t[m + 2] && t[m + 2].k === 'n') label += ' = ' + t[m + 2].v;
+            else if (t[m + 1] && t[m + 1].v === '=' && t[m + 2] && t[m + 2].v === '-' && t[m + 3] && t[m + 3].k === 'n') label += ' = -' + t[m + 3].v;
+            labels.push(label);
+          }
+        }
+        cuts.push([t[k + 1].s, m < b ? t[m].e : t[b - 1].e]);
+        k = m;
+      }
+      let type = '', at = t[a].s;
+      for (const [x, y] of cuts) { type += st.text.slice(at, x) + '(…)'; at = y; }
+      type = oneLine(type + st.text.slice(at, t[b - 1].e));
+      if (labels.length) col.values = labels.join(', ');
+      else {
+        const en = this.enums.get(type.toLowerCase().replace(/^.*\./, '').replace(/^"|"$/g, ''));
+        if (en) col.values = en.join(', ');
+      }
+      col.sqlType = type;
+      col.sqlTypeAnon = anonType(type, this.lex);
+    }
+    skipExpr(c, b) {
+      let d = 0, moved = false;
+      while (c.i < b) {
+        const x = c.peek();
+        if (x.k === 'p' && (x.v === '(' || x.v === '[')) d++;
+        else if (x.k === 'p' && (x.v === ')' || x.v === ']')) d--;
+        else if (d === 0 && moved && x.k === 'w' && COL_STOP.has(x.u) && x.u !== 'NULL' && x.u !== 'AS') break;
+        else if (d === 0 && moved && x.k === 'w' && x.u === 'NULL' && c.peek(-1) && c.peek(-1).u === 'NOT') break;
+        c.next(); moved = true;
+      }
+    }
+    references(c, t, from, b) {
+      if (!c.eatW('REFERENCES')) return;
+      const target = c.name();
+      const to = c.isP('(') ? c.columnList() : [];
+      const fk = { target, from, to, onDelete: '', onUpdate: '' };
+      // what may follow: ON DELETE / ON UPDATE actions, MATCH, DEFERRABLE ... (but not a NOT NULL of the column)
+      while (c.i < b) {
+        const n1 = c.peek(1);
+        if (c.isW('ON') && n1 && (n1.u === 'DELETE' || n1.u === 'UPDATE')) {
+          c.next(); c.next();
+          let act = '';
+          for (const a of ACTIONS) { if (c.eatSeq(...a.split(' '))) { act = a; break; } }
+          if (!act) act = (c.next() || {}).v || '';
+          if (n1.u === 'DELETE') fk.onDelete = act; else fk.onUpdate = act;
+          continue;
+        }
+        if (c.eatW('MATCH', 'INITIALLY')) { c.next(); continue; }
+        if (c.eatSeq('NOT', 'DEFERRABLE') || c.eatSeq('NOT', 'ENFORCED') || c.eatSeq('NOT', 'FOR', 'REPLICATION')) continue;
+        if (c.eatW('DEFERRABLE', 'ENFORCED', 'NOVALIDATE', 'VALIDATE', 'ENABLE', 'DISABLE', 'RELY', 'NORELY')) continue;
+        break;
+      }
+      if (target) t.fks.push(fk);
+    }
+    createIndex(c) {
+      const unique = c.eatW('UNIQUE');
+      c.eatW('CLUSTERED', 'NONCLUSTERED', 'BITMAP', 'FULLTEXT', 'SPATIAL');
+      if (!c.eatW('INDEX')) { this.ignore('index'); return null; }
+      c.eatW('CONCURRENTLY'); c.eatSeq('IF', 'NOT', 'EXISTS');
+      let name = '';
+      if (!c.isW('ON')) { const p = c.name(); name = p ? p[p.length - 1] : ''; }
+      if (!c.eatW('ON')) { this.ignore('index'); return null; }
+      c.eatW('ONLY');
+      const t = this.findTable(c.name());
+      if (c.eatW('USING')) c.next();
+      if (!t || !c.isP('(')) { this.ignore('index'); return null; }
+      const cols = c.columnList();
+      (unique ? t.unique : t.indexes).push({ name, cols });
+      return null;
+    }
+    createView(c) {
+      c.eatSeq('IF', 'NOT', 'EXISTS');
+      const parts = c.name();
+      if (!parts) return null;
+      if (c.isP('(')) c.skipGroup();
+      while (!c.done && !c.isW('AS')) c.next();               // WITH (options), TO table (ClickHouse) ...
+      if (!c.eatW('AS') || c.done) return null;
+      const query = srcSlice(c.st, c.peek().s, stEnd(c.st));
+      const name = parts[parts.length - 1];
+      this.views.set((parts.length > 1 ? parts[parts.length - 2] : '') + '\u0001' + name, { name, schema: parts.length > 1 ? parts[parts.length - 2] : '', query });
+      return null;
+    }
+    createType(c) {
+      const parts = c.name();
+      if (parts && c.eatW('AS') && c.eatW('ENUM') && c.isP('(')) {
+        const labels = [];
+        const from = c.i; c.skipGroup();
+        for (let k = from; k < c.i; k++) if (c.t[k].k === 's') labels.push(c.t[k].v);
+        this.enums.set(parts[parts.length - 1].toLowerCase(), labels);
+        return null;
+      }
+      this.ignore('type');
+      return null;
+    }
+    alter(c) {
+      c.next();
+      if (!c.eatW('TABLE')) { this.ignore('alter ' + (c.peek() && c.peek().k === 'w' ? c.peek().u.toLowerCase() : 'other')); return null; }
+      c.eatSeq('IF', 'EXISTS'); c.eatW('ONLY');
+      const t = this.findTable(c.name());
+      if (!t) { this.ignore('alter table'); return null; }
+      const toks = c.st.toks;
+      for (const [a, b] of topSplit(toks, c.i, toks.length, (x) => x.k === 'p' && x.v === ',')) {
+        const k = new Cur(c.st); k.i = a;
+        k.eatSeq('WITH', 'CHECK') || k.eatSeq('WITH', 'NOCHECK');
+        if (k.eatW('ADD')) {
+          if (k.isW('CONSTRAINT', 'PRIMARY', 'UNIQUE', 'FOREIGN', 'CHECK', 'KEY', 'INDEX', 'FULLTEXT', 'SPATIAL', 'EXCLUDE')) {
+            // SQL Server: ADD CONSTRAINT [DF_x] DEFAULT (0) FOR [col] -> a default, not a key
+            const save = k.i;
+            if (k.eatW('CONSTRAINT')) k.ident();
+            if (k.isW('DEFAULT')) continue;
+            k.i = save;
+            this.tableItem(t, c.st, k.i, b);
+          } else {
+            k.eatW('COLUMN'); k.eatSeq('IF', 'NOT', 'EXISTS');
+            if (k.i < b) this.columnDef(t, k, b);
+          }
+          continue;
+        }
+        if (k.eatW('ALTER', 'MODIFY')) {
+          k.eatW('COLUMN');
+          const name = k.ident();
+          const idx = name == null ? -1 : this.colIndex(t, name);
+          if (idx >= 0 && k.eatSeq('SET', 'NOT', 'NULL')) t.columns[idx].notNull = true;
+          continue;
+        }
+      }
+      return null;
+    }
+    comment(c) {
+      c.next();
+      if (!c.eatW('ON')) { this.ignore('comment'); return null; }
+      const kind = c.next();
+      const parts = c.name();
+      if (!c.eatW('IS') || !parts) return null;
+      const s = c.peek();
+      const text = s && s.k === 's' ? s.v : '';
+      if (kind.u === 'TABLE') { const t = this.findTable(parts); if (t) t.description = text; }
+      else if (kind.u === 'COLUMN' && parts.length >= 2) {
+        const t = this.findTable(parts.slice(0, -1));
+        const i = t ? this.colIndex(t, parts[parts.length - 1]) : -1;
+        if (i >= 0) t.columns[i].comment = text;
+      } else this.ignore('comment');
+      return null;
+    }
+    // The position of each given column in the table (columns met for the first time are added).
+    mapping(t, names) {
+      if (!names) return null;
+      return names.map((n) => { const i = this.colIndex(t, n); return i >= 0 ? i : this.addColumn(t, n); });
+    }
+    addRow(t, map, values) {
+      t.rowsTotal++; this.info.rows++;
+      if (this.opts.maxRows && t.rows.length >= this.opts.maxRows) { this.info.truncated = true; return; }
+      let row;
+      if (map) {
+        row = new Array(t.columns.length).fill('');
+        for (let k = 0; k < map.length && k < values.length; k++) row[map[k]] = values[k] == null ? '' : values[k];
+      } else {
+        while (t.columns.length < values.length) this.addColumn(t, 'column_' + (t.columns.length + 1));
+        row = values.map((v) => (v == null ? '' : v));
+        while (row.length < t.columns.length) row.push('');
+      }
+      t.rows.push(row);
+    }
+    insert(c) {
+      c.next();
+      c.eatW('LOW_PRIORITY', 'DELAYED', 'HIGH_PRIORITY'); c.eatW('IGNORE'); c.eatW('INTO');
+      const parts = c.name();
+      if (!parts) { this.count('errors', 'insert'); return null; }
+      const t = this.getTable(parts, true);
+      let names = null;
+      if (c.isP('(')) {
+        // a column list, unless it is the start of VALUES without the word (rare) or a SELECT
+        const save = c.i;
+        const list = c.columnList();
+        if (list.length && !list.includes('<expression>')) names = list; else c.i = save;
+      }
+      while (c.isW('OVERRIDING')) { c.next(); c.next(); c.next(); }
+      if (!c.eatW('VALUES', 'VALUE')) { this.ignore(c.isW('SELECT', 'WITH') ? 'insert select' : 'insert'); return null; }
+      const map = this.mapping(t, names);
+      const toks = c.st.toks;
+      while (!c.done) {
+        if (c.eatP(',')) continue;
+        c.eatW('ROW');
+        if (!c.isP('(')) break;                                // ON CONFLICT, ON DUPLICATE KEY UPDATE, RETURNING ...
+        const open = c.i;
+        c.skipGroup();
+        const close = c.i - 1;
+        const vals = topSplit(toks, open + 1, close, (x) => x.k === 'p' && x.v === ',').map(([a, b]) => evalExpr(c.st, a, b));
+        this.addRow(t, map, vals);
+      }
+      return null;
+    }
+    copyStmt(c) {
+      c.next();
+      if (c.isP('(')) { this.ignore('copy query'); return null; }
+      const parts = c.name();
+      if (!parts) return null;
+      const names = c.isP('(') ? c.columnList() : null;
+      if (c.eatW('TO')) { this.ignore('copy to'); return null; }
+      if (!c.eatW('FROM')) { this.ignore('copy'); return null; }
+      const t = this.getTable(parts, true);
+      if (c.eatW('STDIN')) {
+        const rest = c.st.toks.slice(c.i);
+        const words = rest.filter((x) => x.k === 'w').map((x) => x.u);
+        const csv = words.includes('CSV');
+        const header = csv && words.includes('HEADER') && !rest.some((x, k) => x.k === 'w' && x.u === 'HEADER' && rest[k + 1] && rest[k + 1].k === 'w' && rest[k + 1].u === 'FALSE');
+        const sepTok = rest.find((x, k) => k > 0 && rest[k - 1].k === 'w' && rest[k - 1].u === 'DELIMITER' && x.k === 's');
+        const nullTok = rest.find((x, k) => k > 0 && rest[k - 1].k === 'w' && rest[k - 1].u === 'NULL' && x.k === 's');
+        this.copyTarget = { t, map: this.mapping(t, names), csv, header, sep: sepTok ? sepTok.v : csv ? ',' : '\t', nullStr: nullTok ? nullTok.v : csv ? '' : '\\N' };
+        return { copy: true };
+      }
+      // COPY t FROM 'customers.csv' (DuckDB EXPORT DATABASE, psql scripts): the data is in another file
+      const f = c.peek();
+      if (f && f.k === 's') {
+        const base = f.v.split(/[\\/]/).pop();
+        t.externalData = base;
+        if (!this.info.externalFiles.includes(base)) this.info.externalFiles.push(base);
+      }
+      this.ignore('copy from file');
+      return null;
+    }
+    copyRow(line) {
+      const ct = this.copyTarget;
+      if (!ct) return;
+      if (ct.header) { ct.header = false; return; }               // the header line of a CSV block
+      const vals = ct.csv ? csvLine(line, ct.sep, ct.nullStr) : line.split(ct.sep).map((f) => (f === ct.nullStr ? null : copyField(f)));
+      this.addRow(ct.t, ct.map, vals);
+    }
+    copyEnd() { this.copyTarget = null; }
+
+    /* --- result --- */
+    result() {
+      const tables = this.order;
+      // Schema in the names only when two tables share a name in different schemas.
+      const byName = new Map();
+      for (const t of tables) byName.set(t.name, (byName.get(t.name) || 0) + 1);
+      const display = (t) => (t.schema && byName.get(t.name) > 1 ? t.schema + '.' + t.name : t.name);
+      const schemas = Array.from(new Set(tables.map((t) => t.schema).filter(Boolean)));
+      this.info.schemas = schemas;
+      const sections = tables.map((t) => {
+        const fks = t.fks.map((f) => {
+          const target = this.findTable(f.target);
+          let to = f.to.slice();
+          if (!to.length && target && target.pk.length === f.from.length) to = target.pk.slice();
+          return { table: target ? display(target) : f.target[f.target.length - 1], from: f.from, to: f.from.map((_, i) => to[i] || null), onDelete: f.onDelete, onUpdate: f.onUpdate };
+        });
+        const columns = t.columns.map((col) => {
+          const arrows = [];
+          for (const f of fks) { const i = f.from.indexOf(col.name); if (i >= 0) arrows.push('→ `' + f.table + '.' + (f.to[i] || '?') + '`'); }
+          const key = [t.pk.includes(col.name) ? { key: 'pk' } : null].concat(arrows).filter(Boolean);
+          const meta = { sqlType: col.sqlType, key, notNull: col.notNull ? { key: 'yes' } : '' };
+          if (col.sqlTypeAnon && col.sqlTypeAnon !== col.sqlType) meta.sqlTypeAnon = col.sqlTypeAnon;
+          if (col.generated) meta.generated = { key: col.generated === 'stored' ? 'genStored' : 'genVirtual' };
+          if (col.comment) meta.label = col.comment;
+          if (col.values) meta.values = col.values;
+          return { name: col.name, meta };
+        });
+        return {
+          name: display(t), columns, rows: t.rows, rowsTotal: t.rowsTotal, description: t.description, externalData: t.externalData,
+          constraints: { pk: t.pk.slice(), fks, unique: t.unique, indexes: t.indexes, ddl: t.ddl },
+        };
+      });
+      const views = Array.from(this.views.values()).map((v) => ({ name: v.name, sql: 'CREATE VIEW ' + v.name + ' AS ' + v.query }));
+      this.info.tables = sections.length;
+      this.info.views = views.length;
+      const fileMeta = [];
+      if (views.length) fileMeta.push(['mViews', views.map((v) => '`' + v.name + '`').join(', ')]);
+      return { sections, views, fileMeta, notes: {}, info: this.info, dialectName: DIALECT_NAMES[this.dialect] || 'SQL' };
+    }
+  }
+
+  DB.SqlDumpReader = Reader;
+  DB.detectSqlDialect = detectDialect;
+  DB.SQL_DIALECT_NAMES = DIALECT_NAMES;
+  DB.parseSqlDump = function (input, opts) {
+    const r = new Reader(opts);
+    for (const chunk of Array.isArray(input) ? input : [input]) r.push(chunk);
+    return r.end();
+  };
+})();
+</script>
+<script>/* DataBrief - PostgreSQL archives (pg_dump -Fc "custom" and -Ft "tar"). GPL-3.0-or-later.
+ *
+ * An archive holds a table of contents (one entry per object: its CREATE statement, its COPY statement) and the data of
+ * each table, compressed with gzip, lz4 or zstd (or not at all). This reader rebuilds the SQL text that pg_restore would
+ * print (definitions in archive order, each table's data as a COPY ... FROM stdin block) and gives it to the SQL dump
+ * reader (sqldump.js). Nothing is executed. The directory format (-Fd) is a folder, not a file: not read here.
+ *
+ *   DB.isPgArchive(u8) -> 'custom' | 'tar' | ''
+ *   DB.parsePgArchive(u8, opts) -> the result of DB.parseSqlDump, plus info.archive:
+ *     { format, version, compression, serverVersion, dumpVersion, entries, dataBlocks, largeObjects, problems, skipped }
+ *     (skipped = names of the tables whose data could not be read)
+ * Versions read: archive 1.12 to 1.16 (PostgreSQL 9.x to 17). An error that stops the reading is thrown as
+ * Error with .code = 'pgArchiveCorrupt' | 'pgArchiveVersion' | 'pgArchiveCompression'; damage inside one table's data
+ * is reported in info.archive.problems and the rest is still read. */
+'use strict';
+(function () {
+  const DB = window.DB;
+  const ARCH_CUSTOM = 1, ARCH_TAR = 3;
+  const COMPRESSION = ['none', 'gzip', 'lz4', 'zstd'];
+  const BLK_DATA = 1, BLK_BLOBS = 3;
+  const V = (a, b, c) => (a * 256 + b) * 256 + (c || 0);
+  const fail = (code, msg) => { const e = new Error(msg || code); e.code = code; return e; };
+
+  /* ---------------------------------------------------------------- byte reader ---------- */
+  class Bytes {
+    constructor(u8) { this.u = u8; this.p = 0; this.intSize = 4; this.offSize = 8; }
+    need(n) { if (this.p + n > this.u.length) throw fail('pgArchiveCorrupt', 'unexpected end of the archive'); }
+    byte() { this.need(1); return this.u[this.p++]; }
+    bytes(n) { this.need(n); const b = this.u.subarray(this.p, this.p + n); this.p += n; return b; }
+    // ReadInt: a sign byte, then intSize bytes, least significant first
+    int() {
+      const neg = this.byte();
+      this.need(this.intSize);
+      let v = 0;
+      for (let k = 0; k < this.intSize; k++) v += this.u[this.p++] * 2 ** (8 * k);
+      return neg ? -v : v;
+    }
+    // ReadStr: an int length (-1 = NULL), then the bytes (kept as bytes: decoded later, with the archive's encoding)
+    str() {
+      const n = this.int();
+      if (n < 0) return null;
+      if (n > this.u.length - this.p) throw fail('pgArchiveCorrupt', 'string longer than the archive');
+      return this.bytes(n);
+    }
+    // ReadOffset: a flag byte, then offSize bytes (the position of the data; unused: blocks are read in order)
+    offset() { const flag = this.byte(); this.bytes(this.offSize); return flag; }
+  }
+
+  /* ---------------------------------------------------------------- header and table of contents ---------- */
+  function readHead(b) {
+    if (String.fromCharCode(...b.bytes(5)) !== 'PGDMP') throw fail('pgArchiveCorrupt', 'not a pg_dump archive');
+    const vmaj = b.byte(), vmin = b.byte();
+    const vrev = vmaj > 1 || (vmaj === 1 && vmin > 0) ? b.byte() : 0;
+    const version = V(vmaj, vmin, vrev);
+    if (version < V(1, 12) ) throw fail('pgArchiveVersion', 'archive version ' + vmaj + '.' + vmin + ' is too old (before PostgreSQL 9.0)');
+    b.intSize = b.byte();
+    b.offSize = b.byte();
+    if (b.intSize < 1 || b.intSize > 8 || b.offSize < 1 || b.offSize > 8) throw fail('pgArchiveCorrupt', 'impossible integer sizes');
+    const format = b.byte();
+    let compression;
+    if (version >= V(1, 15)) compression = b.byte();
+    else compression = b.int() !== 0 ? 1 : 0;           // before 1.15: a zlib level (-1 = default); 0 = none
+    for (let k = 0; k < 7; k++) b.int();                 // creation time (seconds ... year, isdst)
+    b.str();                                              // database name (not kept)
+    const serverVersion = b.str(), dumpVersion = b.str();
+    return { version, vtext: vmaj + '.' + vmin + '.' + vrev, format, compression, serverVersion, dumpVersion };
+  }
+  function readToc(b, head) {
+    const count = b.int();
+    if (count < 0 || count > 10000000) throw fail('pgArchiveCorrupt', 'impossible number of entries');
+    const v = head.version;
+    const entries = [];
+    for (let k = 0; k < count; k++) {
+      const te = {};
+      te.dumpId = b.int();
+      te.hadDumper = b.int();
+      b.str(); b.str();                                   // catalog ids (tableoid, oid)
+      te.tag = b.str();
+      te.desc = b.str();
+      b.int();                                            // section (pre-data, data, post-data)
+      te.defn = b.str();
+      b.str();                                            // drop statement
+      te.copyStmt = b.str();
+      te.namespace = b.str();
+      b.str();                                            // tablespace
+      if (v >= V(1, 14)) b.str();                         // table access method
+      if (v >= V(1, 16)) b.int();                         // relkind
+      b.str();                                            // owner
+      b.str();                                            // "with oids": always "false" today
+      for (let guard = 0; ; guard++) {                    // dependencies, ended by NULL
+        if (guard > 1000000) throw fail('pgArchiveCorrupt', 'endless dependency list');
+        if (b.str() === null) break;
+      }
+      if (head.format === ARCH_CUSTOM) te.dataState = b.offset();
+      else if (head.format === ARCH_TAR) te.file = b.str();
+      entries.push(te);
+    }
+    return entries;
+  }
+
+  /* ---------------------------------------------------------------- decompression ---------- */
+  // LZ4 frame format (what pg_dump writes): blocks may refer to earlier blocks, so all go into one output buffer.
+  function lz4Frames(src) {
+    let out = new Uint8Array(Math.max(1024, src.length * 4)), op = 0;
+    const ensure = (n) => { if (op + n <= out.length) return; let size = out.length * 2; while (size < op + n) size *= 2; const o = new Uint8Array(size); o.set(out.subarray(0, op)); out = o; };
+    let p = 0;
+    const u32 = (q) => (src[q] | (src[q + 1] << 8) | (src[q + 2] << 16) | (src[q + 3] << 24)) >>> 0;
+    while (p + 4 <= src.length) {
+      const magic = u32(p);
+      if ((magic & 0xfffffff0) === 0x184d2a50) { p += 8 + u32(p + 4); continue; }   // skippable frame
+      if (magic !== 0x184d2204) throw fail('pgArchiveCorrupt', 'bad lz4 frame');
+      p += 4;
+      const flg = src[p], blockChecksum = !!(flg & 0x10), contentSize = !!(flg & 0x08), contentChecksum = !!(flg & 0x04), dictId = !!(flg & 0x01);
+      if ((flg >> 6) !== 1) throw fail('pgArchiveCorrupt', 'bad lz4 version');
+      p += 2 + (contentSize ? 8 : 0) + (dictId ? 4 : 0) + 1;                         // FLG, BD, sizes, header checksum
+      for (;;) {
+        if (p + 4 > src.length) throw fail('pgArchiveCorrupt', 'truncated lz4 data');
+        const size = u32(p); p += 4;
+        if (size === 0) break;                                                        // end mark
+        const len = size & 0x7fffffff;
+        if (p + len > src.length) throw fail('pgArchiveCorrupt', 'truncated lz4 block');
+        if (size & 0x80000000) { ensure(len); out.set(src.subarray(p, p + len), op); op += len; }   // stored as is
+        else {
+          const end = p + len;
+          let ip = p;
+          while (ip < end) {
+            const token = src[ip++];
+            let lit = token >> 4;
+            if (lit === 15) { let x; do { x = src[ip++]; lit += x; } while (x === 255 && ip < end); }
+            ensure(lit);
+            out.set(src.subarray(ip, ip + lit), op); op += lit; ip += lit;
+            if (ip >= end) break;                                                     // the last sequence has no match
+            const off = src[ip] | (src[ip + 1] << 8); ip += 2;
+            if (!off || off > op) throw fail('pgArchiveCorrupt', 'bad lz4 offset');
+            let ml = token & 15;
+            if (ml === 15) { let x; do { x = src[ip++]; ml += x; } while (x === 255 && ip < end); }
+            ml += 4;
+            ensure(ml);
+            for (let k = 0; k < ml; k++, op++) out[op] = out[op - off];               // may overlap: byte by byte
+          }
+        }
+        p += len + (blockChecksum ? 4 : 0);
+      }
+      if (contentChecksum) p += 4;
+    }
+    return out.subarray(0, op);
+  }
+  function decompress(algo, bytes) {
+    switch (algo) {
+      case 0: return bytes;
+      case 1: return window.fflate.unzlibSync(bytes);
+      case 2: return lz4Frames(bytes);
+      case 3: return window.fzstd.decompress(bytes);
+      default: throw fail('pgArchiveCompression', 'unknown compression ' + algo);
+    }
+  }
+  const concat = (parts) => {
+    if (parts.length === 1) return parts[0];
+    const n = parts.reduce((a, x) => a + x.length, 0);
+    const out = new Uint8Array(n);
+    let o = 0;
+    for (const x of parts) { out.set(x, o); o += x.length; }
+    return out;
+  };
+
+  /* ---------------------------------------------------------------- data blocks (custom format) ---------- */
+  // After the table of contents: [type byte][dumpId int][chunks: int length + bytes ... length 0]. Read in order.
+  function readBlocks(b, problems) {
+    const data = new Map();
+    let largeObjects = 0;
+    while (b.p < b.u.length) {
+      const start = b.p;
+      try {
+        const type = b.byte();
+        const id = b.int();
+        if (type === BLK_DATA) {
+          const parts = [];
+          for (;;) { const n = b.int(); if (n === 0) break; if (n < 0) throw fail('pgArchiveCorrupt', 'negative chunk'); parts.push(b.bytes(n)); }
+          data.set(id, parts);
+        } else if (type === BLK_BLOBS) {
+          for (;;) {                                      // large objects: oid, chunks ... oid 0 ends the list
+            const oid = b.int(); if (oid === 0) break;
+            largeObjects++;
+            for (;;) { const n = b.int(); if (n === 0) break; b.bytes(n); }
+          }
+        } else throw fail('pgArchiveCorrupt', 'unknown block type ' + type);
+      } catch (e) {
+        problems.push('data after byte ' + start + ' could not be read');
+        break;
+      }
+    }
+    return { data, largeObjects };
+  }
+
+  /* ---------------------------------------------------------------- tar ---------- */
+  function tarFiles(u8) {
+    const files = new Map();
+    let p = 0;
+    while (p + 512 <= u8.length) {
+      const h = u8.subarray(p, p + 512);
+      if (h.every((x) => x === 0)) break;
+      const field = (a, n) => { let s = ''; for (let k = a; k < a + n && h[k]; k++) s += String.fromCharCode(h[k]); return s; };
+      let name = field(0, 100);
+      if (field(257, 5) === 'ustar') { const prefix = field(345, 155); if (prefix) name = prefix + '/' + name; }
+      const size = parseInt(field(124, 12).trim() || '0', 8);
+      if (!Number.isFinite(size) || size < 0) throw fail('pgArchiveCorrupt', 'bad tar header');
+      const type = String.fromCharCode(h[156] || 48);
+      p += 512;
+      if (type === '0' || type === '\0') files.set(name.replace(/^\.\//, ''), u8.subarray(p, Math.min(u8.length, p + size)));
+      p += Math.ceil(size / 512) * 512;
+    }
+    return files;
+  }
+
+  DB.isPgArchive = function (u8) {
+    if (u8.length >= 5 && u8[0] === 0x50 && u8[1] === 0x47 && u8[2] === 0x44 && u8[3] === 0x4d && u8[4] === 0x50) return 'custom';
+    if (u8.length >= 512 && String.fromCharCode(...u8.subarray(257, 262)) === 'ustar' && String.fromCharCode(...u8.subarray(0, 7)) === 'toc.dat') return 'tar';
+    return '';
+  };
+
+  // PostgreSQL encoding names -> TextDecoder labels
+  const ENCODINGS = { UTF8: 'utf-8', SQL_ASCII: 'utf-8', LATIN1: 'iso-8859-1', LATIN2: 'iso-8859-2', LATIN9: 'iso-8859-15', WIN1250: 'windows-1250',
+    WIN1251: 'windows-1251', WIN1252: 'windows-1252', WIN1253: 'windows-1253', WIN1254: 'windows-1254', WIN1256: 'windows-1256', KOI8R: 'koi8-r',
+    KOI8U: 'koi8-u', EUC_JP: 'euc-jp', SJIS: 'shift_jis', EUC_KR: 'euc-kr', GBK: 'gbk', GB18030: 'gb18030', BIG5: 'big5', EUC_CN: 'gb2312' };
+
+  DB.parsePgArchive = function (u8, opts) {
+    const kind = DB.isPgArchive(u8);
+    if (!kind) throw fail('pgArchiveCorrupt', 'not a pg_dump archive');
+    const problems = [], skipped = [];
+    let head, entries, blocks = { data: new Map(), largeObjects: 0 }, files = null;
+    if (kind === 'custom') {
+      const b = new Bytes(u8);
+      head = readHead(b);
+      if (head.format !== ARCH_CUSTOM) throw fail('pgArchiveCorrupt', 'unexpected archive format ' + head.format);
+      entries = readToc(b, head);
+      blocks = readBlocks(b, problems);
+    } else {
+      files = tarFiles(u8);
+      const toc = files.get('toc.dat');
+      if (!toc) throw fail('pgArchiveCorrupt', 'toc.dat missing from the tar archive');
+      const b = new Bytes(toc);
+      head = readHead(b);
+      if (head.format !== ARCH_TAR) throw fail('pgArchiveCorrupt', 'unexpected archive format ' + head.format);
+      entries = readToc(b, head);
+    }
+    if (head.version > V(1, 16)) problems.push('archive version ' + head.vtext + ' is newer than this reader knows (1.16)');
+
+    // the encoding of the archive (an ENCODING entry: SET client_encoding = 'UTF8';)
+    const ascii = (x) => (x ? String.fromCharCode(...x.subarray(0, 200)) : '');
+    const encEntry = entries.find((e) => ascii(e.desc) === 'ENCODING');
+    const encName = encEntry ? (/'([^']+)'/.exec(ascii(encEntry.defn)) || [])[1] : 'UTF8';
+    const label = ENCODINGS[String(encName || 'UTF8').toUpperCase()] || 'utf-8';
+    let dec;
+    try { dec = new TextDecoder(label); } catch (e) { dec = new TextDecoder('utf-8'); }
+    const text = (x) => (x ? dec.decode(x) : '');
+
+    const reader = new DB.SqlDumpReader(Object.assign({}, opts, { dialect: 'postgres' }));
+    let dataBlocks = 0;
+    const STEP = 1 << 20;
+    for (const te of entries) {
+      const desc = text(te.desc);
+      const defn = text(te.defn);
+      if (defn) reader.push(defn + '\n');
+      if (!te.hadDumper) continue;
+      let raw = null;
+      try {
+        if (kind === 'custom') {
+          const parts = blocks.data.get(te.dumpId);
+          if (!parts) { if (desc === 'TABLE DATA') { problems.push('data of ' + text(te.tag) + ' missing'); skipped.push(text(te.tag)); } continue; }
+          raw = decompress(head.compression, concat(parts));
+        } else {
+          const name = text(te.file);
+          const f = name && (files.get(name) || files.get(name + '.gz'));
+          if (!f) { if (desc === 'TABLE DATA') { problems.push('data file of ' + text(te.tag) + ' missing'); skipped.push(text(te.tag)); } continue; }
+          raw = files.has(name) ? f : window.fflate.gunzipSync(f);
+        }
+      } catch (e) {
+        problems.push('data of ' + text(te.tag) + ' could not be decompressed');
+        skipped.push(text(te.tag));
+        continue;
+      }
+      dataBlocks++;
+      const copy = text(te.copyStmt);
+      if (copy) reader.push(copy.replace(/\s*$/, '') + '\n');
+      // the data, decoded in steps (a multi-byte character cut at a step boundary is kept for the next step)
+      const sd = new TextDecoder(dec.encoding);
+      for (let k = 0; k < raw.length; k += STEP) reader.push(sd.decode(raw.subarray(k, k + STEP), { stream: true }));
+      const tail = sd.decode();
+      if (tail) reader.push(tail);
+      if (copy) reader.push((raw.length && raw[raw.length - 1] !== 10 ? '\n' : '') + '\\.\n');
+    }
+    const result = reader.end();
+    result.info.archive = {
+      format: kind, version: head.vtext, compression: COMPRESSION[head.compression] || String(head.compression),
+      serverVersion: text(head.serverVersion), dumpVersion: text(head.dumpVersion),
+      entries: entries.length, dataBlocks, largeObjects: blocks.largeObjects, problems, skipped,
+    };
+    return result;
+  };
+})();
+</script>
 <script>/* DataBrief - format parsers. GPL-3.0-or-later.
  * Every parser returns { sections, fileMeta, notes }:
  *   sections: [{ name, columns: [{ name, meta }], rows: [[string]], noHeader?, comments?, caption?, hidden? }]
@@ -4349,12 +6026,14 @@ window.DB_I18N = {
     { key: 'sav', label: 'SPSS', exts: ['sav', 'zsav'] },
     { key: 'parquet', label: 'Parquet', exts: ['parquet', 'pq'] },
     { key: 'sqlite', label: 'SQLite', exts: ['sqlite', 'sqlite3', 'db', 'db3'] },
+    { key: 'sql', label: 'SQL', exts: ['sql'] },
+    { key: 'pgdump', label: 'pg_dump', exts: ['dump', 'backup', 'pgdump', 'tar'] },
   ];
   const FORMAT_NAMES = {
     csv: 'CSV', tsv: 'TSV', txt: 'TXT (CSV)', xlsx: 'Excel (XLSX)', xlsm: 'Excel (XLSM)',
     xls: 'Excel 97-2003 (XLS)', ods: 'OpenDocument (ODS)', json: 'JSON', ndjson: 'NDJSON / JSON Lines',
     xml: 'XML', yaml: 'YAML', html: 'HTML', sav: 'SPSS Statistics (.sav)', zsav: 'SPSS Statistics (.zsav)',
-    parquet: 'Apache Parquet', sqlite: 'SQLite',
+    parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)',
   };
   DB.ACCEPT = DB.FORMATS.flatMap((f) => f.exts.map((e) => '.' + e)).join(',');
 
@@ -4368,6 +6047,7 @@ window.DB_I18N = {
     if (u8.length >= 4 && (s(0, 4) === '$FL2' || s(0, 4) === '$FL3')) return 'sav';
     if (u8.length >= 8 && u8[0] === 0xd0 && u8[1] === 0xcf && u8[2] === 0x11 && u8[3] === 0xe0) return 'xls';
     if (u8.length >= 4 && u8[0] === 0x50 && u8[1] === 0x4b && u8[2] === 0x03 && u8[3] === 0x04) return 'zip';
+    if (DB.isPgArchive && DB.isPgArchive(u8)) return 'pgdump';
     return null;
   }
 
@@ -4707,6 +6387,61 @@ window.DB_I18N = {
     }
   }
 
+  /* ---------- SQL dumps (sqldump.js) and PostgreSQL archives (pgarchive.js) ---------- */
+  DB.SQL_MAX_ROWS = 250000; // rows kept per table: a dump can hold millions; the row counts stay exact
+  // Statements worth telling the user about (their text is never read); the others (SET, GRANT ...) are noise.
+  const SQL_NOT_READ = ['function', 'procedure', 'trigger', 'event', 'package', 'insert select', 'table without columns', 'copy to'];
+
+  /* The kind of a column from its SQL type: used when no row was read (a dump of the structure only). */
+  function typeFromSql(sqlType) {
+    let t = String(sqlType || '').toLowerCase().trim();
+    for (let i = 0; i < 4; i++) { const m = /^(nullable|lowcardinality)\((.*)\)$/.exec(t); if (!m) break; t = m[2]; }
+    t = t.replace(/^"?[\w$]+"?\./, '');
+    if (/^(bool|boolean)\b|^tinyint\(1\)|^bit\(1\)|^bit$/.test(t)) return 'boolean';
+    if (/^(u?int\d*|tinyint|smallint|mediumint|bigint|integer|serial|bigserial|smallserial|number\(\d+\))\b/.test(t) && !/^number\(\d+\s*,/.test(t)) return 'integer';
+    if (/^(numeric|decimal\d*|dec|number|float\d*|double|real|money|smallmoney|binary_float|binary_double)\b/.test(t)) return 'decimal';
+    if (/^(timestamp|datetime|smalldatetime|datetimeoffset)/.test(t)) return 'datetime';
+    if (/^date(32)?\b/.test(t)) return 'date';
+    if (/^time\b|^timetz|^time\(/.test(t)) return 'time';
+    return 'text';
+  }
+  function sqlDocument(r, lead) {
+    const info = r.info;
+    const meta = [['mDialect', r.dialectName]].concat(lead || []);
+    for (const [k, v] of r.fileMeta || []) meta.push([k, v]);
+    const a = info.archive;
+    if (a && a.skipped && a.skipped.length) meta.push(['mSkipped', a.skipped.map((x) => '`' + x + '`').join(', ')]);
+    if (info.externalFiles.length) meta.push(['mExternal', info.externalFiles.map((x) => '`' + x + '`').join(', ')]);
+    const notRead = SQL_NOT_READ.filter((k) => info.ignored[k]).map((k) => k + ' ×' + info.ignored[k]);
+    const bad = Object.values(info.errors).reduce((x, y) => x + y, 0);
+    if (bad) notRead.push('unreadable statements ×' + bad);
+    if (notRead.length) meta.push(['mIgnored', notRead.join(', ')]);
+    if (info.truncated) meta.push(['mRowsCut', String(DB.SQL_MAX_ROWS)]);
+    return { sections: r.sections, views: r.views, fileMeta: meta, notes: {} };
+  }
+  function parseSqlFile(buf, ext) {
+    const { text, encoding } = DB.decodeText(buf);
+    if (text.slice(0, 4096).includes('\u0000')) throw new UserError('errCorrupt', { ext: ext ? '.' + ext : '?' });
+    const chunks = [];
+    for (let i = 0; i < text.length; i += 1 << 20) chunks.push(text.slice(i, i + (1 << 20)));
+    return sqlDocument(DB.parseSqlDump(chunks, { maxRows: DB.SQL_MAX_ROWS }), [['mEncoding', encoding]]);
+  }
+  function parsePgFile(buf) {
+    let r;
+    try {
+      r = DB.parsePgArchive(new Uint8Array(buf), { maxRows: DB.SQL_MAX_ROWS });
+    } catch (e) {
+      if (e && e.code === 'pgArchiveVersion') throw new UserError('errPgVersion');
+      if (e && e.code === 'pgArchiveCompression') throw new UserError('errPgCompression');
+      throw new UserError('errPgCorrupt', {}, e && e.code ? e.message : '');
+    }
+    const a = r.info.archive;
+    const num = (s) => (/^[\d.]+/.exec(s) || [''])[0];
+    const text = a.format + ' archive ' + a.version + ' · ' + a.compression + (num(a.dumpVersion) ? ' · pg_dump ' + num(a.dumpVersion) : '') +
+      (num(a.serverVersion) ? ' · PostgreSQL ' + num(a.serverVersion) : '');
+    return sqlDocument(r, [['mArchive', text]]);
+  }
+
   /* ---------- Parquet (hyparquet) ---------- */
   function lz4RawDecompress(input, outputLength) {
     const out = new Uint8Array(outputLength);
@@ -4873,6 +6608,12 @@ window.DB_I18N = {
         else if (/^[[{]/.test(sample)) kind = 'json';
         else if (kind !== 'xls') throw new UserError('errCorrupt', { ext: '.' + ext });
       }
+      // A ".dump" / ".tar" that is not a PostgreSQL archive: often a plain SQL text dump with that name
+      if (kind === 'pgdump') {
+        const sample = DB.decodeText(u8.subarray(0, 4096)).text;
+        if (sample.slice(0, 1024).includes('\u0000') || !/\b(CREATE|INSERT|COPY|ALTER|DROP|SET|BEGIN)\b|^--/im.test(sample)) throw new UserError('errCorrupt', { ext: '.' + ext });
+        kind = 'sql';
+      }
     }
     let res;
     switch (kind) {
@@ -4883,13 +6624,15 @@ window.DB_I18N = {
       case 'xml': res = parseXml(buf); break;
       case 'html': res = parseHtml(buf); break;
       case 'sqlite': res = await parseSqlite(buf); break;
+      case 'sql': res = parseSqlFile(buf, ext); break;
+      case 'pgdump': res = parsePgFile(buf); break;
       case 'parquet': res = await parseParquet(buf, ext, fileName); break;
       case 'sav': res = DB.parseSav(buf); res.sections[0].name = baseOf(fileName); break;
       default: throw new UserError('errUnsupported', { ext: '.' + ext });
     }
     const formatKey = kind === 'sav' && ext === 'zsav' ? 'zsav' : kind;
     const sectionKind = ['xlsx', 'xlsm', 'xls', 'ods'].includes(kind) ? 'sheets'
-      : ['html', 'sqlite'].includes(kind) ? 'tables' : 'records';
+      : ['html', 'sqlite', 'sql', 'pgdump'].includes(kind) ? 'tables' : 'records';
     return finalize(Object.assign(res, {
       fileName, fileSize: u8.length, formatKey, formatName: FORMAT_NAMES[formatKey] || kind.toUpperCase(), sectionKind,
     }));
@@ -4897,9 +6640,13 @@ window.DB_I18N = {
 
   function finalize(doc) {
     doc.sections = doc.sections.filter((s) => s && s.columns);
+    const fromSql = doc.formatKey === 'sql' || doc.formatKey === 'pgdump';
     for (const s of doc.sections) {
       s.columns.forEach((c, i) => { c.type = DB.detectColumnType(s.rows, i); });
-      s.totalRows = s.rows.length;
+      // A dump of the structure only (or whose data is in other files): no row was read, the SQL type tells the kind
+      if (fromSql && !s.rows.length) s.columns.forEach((c) => { c.type = typeFromSql(c.meta && c.meta.sqlType); });
+      // The rows read can be fewer than the rows of the table (a large dump): the true count is kept
+      s.totalRows = typeof s.rowsTotal === 'number' && s.rowsTotal > s.rows.length ? s.rowsTotal : s.rows.length;
       // A guessed header over columns that are all text may well be the first record (a file without header row)
       s.headerWeak = !!s.headerGuessed && s.columns.length > 0 && s.columns.every((c) => c.type === 'text' || c.type === 'empty');
     }
@@ -4976,9 +6723,10 @@ window.DB_I18N = {
 
   /* In 'files' mode the data goes in separate CSV files: the prompt only shows a short sample. */
   function sectionView(sec, opts) {
-    const total = sec.rows.length;
+    const avail = sec.rows.length;                          // the rows that were read
+    const total = Math.max(avail, sec.totalRows || 0);      // the rows of the table (a large SQL dump is read only in part)
     const files = opts.mode === 'files';
-    const shown = files ? Math.min(opts.sample || 5, total) : opts.limit && total > opts.limit ? opts.limit : total;
+    const shown = files ? Math.min(opts.sample || 5, avail) : opts.limit && avail > opts.limit ? opts.limit : avail;
     let layout = opts.layout;
     if (layout === 'auto') layout = shown <= 100 && sec.columns.length <= 12 ? 'table' : 'csv';
     return { sec, shown, total, layout, partial: !files && shown < total };
@@ -5276,6 +7024,7 @@ window.DB_I18N = {
       b.lock('\n');
       if (files) { b.lock('**'); say('file', 'file@' + i); b.lock(':** `' + fileNames[i] + '`\n'); }
       if (s.caption) { b.lock('\n**'); say('caption', 'caption@' + i); b.lock(':** ' + s.caption + '\n'); }
+      if (s.description) { b.lock('\n**'); say('tblDescription', 'tblDescription@' + i); b.lock(':** ' + s.description.replace(/\s*\n\s*/g, ' ') + '\n'); }
       b.lock('\n');
       if (s.columns.length) b.lock(columnsTable(s, t) + '\n\n');
       if (s.constraints) b.lock(constraintsText(s.constraints, t));
@@ -5303,6 +7052,7 @@ window.DB_I18N = {
     // Optional profile of every column (statistics from all the rows)
     if (opts.profile && DB.getProfile) {
       line('## ', 'profTitle'); b.lock('\n'); say('profIntro'); b.lock('\n\n');
+      if (DB.getProfile(doc).some((p) => p.partial)) { say('profPartial', null, { n: N(DB.SQL_MAX_ROWS) }); b.lock('\n\n'); }
       b.lock(profileText(DB.getProfile(doc), t));
     }
 
@@ -5424,6 +7174,8 @@ window.DB_I18N = {
       if (s.hidden) { b.lock(' · '); say('hidden'); }
       b.lock('\n');
       if (s.caption && sw.labels && sw.names) { b.lock('\n**'); say('caption'); b.lock(':** ' + s.caption + '\n'); }
+      // A table comment is free text written by people (like a file label): only when the user allows free text
+      if (s.description && sw.text) { b.lock('\n**'); say('tblDescription'); b.lock(':** ' + s.description.replace(/\s*\n\s*/g, ' ') + '\n'); }
       b.lock('\n');
       if (s.columns.length) {
         const cols = s.columns.map((c) => {
@@ -5432,6 +7184,9 @@ window.DB_I18N = {
           // Struct field names are names too: when names are not shared, the type without them is used
           if (!sw.names && meta.parquetTypeAnon) meta.parquetType = meta.parquetTypeAnon;
           delete meta.parquetTypeAnon;
+          // A type name chosen by people (a PostgreSQL enum or domain) is a name: replaced when names are not shared
+          if (!sw.names && meta.sqlTypeAnon) meta.sqlType = meta.sqlTypeAnon;
+          delete meta.sqlTypeAnon;
           if (c.keyInfo) {
             meta.key = [c.keyInfo.pk ? { key: 'pk' } : null]
               .concat(c.keyInfo.refs.map((r) => '→ `' + S(r.table) + '.' + (r.col ? C(r.table, r.col) : '?') + '`')).filter(Boolean);
@@ -5485,6 +7240,7 @@ window.DB_I18N = {
     // Statistics: counts at level 2, summaries at level 3 (small groups and small tables hidden)
     if (level >= 2) {
       line('## ', 'nsContextTitle'); b.lock('\n'); say(level >= 3 ? 'nsContextL3' : 'nsContextL2'); b.lock('\n\n');
+      if (ns.sections.some((s) => s.profile && s.profile.partial)) { say('profPartial', { n: N(DB.SQL_MAX_ROWS) }); b.lock('\n\n'); }
       const KIND = { identifier: 'kindIdentifier', categorical: 'kindCategorical', continuous: 'kindContinuous', datetime: 'kindDatetime',
         text: 'kindText', empty: 'kindEmpty', mixed: 'kindMixed' };
       const pct = (x) => (x >= 10 ? Math.round(x) : Math.round(x * 10) / 10) + '%';
@@ -5648,8 +7404,8 @@ window.DB_I18N = {
   const chips = $('chips');
   // One card per family of formats (what is read / the best file / good to know), opened by clicking a format.
   const CARD = { csv: 'Csv', tsv: 'Csv', txt: 'Csv', xlsx: 'Excel', xlsm: 'Excel', xls: 'Excel', ods: 'Excel', json: 'Json', ndjson: 'Json',
-    xml: 'Xml', yaml: 'Yaml', html: 'Html', sav: 'Spss', parquet: 'Parquet', sqlite: 'Sqlite' };
-  const GUIDE = { Csv: 'csv', Excel: 'excel', Json: 'json', Xml: 'xml', Yaml: 'yaml', Html: 'html', Spss: 'spss', Parquet: 'parquet', Sqlite: 'sqlite' };
+    xml: 'Xml', yaml: 'Yaml', html: 'Html', sav: 'Spss', parquet: 'Parquet', sqlite: 'Sqlite', sql: 'Sql', pgdump: 'Pgdump' };
+  const GUIDE = { Csv: 'csv', Excel: 'excel', Json: 'json', Xml: 'xml', Yaml: 'yaml', Html: 'html', Spss: 'spss', Parquet: 'parquet', Sqlite: 'sqlite', Sql: 'sql', Pgdump: 'pgdump' };
   function openCard(f) {
     const k = CARD[f.key];
     $('fmtTitle').textContent = (f.key === 'sav' ? 'SPSS .sav / .zsav' : f.label) + ' · ' + f.exts.map((e) => '.' + e).join(' ');
@@ -5658,7 +7414,7 @@ window.DB_I18N = {
     $('fmtGood').textContent = tu('fc' + k + 'Good');
     $('fmtGuide').setAttribute('href', 'https://github.com/Arfo-du-blo/DataBrief/blob/main/docs/formats/' + GUIDE[k] + '.md');
     const dlg = $('fmtDialog');
-    dlg.classList.toggle('wide', ['Excel', 'Json', 'Xml', 'Spss', 'Parquet', 'Sqlite'].includes(k)); // the complex formats get a larger card
+    dlg.classList.toggle('wide', ['Excel', 'Json', 'Xml', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump'].includes(k)); // the complex formats get a larger card
     if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
   }
   for (const f of DB.FORMATS) {
@@ -5979,7 +7735,7 @@ window.DB_I18N = {
   function renderResult() {
     const d = state.doc || state.ns;
     if (!d) return;
-    const rowsOf = (s) => (typeof s.rows === 'number' ? s.rows : s.rows.length); // the no-share copy keeps counts only
+    const rowsOf = (s) => (typeof s.rows === 'number' ? s.rows : (s.totalRows || s.rows.length)); // the no-share copy keeps counts only; a large SQL dump is read in part
     const fmtDef = DB.FORMATS.find((f) => f.key === d.formatKey || (d.formatKey === 'zsav' && f.key === 'sav'));
     $('fileName').textContent = d.fileName;
     $('fileSub').textContent = d.formatName + ' · ' + DB.fmtBytes(d.fileSize);

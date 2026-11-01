@@ -593,7 +593,7 @@ For settings that are **not locked**, a link can choose them: `?lang=fr`, `?prom
   columns, the data and the closing line. The token estimate updates live. When a setting change would regenerate
   text you edited, DataBrief asks **Keep my text** or **Regenerate**. Each data mode keeps its own edits.
 - **View formatted:** the prompt rendered as a document (headings, bold, tables…) in a large window.
-- **Relationships between tables or sheets:** declared ones (SQLite foreign keys, composite and self-referencing keys,
+- **Relationships between tables or sheets:** declared ones (SQLite and SQL dump foreign keys, composite and self-referencing keys,
   one-to-one, junction tables as many-to-many) and **inferred candidates** for files that declare none: the column names
   must correspond, the parent column must be unique and the values must agree. Inferred relationships are always
   labelled as candidates to validate, with their evidence; a name alone is never enough.
@@ -625,6 +625,8 @@ how to export it, and its limits.
 | Statistics | SPSS `.sav` and `.zsav` | [SPSS](docs/formats/spss.md) |
 | Data engineering | Parquet | [Parquet](docs/formats/parquet.md) |
 | Databases | SQLite (`.db`, `.sqlite`, `.sqlite3`; **all tables**) | [SQLite](docs/formats/sqlite.md) |
+| | **SQL dumps** (`.sql`: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite, ClickHouse; read as text, never executed) | [SQL dumps](docs/formats/sql.md) |
+| | **PostgreSQL archives** (`pg_dump -Fc` and `-Ft`, gzip, lz4 or zstd) | [PostgreSQL archives](docs/formats/pgdump.md) |
 
 When a file holds several sheets or tables, each one becomes its own section, and the AI is told that they are separate.
 
@@ -633,6 +635,7 @@ When a file holds several sheets or tables, each one becomes its own section, an
 | Format | Beyond the values |
 |---|---|
 | SPSS | variable labels, **value labels** (`1 = Male`, shown as words in the data), type and format, measurement level, missing-value definitions, file label, notes |
+| SQL dumps, PostgreSQL archives | the same structure as SQLite (types, keys, **foreign keys** read from `CREATE TABLE` or `ALTER TABLE`, indexes, views, **relationships**), plus comments, enum labels, the dialect, and what was not read; the rows from `INSERT` and `COPY` |
 | SQLite | types, primary keys (in order), **foreign keys** (composite, with `ON DELETE`), unique constraints, indexes, `CREATE TABLE`, views with their SQL, **relationships**, generated columns, exact 64-bit integers |
 | Parquet | the **type of every nested field** (`STRUCT`, `LIST`, `MAP`), required fields, decimals, timestamp units, pandas metadata, row groups, compression |
 | Excel / ODS | sheet names, hidden sheets, cell comments, **merged cells, hidden rows and columns, defined names**, the number of formulas (those without a stored result are counted, not lost) |
@@ -708,6 +711,7 @@ src/
   config.js                   settings: config block, URL parameters, locks
   util.js                     type detection, flattening, CSV parsing, token estimate
   parsers.js                  format detection and readers (CSV…SQLite)
+  sqldump.js, pgarchive.js    the SQL dump reader (text, streaming, never executes) and the PostgreSQL archive reader
   relationships.js            declared and inferred relationships between sections
   profile.js                  the data profile (statistics of every column; on by default, can be switched off)
   noshare.js                  "Do not share data": the record-free copy of a file
@@ -780,7 +784,7 @@ powershell -ExecutionPolicy Bypass -File tests\test_powershell.ps1   # PowerShel
   review. Also the privacy demo (`test_privacy_demo.cjs`): the tampered copy leaks only the file name, the blocked
   copy triggers a CSP violation, and the navigation copy shows what a policy cannot stop.
 - **Firefox** (`test_firefox.cjs`, run by `run.sh` when Firefox is installed): every reader (including the WebAssembly
-  SQLite one), the interface (dialogs, right-to-left, editing), "Do not share data" with its canaries, and zero requests.
+  SQLite one), SQL dumps and PostgreSQL archives (real dumps of six engines), the interface (dialogs, right-to-left, editing), "Do not share data" with its canaries, and zero requests.
 - **On every push** (`.github/workflows/tests.yml`): browser and server tests on Linux, the PowerShell server on Windows,
   and a check that the committed `databrief.html` is exactly what `build.ps1` produces. The Docker and ESP32 suites run
   on version tags and on demand.

@@ -15,7 +15,7 @@
   // File metadata that is free text written by people (it may hold anything): shown only when the user allows it.
   const FREE_TEXT_META = new Set(['mFileLabel', 'mDocs', 'mEmbedded']);
   // File metadata made of names: hidden when names are replaced. Embedded pandas / Spark metadata lists the columns.
-  const NAME_META = new Set(['mViews', 'mSkipped', 'mNames', 'mRoot', 'mWeight', 'mEmbedded']);
+  const NAME_META = new Set(['mViews', 'mSkipped', 'mNames', 'mRoot', 'mWeight', 'mEmbedded', 'mExternal']);
   const copy = (v) => (v == null ? v : JSON.parse(JSON.stringify(v)));
   const baseOf = (name) => (name || 'data').replace(/\.[^.]+$/, '') || 'data';
   // Excel defined names: keep only references to cells ("Sheet!$A$1:$B$9"), not constants (="Smith" is a value).
@@ -66,7 +66,7 @@
       });
       const si = s.sheetInfo;
       return {
-        name: s.name, rows: s.rows.length, hidden: !!s.hidden, caption: s.caption || '', columns,
+        name: s.name, rows: s.totalRows || s.rows.length, hidden: !!s.hidden, caption: s.caption || '', description: s.description || '', columns,
         fromFile: s.name === fileBase,                                   // a section named after the file
         nameIsText: ['caption', 'label', 'summary'].includes(s.nameFrom), // an HTML table named by its caption
         headerWeak: !!s.headerWeak,                                      // the column names may be the first record
@@ -88,7 +88,7 @@
       hadInferred: (doc.relationships || []).some((r) => r.source === 'inferred'),
       hasLabels: sections.some((s) => s.caption || s.columns.some((c) => c.meta.label || c.meta.values)),
       hasSql: views.length > 0 || sections.some((s) => s.constraints && s.constraints.ddl),
-      hasFreeText: sections.some((s) => s.comments.length) || fileMeta.some((m) => m.freeText),
+      hasFreeText: sections.some((s) => s.comments.length || s.description) || fileMeta.some((m) => m.freeText),
     };
   };
 

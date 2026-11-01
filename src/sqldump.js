@@ -505,6 +505,28 @@
     parts.push([from, b]);
     return parts;
   }
+  /* Words of built-in SQL types (all dialects). Any other name in a type is a name chosen by people (a PostgreSQL enum or
+     domain, an Oracle object type): the "Do not share data" mode replaces it (meta.sqlTypeAnon) when names are hidden. */
+  const BUILTIN_TYPE = new Set(('INT INTEGER BIGINT SMALLINT TINYINT MEDIUMINT SERIAL BIGSERIAL SMALLSERIAL INT1 INT2 INT4 INT8 INT16 INT32 INT64 INT128 INT256 ' +
+    'UINT UINT8 UINT16 UINT32 UINT64 UINT128 UINT256 NUMERIC DECIMAL DEC NUMBER FLOAT FLOAT4 FLOAT8 FLOAT32 FLOAT64 DOUBLE PRECISION REAL MONEY SMALLMONEY ' +
+    'DECIMAL32 DECIMAL64 DECIMAL128 DECIMAL256 BINARY_FLOAT BINARY_DOUBLE CHAR CHARACTER VARCHAR VARCHAR2 NVARCHAR NVARCHAR2 NCHAR VARYING NATIONAL TEXT TINYTEXT ' +
+    'MEDIUMTEXT LONGTEXT NTEXT CLOB NCLOB BLOB TINYBLOB MEDIUMBLOB LONGBLOB BYTEA BINARY VARBINARY IMAGE RAW LONG BIT BOOL BOOLEAN DATE DATE32 TIME TIMESTAMP ' +
+    'TIMESTAMPTZ TIMETZ DATETIME DATETIME2 DATETIME64 DATETIMEOFFSET SMALLDATETIME INTERVAL YEAR MONTH DAY HOUR MINUTE SECOND TO WITH WITHOUT ZONE LOCAL UUID ' +
+    'UNIQUEIDENTIFIER JSON JSONB XML ENUM ENUM8 ENUM16 SET ARRAY GEOMETRY GEOGRAPHY POINT LINE LSEG BOX PATH POLYGON CIRCLE INET CIDR MACADDR MACADDR8 TSVECTOR ' +
+    'TSQUERY OID ROWID UROWID BFILE STRING FIXEDSTRING LOWCARDINALITY NULLABLE MAP TUPLE NESTED IPV4 IPV6 AGGREGATEFUNCTION SIMPLEAGGREGATEFUNCTION UNSIGNED ' +
+    'SIGNED ZEROFILL SQL_VARIANT HIERARCHYID ROWVERSION MAX …').split(' '));
+  function anonType(type, lex) {
+    const t = tokenize(type, lex, false).toks;
+    let out = '', at = 0;
+    for (let k = 0; k < t.length; k++) {
+      const x = t[k];
+      if (!((x.k === 'w' && !BUILTIN_TYPE.has(x.u)) || x.k === 'i' || x.k === 'd')) continue;
+      let e = k;
+      while (t[e + 1] && t[e + 1].k === 'p' && t[e + 1].v === '.' && t[e + 2] && (t[e + 2].k === 'w' || t[e + 2].k === 'i' || t[e + 2].k === 'd')) e += 2;
+      out += type.slice(at, x.s) + 'custom_type'; at = t[e].e; k = e;
+    }
+    return out + type.slice(at);
+  }
   const NOVAL = {};
   function evalExpr(st, a, b) {
     const t = st.toks;
@@ -909,6 +931,7 @@
         if (en) col.values = en.join(', ');
       }
       col.sqlType = type;
+      col.sqlTypeAnon = anonType(type, this.lex);
     }
     skipExpr(c, b) {
       let d = 0, moved = false;
@@ -1141,6 +1164,7 @@
           for (const f of fks) { const i = f.from.indexOf(col.name); if (i >= 0) arrows.push('→ `' + f.table + '.' + (f.to[i] || '?') + '`'); }
           const key = [t.pk.includes(col.name) ? { key: 'pk' } : null].concat(arrows).filter(Boolean);
           const meta = { sqlType: col.sqlType, key, notNull: col.notNull ? { key: 'yes' } : '' };
+          if (col.sqlTypeAnon && col.sqlTypeAnon !== col.sqlType) meta.sqlTypeAnon = col.sqlTypeAnon;
           if (col.generated) meta.generated = { key: col.generated === 'stored' ? 'genStored' : 'genVirtual' };
           if (col.comment) meta.label = col.comment;
           if (col.values) meta.values = col.values;

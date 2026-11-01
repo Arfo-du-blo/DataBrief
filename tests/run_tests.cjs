@@ -473,6 +473,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       { f: 'json.json' }, { f: 'ndjson.ndjson' }, { f: 'yaml.yaml' }, { f: 'xml.xml' }, { f: 'html.html', cap: true },
       { f: 'sav.sav', txt: true, lab: true }, { f: 'zsav.zsav', txt: true, lab: true },
       { f: 'parquet.parquet', txt: true }, { f: 'sqlite.sqlite', sql: true },
+      { f: 'sql.sql', txt: true, lab: true, sql: true }, { f: 'pgdump.dump', txt: true, lab: true, sql: true },
     ];
     const checks = [];
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
@@ -557,7 +558,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     {
       const p = await newPage();
       ok(await p.evaluate(() => document.getElementById('nsOn').offsetParent === null), '8: switch must not be visible before a file is read');
-      ok(await p.evaluate(() => document.getElementById('chips').children.length === 15 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
+      ok(await p.evaluate(() => document.getElementById('chips').children.length === 17 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
       const r0 = await load(p, F('confidential.csv'));
       ok(r0.md.includes('CONFIDENTIAL_CUSTOMER_74291') && await p.evaluate(() => document.getElementById('nsOn').offsetParent !== null && !document.getElementById('nsOn').checked), '8: after loading: data included, switch visible and off');
       const order = await p.evaluate(() => ['secSummary', 'secShare', 'secOutput'].map((id) => document.getElementById(id).getBoundingClientRect().top));
@@ -662,7 +663,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
     const page = await newPage();
     const chips = await page.$$eval('#chips button.chip', (els) => els.length);
-    if (chips !== 15) checks.push('expected 15 clickable formats, got ' + chips);
+    if (chips !== 17) checks.push('expected 17 clickable formats, got ' + chips);
     for (let i = 0; i < chips; i++) {
       await page.evaluate((n) => document.querySelectorAll('#chips button.chip')[n].click(), i); await wait(60);
       const r = await page.evaluate(() => ({
@@ -676,12 +677,12 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     // every card in every language, with the guide link
     const miss = await page.evaluate(() => {
       const I = window.DB_I18N, out = [];
-      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
+      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
       return out;
     });
     if (miss.length) checks.push('missing card texts: ' + miss.join(','));
     // the guides the cards link to exist in the repository
-    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite']) {
+    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump']) {
       if (!fs.existsSync(path.join(path.dirname(htmlPath), 'docs', 'formats', g + '.md'))) checks.push('guide docs/formats/' + g + '.md is missing');
     }
     // "what was found"
@@ -690,7 +691,113 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     if (found !== 'Found: 7 sections · 16 columns · 5 relationships (0 declared, 5 inferred)') checks.push('found line: ' + found);
     await page.close();
     if (checks.length) fail('format cards', checks.join(' | '));
-    else pass('format cards', '15 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
+    else pass('format cards', '17 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
+  }
+
+  // ---------- SQL dumps and PostgreSQL archives (real dumps of tests/sql-fixtures) ----------
+  {
+    const checks = [];
+    const bad = (m) => checks.push(m);
+    const wait = (ms) => new Promise((res) => setTimeout(res, ms || 200));
+    const docOf = (p) => p.evaluate(() => {
+      const d = window.DataBrief.getState().doc;
+      return d && { key: d.formatKey, name: d.formatName, kind: d.sectionKind, secs: d.sections.map((s) => ({ n: s.name, rows: s.rows.length, total: s.totalRows, types: s.columns.map((c) => c.type) })),
+        declared: (d.relationships || []).filter((r) => r.source === 'declared').length };
+    });
+    const sec = (d, n) => d.secs.find((s) => s.n === n);
+    const stat = (p, id) => p.$eval('#' + id, (el) => el.textContent);
+
+    // a text dump
+    let p = await newPage();
+    let r = await load(p, F('pg16-default.sql'));
+    let d = r.ok && await docOf(p);
+    if (!d || d.key !== 'sql' || d.name !== 'SQL dump' || d.kind !== 'tables' || d.secs.length !== 8 || sec(d, 'customers').rows !== 6 || d.declared !== 7) bad('pg16-default.sql: ' + JSON.stringify(d || r.err));
+    if (r.ok && !(r.md.includes('**SQL dialect:** PostgreSQL') && r.md.includes('many to many') && r.md.includes('Free text written by the sales team') &&
+      r.md.includes('People who bought something') && r.md.includes('Bob O\'Brien'))) bad('pg16-default.sql: the prompt misses the dialect, the relationships, the comments or a value');
+    if (r.ok && (await stat(p, 'stFormat')) !== 'SQL') bad('format stat: ' + (await stat(p, 'stFormat')));
+    await p.close();
+
+    // a binary archive, zstd, recognised by its content under any name
+    fs.copyFileSync(F('pg17-custom-zstd.dump'), path.join(outDir, 'renamed.bin'));
+    p = await newPage();
+    r = await load(p, path.join(outDir, 'renamed.bin'));
+    d = r.ok && await docOf(p);
+    if (!d || d.key !== 'pgdump' || d.name !== 'PostgreSQL archive (pg_dump)' || d.secs.length !== 8 || sec(d, 'orders').rows !== 5) bad('zstd archive named .bin: ' + JSON.stringify(d || r.err));
+    if (r.ok && !r.md.includes('custom archive 1.16.0 · zstd · pg_dump 17.11 · PostgreSQL 17.11')) bad('archive line missing');
+    await p.close();
+
+    // a dump of the structure only: no row, the column kinds come from the SQL types
+    p = await newPage();
+    r = await load(p, F('pg16-schema-only.sql'));
+    d = r.ok && await docOf(p);
+    const cu = d && sec(d, 'customers');
+    if (!cu || cu.rows !== 0 || cu.types[0] !== 'integer' || cu.types[4] !== 'datetime' || cu.types[1] !== 'text') bad('schema-only: column kinds ' + JSON.stringify(cu || r.err));
+    if (r.ok && !r.md.includes('| `id` | integer |')) bad('schema-only: the column table should show the kind from the SQL type');
+    await p.close();
+
+    // a cut archive: a clear message (nothing technical)
+    fs.writeFileSync(path.join(outDir, 'cut.dump'), fs.readFileSync(F('pg16-custom.dump')).subarray(0, 400));
+    p = await newPage();
+    r = await load(p, path.join(outDir, 'cut.dump'));
+    if (r.ok || !r.err.includes('damaged or incomplete')) bad('cut archive: ' + JSON.stringify({ ok: r.ok, err: r.err }));
+    await p.close();
+
+    // a plain SQL text file named .dump (not an archive): read as SQL
+    fs.copyFileSync(F('pg16-default.sql'), path.join(outDir, 'plain.dump'));
+    p = await newPage();
+    r = await load(p, path.join(outDir, 'plain.dump'));
+    d = r.ok && await docOf(p);
+    if (!d || d.key !== 'sql' || d.secs.length !== 8) bad('plain text named .dump: ' + JSON.stringify(d || r.err));
+    await p.close();
+
+    // a binary file named .sql: refused, not shown as garbage
+    fs.writeFileSync(path.join(outDir, 'binary.sql'), Buffer.from(Array.from({ length: 3000 }, (_, i) => (i * 37) % 251)));
+    p = await newPage();
+    r = await load(p, path.join(outDir, 'binary.sql'));
+    if (r.ok) bad('a binary file named .sql should be refused');
+    await p.close();
+
+    // a large dump: only the first 250,000 rows of a table are kept, the counts and the notes tell it
+    const lines = ['CREATE TABLE big (id int PRIMARY KEY, name text, amount numeric(10,2));'];
+    for (let i = 0; i < 300; i++) {
+      const vals = [];
+      for (let j = i * 1000 + 1; j <= (i + 1) * 1000; j++) vals.push('(' + j + ",'name " + j + "'," + (j % 100) + '.50)');
+      lines.push('INSERT INTO big VALUES ' + vals.join(',') + ';');
+    }
+    fs.writeFileSync(path.join(outDir, 'big.sql'), lines.join('\n'));
+    p = await newPage();
+    r = await load(p, path.join(outDir, 'big.sql'));
+    d = r.ok && await docOf(p);
+    if (!d || sec(d, 'big').rows !== 250000 || sec(d, 'big').total !== 300000) bad('large dump: ' + JSON.stringify(d || r.err));
+    if (r.ok) {
+      if ((await stat(p, 'stRows')) !== '300,000') bad('large dump: the Rows stat should be 300,000, got ' + (await stat(p, 'stRows')));
+      if (!r.md.includes('300,000') || !r.md.includes('250000') || !r.md.includes('Some tables are larger than what was read')) bad('large dump: the prompt does not say that rows were cut');
+      await p.click('#nsOn'); await wait(500);
+      const ns = await p.evaluate(() => window.DataBrief.getMarkdown());
+      if (!ns.includes('300,000') || ns.includes('name 1,')) bad('large dump, no-share: the true row count is missing or a row leaked');
+    }
+    await p.evaluate(() => localStorage.clear());
+    await p.close();
+
+    // a DuckDB export (schema.sql + load.sql): the data is in other files, whose names come from the tables
+    const duckDir = path.join(__dirname, 'sql-fixtures', 'duckdb-export-csv');
+    fs.writeFileSync(path.join(outDir, 'duck.sql'), fs.readFileSync(path.join(duckDir, 'schema.sql'), 'utf8') + '\n' + fs.readFileSync(path.join(duckDir, 'load.sql'), 'utf8'));
+    p = await newPage();
+    r = await load(p, path.join(outDir, 'duck.sql'));
+    if (!r.ok || !r.md.includes('`customers.csv`') || !r.md.includes('Data stored in other files')) bad('duckdb export: the other files should be named (normal mode)');
+    if (r.ok) {
+      await p.click('#nsOn'); await wait(500);
+      let s = await p.evaluate(() => window.DataBrief.getMarkdown());
+      if (!s.includes('`customers.csv`')) bad('duckdb export, no-share: file names should be shown while names are shared (control)');
+      await p.evaluate(() => document.querySelector('[data-sw="names"]').click()); await wait(400);
+      s = await p.evaluate(() => window.DataBrief.getMarkdown());
+      if (s.includes('customers') || s.includes('.csv')) bad('duckdb export, no-share: file names derived from table names must be hidden with the names');
+    }
+    await p.evaluate(() => localStorage.clear());
+    await p.close();
+
+    if (checks.length) fail('SQL dumps and PostgreSQL archives', checks.join(' | '));
+    else pass('SQL dumps and PostgreSQL archives', 'text dump, zstd archive recognised by content, structure-only types, cut archive, .dump that is text, binary .sql, large dump cut at 250,000 rows');
   }
 
   // ---------- "Do not share data": the same promise in all 15 languages, and the strings are really translated ----------

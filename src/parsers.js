@@ -24,12 +24,14 @@
     { key: 'sav', label: 'SPSS', exts: ['sav', 'zsav'] },
     { key: 'parquet', label: 'Parquet', exts: ['parquet', 'pq'] },
     { key: 'sqlite', label: 'SQLite', exts: ['sqlite', 'sqlite3', 'db', 'db3'] },
+    { key: 'sql', label: 'SQL', exts: ['sql'] },
+    { key: 'pgdump', label: 'pg_dump', exts: ['dump', 'backup', 'pgdump', 'tar'] },
   ];
   const FORMAT_NAMES = {
     csv: 'CSV', tsv: 'TSV', txt: 'TXT (CSV)', xlsx: 'Excel (XLSX)', xlsm: 'Excel (XLSM)',
     xls: 'Excel 97-2003 (XLS)', ods: 'OpenDocument (ODS)', json: 'JSON', ndjson: 'NDJSON / JSON Lines',
     xml: 'XML', yaml: 'YAML', html: 'HTML', sav: 'SPSS Statistics (.sav)', zsav: 'SPSS Statistics (.zsav)',
-    parquet: 'Apache Parquet', sqlite: 'SQLite',
+    parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)',
   };
   DB.ACCEPT = DB.FORMATS.flatMap((f) => f.exts.map((e) => '.' + e)).join(',');
 
@@ -43,6 +45,7 @@
     if (u8.length >= 4 && (s(0, 4) === '$FL2' || s(0, 4) === '$FL3')) return 'sav';
     if (u8.length >= 8 && u8[0] === 0xd0 && u8[1] === 0xcf && u8[2] === 0x11 && u8[3] === 0xe0) return 'xls';
     if (u8.length >= 4 && u8[0] === 0x50 && u8[1] === 0x4b && u8[2] === 0x03 && u8[3] === 0x04) return 'zip';
+    if (DB.isPgArchive && DB.isPgArchive(u8)) return 'pgdump';
     return null;
   }
 
@@ -382,6 +385,61 @@
     }
   }
 
+  /* ---------- SQL dumps (sqldump.js) and PostgreSQL archives (pgarchive.js) ---------- */
+  DB.SQL_MAX_ROWS = 250000; // rows kept per table: a dump can hold millions; the row counts stay exact
+  // Statements worth telling the user about (their text is never read); the others (SET, GRANT ...) are noise.
+  const SQL_NOT_READ = ['function', 'procedure', 'trigger', 'event', 'package', 'insert select', 'table without columns', 'copy to'];
+
+  /* The kind of a column from its SQL type: used when no row was read (a dump of the structure only). */
+  function typeFromSql(sqlType) {
+    let t = String(sqlType || '').toLowerCase().trim();
+    for (let i = 0; i < 4; i++) { const m = /^(nullable|lowcardinality)\((.*)\)$/.exec(t); if (!m) break; t = m[2]; }
+    t = t.replace(/^"?[\w$]+"?\./, '');
+    if (/^(bool|boolean)\b|^tinyint\(1\)|^bit\(1\)|^bit$/.test(t)) return 'boolean';
+    if (/^(u?int\d*|tinyint|smallint|mediumint|bigint|integer|serial|bigserial|smallserial|number\(\d+\))\b/.test(t) && !/^number\(\d+\s*,/.test(t)) return 'integer';
+    if (/^(numeric|decimal\d*|dec|number|float\d*|double|real|money|smallmoney|binary_float|binary_double)\b/.test(t)) return 'decimal';
+    if (/^(timestamp|datetime|smalldatetime|datetimeoffset)/.test(t)) return 'datetime';
+    if (/^date(32)?\b/.test(t)) return 'date';
+    if (/^time\b|^timetz|^time\(/.test(t)) return 'time';
+    return 'text';
+  }
+  function sqlDocument(r, lead) {
+    const info = r.info;
+    const meta = [['mDialect', r.dialectName]].concat(lead || []);
+    for (const [k, v] of r.fileMeta || []) meta.push([k, v]);
+    const a = info.archive;
+    if (a && a.skipped && a.skipped.length) meta.push(['mSkipped', a.skipped.map((x) => '`' + x + '`').join(', ')]);
+    if (info.externalFiles.length) meta.push(['mExternal', info.externalFiles.map((x) => '`' + x + '`').join(', ')]);
+    const notRead = SQL_NOT_READ.filter((k) => info.ignored[k]).map((k) => k + ' ×' + info.ignored[k]);
+    const bad = Object.values(info.errors).reduce((x, y) => x + y, 0);
+    if (bad) notRead.push('unreadable statements ×' + bad);
+    if (notRead.length) meta.push(['mIgnored', notRead.join(', ')]);
+    if (info.truncated) meta.push(['mRowsCut', String(DB.SQL_MAX_ROWS)]);
+    return { sections: r.sections, views: r.views, fileMeta: meta, notes: {} };
+  }
+  function parseSqlFile(buf, ext) {
+    const { text, encoding } = DB.decodeText(buf);
+    if (text.slice(0, 4096).includes('\u0000')) throw new UserError('errCorrupt', { ext: ext ? '.' + ext : '?' });
+    const chunks = [];
+    for (let i = 0; i < text.length; i += 1 << 20) chunks.push(text.slice(i, i + (1 << 20)));
+    return sqlDocument(DB.parseSqlDump(chunks, { maxRows: DB.SQL_MAX_ROWS }), [['mEncoding', encoding]]);
+  }
+  function parsePgFile(buf) {
+    let r;
+    try {
+      r = DB.parsePgArchive(new Uint8Array(buf), { maxRows: DB.SQL_MAX_ROWS });
+    } catch (e) {
+      if (e && e.code === 'pgArchiveVersion') throw new UserError('errPgVersion');
+      if (e && e.code === 'pgArchiveCompression') throw new UserError('errPgCompression');
+      throw new UserError('errPgCorrupt', {}, e && e.code ? e.message : '');
+    }
+    const a = r.info.archive;
+    const num = (s) => (/^[\d.]+/.exec(s) || [''])[0];
+    const text = a.format + ' archive ' + a.version + ' · ' + a.compression + (num(a.dumpVersion) ? ' · pg_dump ' + num(a.dumpVersion) : '') +
+      (num(a.serverVersion) ? ' · PostgreSQL ' + num(a.serverVersion) : '');
+    return sqlDocument(r, [['mArchive', text]]);
+  }
+
   /* ---------- Parquet (hyparquet) ---------- */
   function lz4RawDecompress(input, outputLength) {
     const out = new Uint8Array(outputLength);
@@ -548,6 +606,12 @@
         else if (/^[[{]/.test(sample)) kind = 'json';
         else if (kind !== 'xls') throw new UserError('errCorrupt', { ext: '.' + ext });
       }
+      // A ".dump" / ".tar" that is not a PostgreSQL archive: often a plain SQL text dump with that name
+      if (kind === 'pgdump') {
+        const sample = DB.decodeText(u8.subarray(0, 4096)).text;
+        if (sample.slice(0, 1024).includes('\u0000') || !/\b(CREATE|INSERT|COPY|ALTER|DROP|SET|BEGIN)\b|^--/im.test(sample)) throw new UserError('errCorrupt', { ext: '.' + ext });
+        kind = 'sql';
+      }
     }
     let res;
     switch (kind) {
@@ -558,13 +622,15 @@
       case 'xml': res = parseXml(buf); break;
       case 'html': res = parseHtml(buf); break;
       case 'sqlite': res = await parseSqlite(buf); break;
+      case 'sql': res = parseSqlFile(buf, ext); break;
+      case 'pgdump': res = parsePgFile(buf); break;
       case 'parquet': res = await parseParquet(buf, ext, fileName); break;
       case 'sav': res = DB.parseSav(buf); res.sections[0].name = baseOf(fileName); break;
       default: throw new UserError('errUnsupported', { ext: '.' + ext });
     }
     const formatKey = kind === 'sav' && ext === 'zsav' ? 'zsav' : kind;
     const sectionKind = ['xlsx', 'xlsm', 'xls', 'ods'].includes(kind) ? 'sheets'
-      : ['html', 'sqlite'].includes(kind) ? 'tables' : 'records';
+      : ['html', 'sqlite', 'sql', 'pgdump'].includes(kind) ? 'tables' : 'records';
     return finalize(Object.assign(res, {
       fileName, fileSize: u8.length, formatKey, formatName: FORMAT_NAMES[formatKey] || kind.toUpperCase(), sectionKind,
     }));
@@ -572,9 +638,13 @@
 
   function finalize(doc) {
     doc.sections = doc.sections.filter((s) => s && s.columns);
+    const fromSql = doc.formatKey === 'sql' || doc.formatKey === 'pgdump';
     for (const s of doc.sections) {
       s.columns.forEach((c, i) => { c.type = DB.detectColumnType(s.rows, i); });
-      s.totalRows = s.rows.length;
+      // A dump of the structure only (or whose data is in other files): no row was read, the SQL type tells the kind
+      if (fromSql && !s.rows.length) s.columns.forEach((c) => { c.type = typeFromSql(c.meta && c.meta.sqlType); });
+      // The rows read can be fewer than the rows of the table (a large dump): the true count is kept
+      s.totalRows = typeof s.rowsTotal === 'number' && s.rowsTotal > s.rows.length ? s.rowsTotal : s.rows.length;
       // A guessed header over columns that are all text may well be the first record (a file without header row)
       s.headerWeak = !!s.headerGuessed && s.columns.length > 0 && s.columns.every((c) => c.type === 'text' || c.type === 'empty');
     }

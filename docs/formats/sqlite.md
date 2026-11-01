@@ -18,7 +18,7 @@ Files ending in `.sqlite`, `.sqlite3`, `.db` or `.db3` (recognised by their cont
 
 ## The best file to give
 
-- **The `.sqlite` / `.db` file itself.** For a database from another system (PostgreSQL, MySQL, SQL Server…), SQL dump support is planned for the next version; for now, export the tables you need to CSV or Parquet, or convert the database to SQLite.
+- **The `.sqlite` / `.db` file itself.** For a database from another system (PostgreSQL, MySQL, SQL Server…), give its [SQL dump](sql.md) (or a `pg_dump -Fc` [archive](pgdump.md)).
 
 ## How to get it
 
@@ -48,4 +48,4 @@ See [the guide to this mode](../no-share.md).
 
 ## See also
 
-[Excel](excel.md) · [Parquet](parquet.md) · [CSV](csv.md)
+[SQL dumps](sql.md) · [Excel](excel.md) · [Parquet](parquet.md) · [CSV](csv.md)

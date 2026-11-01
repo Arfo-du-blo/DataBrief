@@ -6,6 +6,7 @@ import datetime as dt
 import decimal
 import json
 import os
+import shutil
 import sqlite3
 import sys
 
@@ -364,6 +365,11 @@ ccon.executemany("INSERT INTO CONFIDENTIAL_COL_TABLE (CONFIDENTIAL_COL_A, CONFID
 ccon.commit()
 ccon.close()
 
+# --- SQL dump and PostgreSQL archive: REAL pg_dump output of a database full of canaries (tests/make_sql_fixtures.sh, src/canary-pg.sql) ---
+_canary = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sql-fixtures", "canary")
+shutil.copy(os.path.join(_canary, "pg16-canary.sql"), Q("sql", "sql"))
+shutil.copy(os.path.join(_canary, "pg16-canary.dump"), Q("pgdump", "dump"))
+
 # --- "Do not share data": the scenarios found by the independent review (stage 7), as regression fixtures ---
 with open(P("headerless.csv"), "w", encoding="utf-8", newline="") as f:   # no header row: the first record looks like one
     for i in range(6):
@@ -415,3 +421,9 @@ with open(P("fake.xlsx"), "w") as f:
     f.write("this is not a spreadsheet")
 
 print("fixtures written to", out)
+
+# --- the real SQL dumps and PostgreSQL archives of tests/sql-fixtures, so the browser tests can load them by name ---
+_sqlfix = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sql-fixtures")
+for _f in sorted(os.listdir(_sqlfix)):
+    if _f.endswith((".sql", ".dump", ".tar")) and os.path.isfile(os.path.join(_sqlfix, _f)):
+        shutil.copy(os.path.join(_sqlfix, _f), P(_f))

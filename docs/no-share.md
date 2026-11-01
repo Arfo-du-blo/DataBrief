@@ -69,7 +69,7 @@ This is not a hidden button or a text filter:
 4. A **separate prompt builder** receives that copy and nothing else. It cannot write a record: it never receives one.
 5. Copy, download, preview and the formatted view all use the same record-free prompt.
 
-The automated tests prove it with canary values placed in every format (CSV, Excel, JSON, XML, YAML, HTML, SPSS, Parquet, SQLite…): records, formula literals, free text, SQL literals, names, labels and file names are searched for in the prompt, the preview and the page state, at every level and for every switch; the same promise is checked in all 15 languages on a sample file. An independent review also tried to break the mode, and everything it found was fixed and covered by a test.
+The automated tests prove it with canary values placed in every format (CSV, Excel, JSON, XML, YAML, HTML, SPSS, Parquet, SQLite, SQL dumps, PostgreSQL archives…): records, formula literals, free text, SQL literals, names, labels and file names are searched for in the prompt, the preview and the page state, at every level and for every switch; the same promise is checked in all 15 languages on a sample file. An independent review also tried to break the mode, and everything it found was fixed and covered by a test.
 
 ## Team settings
 

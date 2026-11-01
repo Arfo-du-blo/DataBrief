@@ -64,9 +64,10 @@
 
   /* In 'files' mode the data goes in separate CSV files: the prompt only shows a short sample. */
   function sectionView(sec, opts) {
-    const total = sec.rows.length;
+    const avail = sec.rows.length;                          // the rows that were read
+    const total = Math.max(avail, sec.totalRows || 0);      // the rows of the table (a large SQL dump is read only in part)
     const files = opts.mode === 'files';
-    const shown = files ? Math.min(opts.sample || 5, total) : opts.limit && total > opts.limit ? opts.limit : total;
+    const shown = files ? Math.min(opts.sample || 5, avail) : opts.limit && avail > opts.limit ? opts.limit : avail;
     let layout = opts.layout;
     if (layout === 'auto') layout = shown <= 100 && sec.columns.length <= 12 ? 'table' : 'csv';
     return { sec, shown, total, layout, partial: !files && shown < total };
@@ -364,6 +365,7 @@
       b.lock('\n');
       if (files) { b.lock('**'); say('file', 'file@' + i); b.lock(':** `' + fileNames[i] + '`\n'); }
       if (s.caption) { b.lock('\n**'); say('caption', 'caption@' + i); b.lock(':** ' + s.caption + '\n'); }
+      if (s.description) { b.lock('\n**'); say('tblDescription', 'tblDescription@' + i); b.lock(':** ' + s.description.replace(/\s*\n\s*/g, ' ') + '\n'); }
       b.lock('\n');
       if (s.columns.length) b.lock(columnsTable(s, t) + '\n\n');
       if (s.constraints) b.lock(constraintsText(s.constraints, t));
@@ -391,6 +393,7 @@
     // Optional profile of every column (statistics from all the rows)
     if (opts.profile && DB.getProfile) {
       line('## ', 'profTitle'); b.lock('\n'); say('profIntro'); b.lock('\n\n');
+      if (DB.getProfile(doc).some((p) => p.partial)) { say('profPartial', null, { n: N(DB.SQL_MAX_ROWS) }); b.lock('\n\n'); }
       b.lock(profileText(DB.getProfile(doc), t));
     }
 
@@ -512,6 +515,8 @@
       if (s.hidden) { b.lock(' · '); say('hidden'); }
       b.lock('\n');
       if (s.caption && sw.labels && sw.names) { b.lock('\n**'); say('caption'); b.lock(':** ' + s.caption + '\n'); }
+      // A table comment is free text written by people (like a file label): only when the user allows free text
+      if (s.description && sw.text) { b.lock('\n**'); say('tblDescription'); b.lock(':** ' + s.description.replace(/\s*\n\s*/g, ' ') + '\n'); }
       b.lock('\n');
       if (s.columns.length) {
         const cols = s.columns.map((c) => {
@@ -520,6 +525,9 @@
           // Struct field names are names too: when names are not shared, the type without them is used
           if (!sw.names && meta.parquetTypeAnon) meta.parquetType = meta.parquetTypeAnon;
           delete meta.parquetTypeAnon;
+          // A type name chosen by people (a PostgreSQL enum or domain) is a name: replaced when names are not shared
+          if (!sw.names && meta.sqlTypeAnon) meta.sqlType = meta.sqlTypeAnon;
+          delete meta.sqlTypeAnon;
           if (c.keyInfo) {
             meta.key = [c.keyInfo.pk ? { key: 'pk' } : null]
               .concat(c.keyInfo.refs.map((r) => '→ `' + S(r.table) + '.' + (r.col ? C(r.table, r.col) : '?') + '`')).filter(Boolean);
@@ -573,6 +581,7 @@
     // Statistics: counts at level 2, summaries at level 3 (small groups and small tables hidden)
     if (level >= 2) {
       line('## ', 'nsContextTitle'); b.lock('\n'); say(level >= 3 ? 'nsContextL3' : 'nsContextL2'); b.lock('\n\n');
+      if (ns.sections.some((s) => s.profile && s.profile.partial)) { say('profPartial', { n: N(DB.SQL_MAX_ROWS) }); b.lock('\n\n'); }
       const KIND = { identifier: 'kindIdentifier', categorical: 'kindCategorical', continuous: 'kindContinuous', datetime: 'kindDatetime',
         text: 'kindText', empty: 'kindEmpty', mixed: 'kindMixed' };
       const pct = (x) => (x >= 10 ? Math.round(x) : Math.round(x * 10) / 10) + '%';

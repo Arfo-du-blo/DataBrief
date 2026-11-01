@@ -102,7 +102,7 @@
       duplicateRows = n - seen.size;
     }
     return {
-      name: sec.name, rows: n, columns, duplicateRows,
+      name: sec.name, rows: n, partial: (sec.totalRows || n) > n ? sec.totalRows : null, columns, duplicateRows,
       constantColumns: columns.filter((c) => c.distinct === 1 && c.missing === 0).map((c) => c.name),
     };
   }

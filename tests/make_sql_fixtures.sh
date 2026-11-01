@@ -29,7 +29,7 @@ wait_for() { local c="$1"; shift; for _ in $(seq 1 90); do docker exec "$c" "$@"
 wait_log() { local c="$1" pat="$2" n="$3"; for _ in $(seq 1 90); do [ "$(docker logs "$c" 2>&1 | grep -c "$pat")" -ge "$n" ] && return 0; sleep 2; done; return 1; }
 
 only() { [ -z "${ONLY:-}" ] || [[ ",$ONLY," == *",$1,"* ]]; }   # ONLY=mysql8,duckdb regenerates just those parts
-if [ -z "${ONLY:-}" ]; then rm -rf "$OUT"/*.sql "$OUT"/*.dump "$OUT"/*.tar "$OUT"/duckdb-* "$OUT"/VERSIONS.txt; fi
+if [ -z "${ONLY:-}" ]; then rm -rf "$OUT"/*.sql "$OUT"/*.dump "$OUT"/*.tar "$OUT"/duckdb-* "$OUT"/canary "$OUT"/VERSIONS.txt; fi
 mkdir -p "$OUT"
 if [ -z "${ONLY:-}" ]; then { echo "Real dumps in this folder were written by these tools (see tests/make_sql_fixtures.sh)."; echo "Generated: $(date -u +%Y-%m-%d)"; echo; } > "$OUT/VERSIONS.txt"; fi
 ver() { sed -i "/^$1: /d" "$OUT/VERSIONS.txt"; echo "$1: $2" >> "$OUT/VERSIONS.txt"; }   # replaces its own line (ONLY= runs)
@@ -81,6 +81,21 @@ mysql_like() {   # $1 = label, $2 = image, $3 = client, $4 = dump tool, $5 = roo
 only mysql8 && mysql_like mysql8   mysql:8     mysql   mysqldump      MYSQL_ROOT_PASSWORD
 only mariadb11 && mysql_like mariadb11 mariadb:11 mariadb mariadb-dump   MARIADB_ROOT_PASSWORD
 rm -f "$OUT/.err"
+
+# ---------------------------------------------------------------- canary dumps (the "Do not share data" tests) ----------
+# Real pg_dump output of a database full of CONFIDENTIAL_ values (src/canary-pg.sql). tests/make_fixtures.py copies them.
+if only canary; then
+note "canary (PostgreSQL 16)"
+mkdir -p "$OUT/canary"
+c=db-sqlfix-canary
+if docker run -d --name "$c" -e POSTGRES_PASSWORD=throwaway -e POSTGRES_DB=shop postgres:16 >/dev/null && wait_log "$c" "ready to accept connections" 2; then
+  docker exec -i "$c" psql -U postgres -d shop -v ON_ERROR_STOP=1 -q < "$SRC/canary-pg.sql" >/dev/null || fail "canary: loading the source failed"
+  docker exec "$c" pg_dump -U postgres shop > "$OUT/canary/pg16-canary.sql"
+  docker exec "$c" pg_dump -U postgres -Fc shop > "$OUT/canary/pg16-canary.dump"
+  ver "canary" "$(docker exec "$c" pg_dump --version | cut -d' ' -f1-3)"
+else fail "canary: cannot start"; fi
+docker rm -f "$c" >/dev/null 2>&1
+fi
 
 # ---------------------------------------------------------------- ClickHouse ----------
 if only clickhouse; then

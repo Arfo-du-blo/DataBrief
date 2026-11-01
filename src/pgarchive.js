@@ -7,7 +7,8 @@
  *
  *   DB.isPgArchive(u8) -> 'custom' | 'tar' | ''
  *   DB.parsePgArchive(u8, opts) -> the result of DB.parseSqlDump, plus info.archive:
- *     { format, version, compression, serverVersion, dumpVersion, entries, dataBlocks, largeObjects, problems }
+ *     { format, version, compression, serverVersion, dumpVersion, entries, dataBlocks, largeObjects, problems, skipped }
+ *     (skipped = names of the tables whose data could not be read)
  * Versions read: archive 1.12 to 1.16 (PostgreSQL 9.x to 17). An error that stops the reading is thrown as
  * Error with .code = 'pgArchiveCorrupt' | 'pgArchiveVersion' | 'pgArchiveCompression'; damage inside one table's data
  * is reported in info.archive.problems and the rest is still read. */
@@ -225,7 +226,7 @@
   DB.parsePgArchive = function (u8, opts) {
     const kind = DB.isPgArchive(u8);
     if (!kind) throw fail('pgArchiveCorrupt', 'not a pg_dump archive');
-    const problems = [];
+    const problems = [], skipped = [];
     let head, entries, blocks = { data: new Map(), largeObjects: 0 }, files = null;
     if (kind === 'custom') {
       const b = new Bytes(u8);
@@ -265,16 +266,17 @@
       try {
         if (kind === 'custom') {
           const parts = blocks.data.get(te.dumpId);
-          if (!parts) { if (desc === 'TABLE DATA') problems.push('data of ' + text(te.tag) + ' missing'); continue; }
+          if (!parts) { if (desc === 'TABLE DATA') { problems.push('data of ' + text(te.tag) + ' missing'); skipped.push(text(te.tag)); } continue; }
           raw = decompress(head.compression, concat(parts));
         } else {
           const name = text(te.file);
           const f = name && (files.get(name) || files.get(name + '.gz'));
-          if (!f) { if (desc === 'TABLE DATA') problems.push('data file of ' + text(te.tag) + ' missing'); continue; }
+          if (!f) { if (desc === 'TABLE DATA') { problems.push('data file of ' + text(te.tag) + ' missing'); skipped.push(text(te.tag)); } continue; }
           raw = files.has(name) ? f : window.fflate.gunzipSync(f);
         }
       } catch (e) {
         problems.push('data of ' + text(te.tag) + ' could not be decompressed');
+        skipped.push(text(te.tag));
         continue;
       }
       dataBlocks++;
@@ -291,7 +293,7 @@
     result.info.archive = {
       format: kind, version: head.vtext, compression: COMPRESSION[head.compression] || String(head.compression),
       serverVersion: text(head.serverVersion), dumpVersion: text(head.dumpVersion),
-      entries: entries.length, dataBlocks, largeObjects: blocks.largeObjects, problems,
+      entries: entries.length, dataBlocks, largeObjects: blocks.largeObjects, problems, skipped,
     };
     return result;
   };
