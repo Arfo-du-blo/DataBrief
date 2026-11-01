@@ -6,3 +6,15 @@ __pycache__/
 # ESP32: generated header and PlatformIO build folder
 deploy/esp32/DataBrief/databrief_html.h
 deploy/esp32/.pio/
+
+# Private working files: ideas, drafts and files shared with Claude (never committed)
+_ideas/
+
+# Local settings, editor and system files
+.claude/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+*.local
