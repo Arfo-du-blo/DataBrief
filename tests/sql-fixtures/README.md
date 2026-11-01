@@ -14,7 +14,7 @@ on what people really have. They are committed so the tests do not need Docker.
 |---|---|---|
 | `pg13-*`, `pg16-*`, `pg17-*` `-default.sql` | `pg_dump` | `COPY ... FROM stdin` data, foreign keys in `ALTER TABLE ... ADD CONSTRAINT`, sequences, `COMMENT ON`, enum type, `jsonb`, arrays; PostgreSQL 17 adds `\restrict` lines |
 | `-inserts.sql`, `-column-inserts.sql`, `-schema-only.sql`, `-data-only.sql` | `pg_dump` | the other text modes |
-| `pg*-custom*.dump`, `pg*-tar.tar` | `pg_dump -Fc` / `-Ft` | binary archives (stage 11): gzip, none, and zstd / lz4 (16+) |
+| `pg*-custom*.dump`, `pg*-tar.tar` | `pg_dump -Fc` / `-Ft` | binary archives, read by `src/pgarchive.js`: gzip, none, and zstd / lz4 (16+); each must give the same result as `-default.sql` |
 | `mysql8-*`, `mariadb11-*` | `mysqldump`, `mariadb-dump` | inline `CONSTRAINT ... FOREIGN KEY`, backticks, multi-row `INSERT`, `\n` escapes, generated column, `ENUM`, `JSON`; version comments (`/*!40101 ... */`, `/*M!999999\- ... */`) |
 | `sqlite-shell-dump.sql` | `sqlite3` shell `.dump` | `PRAGMA`, `BEGIN TRANSACTION`, inline `REFERENCES`; newlines written as `unistr('...\u000a...')` (3.53) |
 | `sqlite-python-iterdump.sql` | Python `sqlite3` `iterdump()` | same, but newlines stay raw inside the strings |

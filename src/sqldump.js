@@ -17,7 +17,8 @@
  * generic (DuckDB exports, hand-written SQL). The dialect only changes how quotes, comments and statement ends are read.
  *
  * Tested on real dumps (tests/sql-fixtures, tests/test_sql_parser.cjs). Known limits, counted in info.ignored, never guessed:
- *   - PostgreSQL custom / tar archives are binary: another reader (stage 11). COPY ... (FORMAT binary) is not read.
+ *   - PostgreSQL custom / tar archives are binary: read by pgarchive.js, which gives this reader their SQL text.
+ *     COPY ... (FORMAT binary) is not read.
  *   - INSERT ... SELECT and CREATE TABLE ... AS SELECT have no values / columns to read.
  *   - DuckDB EXPORT DATABASE and COPY ... FROM 'file': the data is in other files, only their names are kept.
  *   - Not handled: Oracle q'[...]' strings, PostgreSQL U&'...' UESCAPE, MySQL ANSI_QUOTES dumps ("x" read as text).

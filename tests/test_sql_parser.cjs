@@ -15,8 +15,9 @@ const FIX = path.join(__dirname, 'sql-fixtures');
 const ctx = { console, TextDecoder, TextEncoder, Intl };
 ctx.window = ctx;
 vm.createContext(ctx);
-// SQLDUMP_SRC: another copy of the reader (used to check that these tests catch a broken reader)
-for (const f of ['src/util.js', process.env.SQLDUMP_SRC || 'src/sqldump.js', 'src/relationships.js']) vm.runInContext(fs.readFileSync(path.resolve(ROOT, f), 'utf8'), ctx, { filename: f });
+// SQLDUMP_SRC / PGARCHIVE_SRC: another copy of a reader (used to check that these tests catch a broken reader)
+for (const f of ['vendor/fflate.min.js', 'vendor/fzstd.min.js', 'src/util.js', process.env.SQLDUMP_SRC || 'src/sqldump.js',
+  process.env.PGARCHIVE_SRC || 'src/pgarchive.js', 'src/relationships.js']) vm.runInContext(fs.readFileSync(path.resolve(ROOT, f), 'utf8'), ctx, { filename: f });
 const DB = ctx.DB;
 const EXP = JSON.parse(fs.readFileSync(path.join(FIX, 'expected.json'), 'utf8'));
 
@@ -189,6 +190,54 @@ for (const kind of ['csv', 'parquet']) {
   ok('clickhouse: arrays kept as written', sec(r, 'order_items').rows[0][4] === "['organic','coffee']", JSON.stringify(sec(r, 'order_items').rows[0]));
   ok('clickhouse: table comment', c.description === 'People who bought something', c.description);
 }
+
+/* ================================================================ 1b. PostgreSQL archives (-Fc custom, -Ft tar) ========== */
+// Every archive must give exactly what the plain-text dump of the same server gives: same tables, columns, rows, keys, views.
+const readBin = (f) => new Uint8Array(fs.readFileSync(path.join(FIX, f)));
+const shape = (r) => JSON.stringify({ sections: r.sections, views: r.views, fileMeta: r.fileMeta });
+for (const v of [13, 16, 17]) {
+  const textResult = shape(parse(read('pg' + v + '-default.sql')));
+  const variants = [['custom', 'gzip'], ['custom-nocompress', 'none'], ['tar', 'none']].concat(v >= 16 ? [['custom-lz4', 'lz4'], ['custom-zstd', 'zstd']] : []);
+  for (const [variant, compression] of variants) {
+    const f = 'pg' + v + '-' + variant + '.' + (variant === 'tar' ? 'tar' : 'dump');
+    let r = null, err = null;
+    try { r = DB.parsePgArchive(readBin(f)); } catch (e) { err = e; }
+    if (!r) { ok(f + ': read', false, err && (err.code + ' ' + err.message + ' ' + err.stack)); continue; }
+    const a = r.info.archive;
+    ok(f + ': archive ' + a.format + ' ' + a.version + ', ' + a.compression, a.format === (variant === 'tar' ? 'tar' : 'custom') && a.compression === compression &&
+      a.version === { 13: '1.14.0', 16: '1.15.0', 17: '1.16.0' }[v] && !a.problems.length && a.dataBlocks === 8, JSON.stringify(a));
+    const same2 = shape(r) === textResult;
+    ok(f + ': same result as the text dump', same2, same2 ? '' : shape(r).slice(0, 400));
+    checkValues(f, r);
+    checkRelationships(f, r);
+  }
+}
+// Damaged archives: a clear error (with a code) or a partial result with problems; never another kind of exception
+{
+  const bad = [];
+  let partial = 0, coded = 0;
+  for (const f of ['pg16-custom.dump', 'pg16-custom-lz4.dump', 'pg16-custom-zstd.dump', 'pg17-custom.dump', 'pg13-tar.tar', 'pg17-custom-nocompress.dump']) {
+    const full = readBin(f);
+    for (const cut of [3, 20, 100, 400, 1500, Math.floor(full.length / 2), full.length - 40, full.length - 1]) {
+      try { const r = DB.parsePgArchive(full.slice(0, cut)); if (r.info.archive.problems.length) partial++; }
+      catch (e) { if (e.code) coded++; else bad.push(f + ' cut ' + cut + ': ' + e.message); }
+    }
+  }
+  let seed = 7;
+  const rnd = (n) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n; };
+  for (let n = 0; n < 300; n++) {
+    const f = ['pg16-custom.dump', 'pg16-custom-lz4.dump', 'pg16-custom-zstd.dump', 'pg13-custom.dump', 'pg17-tar.tar'][rnd(5)];
+    const u = readBin(f);
+    for (let k = rnd(6); k >= 0; k--) u[rnd(u.length)] = rnd(256);
+    const t0 = Date.now();
+    try { DB.parsePgArchive(u); } catch (e) { if (!e.code) bad.push(f + ' fuzz ' + n + ': ' + e.message); }
+    if (Date.now() - t0 > 2000) bad.push(f + ' fuzz ' + n + ': slow');
+  }
+  ok('damaged archives: coded errors or partial results only (' + coded + ' coded, ' + partial + ' partial)', !bad.length, bad.slice(0, 6).join('; '));
+}
+// Recognised by their first bytes, whatever the file name
+ok('archives recognised by their content', DB.isPgArchive(readBin('pg16-custom.dump')) === 'custom' && DB.isPgArchive(readBin('pg17-tar.tar')) === 'tar' &&
+  DB.isPgArchive(new TextEncoder().encode(read('pg16-default.sql'))) === '');
 
 /* ================================================================ 2. synthetic cases (hand-written) ========== */
 // SQL Server script (SSMS "Generate Scripts" style): GO batches, [brackets], N'..', a procedure whose body has ';'
