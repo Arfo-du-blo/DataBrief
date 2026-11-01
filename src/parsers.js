@@ -171,7 +171,7 @@
   function parseYaml(buf, ext, name) {
     const { text } = DB.decodeText(buf);
     const docs = window.jsyaml.loadAll(text).filter((d) => d !== undefined && d !== null);
-    return treeToDoc(docs.length === 1 ? docs[0] : docs, baseOf(name));
+    return treeToDoc(docs.length === 1 ? docs[0] : docs, baseOf(name), docs.length > 1 ? { yamlDocs: true } : undefined);
   }
 
   /* ---------- XML ---------- */
@@ -267,7 +267,9 @@
       if (caption) sec.caption = caption;
       return sec;
     });
-    return { sections, fileMeta: [], notes: { spans } };
+    // Tables that contain other tables (page layout) are not read: say how many, so nothing disappears silently.
+    const nestedSkipped = doc.querySelectorAll('table').length - tables.length;
+    return { sections, fileMeta: [], notes: { spans, nestedSkipped } };
   }
 
   /* ---------- SQLite (sql.js, WebAssembly) ---------- */

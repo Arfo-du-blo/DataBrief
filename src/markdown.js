@@ -274,6 +274,8 @@
     const noHeader = views.map((v, i) => (v.sec.noHeader ? i + 1 : 0)).filter(Boolean);
     if (noHeader.length) line('- ', 'fmtNoHeader', null, { list: noHeader.join(', ') });
     if (notes.spans) line('- ', 'fmtSpans');
+    if (notes.yamlDocs) line('- ', 'fmtYamlDocs');
+    if (notes.nestedSkipped) line('- ', 'fmtNested', null, { n: notes.nestedSkipped });
     if (views.some((v) => v.partial)) line('- ', 'fmtPartial');
     if (anyCsv && !files) line('- ', 'fmtCode');
     });

@@ -118,6 +118,10 @@ members:
     skills: [r]
 """)
 
+# --- YAML with several documents (Kubernetes style) ---
+with open(P("multi.yaml"), "w", encoding="utf-8") as f:
+    f.write("kind: Service\nname: web\nport: 80\n---\nkind: Deployment\nname: web\nreplicas: 3\n---\nkind: Service\nname: db\nport: 5432\n")
+
 # --- HTML (two data tables, spans, caption, a layout table containing another table) ---
 with open(P("page.html"), "w", encoding="utf-8") as f:
     f.write("""<!doctype html><html><head><title>Report</title><script>alert(1)</script></head><body>
