@@ -6,6 +6,8 @@ the practical way to give DataBrief a SQL Server schema, because a `.bak` backup
 
 [← Back to the README](../../README.md#supported-formats)
 
+Need to produce this file? See [Export your database](../export-your-database.md).
+
 ## What DataBrief reads
 
 Files ending in `.dacpac` (or `.bacpac`), recognised by their content.

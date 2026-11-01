@@ -6,6 +6,8 @@ understand the data. DataBrief reads it **as text, without running anything**.
 
 [← Back to the README](../../README.md#supported-formats)
 
+Need to produce this file? See [Export your database](../export-your-database.md).
+
 ## What DataBrief reads
 
 Files ending in `.sql` (also `.dump`, `.backup` or `.tar` when they are really plain SQL text), and **gzip-compressed** ones such as

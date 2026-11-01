@@ -699,6 +699,54 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     else pass('format cards', '21 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
   }
 
+  // ---------- export helper (commands to export a database) ----------
+  {
+    const checks = [];
+    const wait = (ms) => new Promise((res) => setTimeout(res, ms || 120));
+    const page = await newPage();
+    await page.evaluate(() => { window.__clip = []; navigator.clipboard.writeText = (t) => { window.__clip.push(t); return Promise.resolve(); }; });
+    await page.evaluate(() => document.getElementById('exportBtn').click()); await wait();
+    const engines = await page.evaluate(() => window.DB.EXPORT_ENGINES.map((e) => e.key));
+    if (!await page.evaluate(() => document.getElementById('exportDialog').open)) checks.push('dialog did not open');
+    if (engines.length !== 13) checks.push('expected 13 engines, got ' + engines.length);
+    for (const key of engines) {
+      await page.select('#exEngine', key); await wait(40);
+      const r = await page.evaluate(() => ({
+        blocks: document.querySelectorAll('#exBlocks pre.cmd-text').length, copies: document.querySelectorAll('#exBlocks button').length,
+        docs: document.getElementById('exDocs').getAttribute('href'), notes: document.getElementById('exNotes').textContent,
+        text: [...document.querySelectorAll('#exBlocks pre.cmd-text')].map((e) => e.textContent),
+      }));
+      const e = await page.evaluate((k) => window.DB.EXPORT_ENGINES.find((x) => x.key === k), key);
+      if (!/^https:\/\//.test(r.docs || '')) checks.push(key + ': docs link ' + r.docs);
+      if (!r.notes) checks.push(key + ': no notes');
+      if (key !== 'access' && (e.schema && !r.text.includes(e.schema))) checks.push(key + ': schema command not shown as written');
+      if (key !== 'access' && e.fks && !r.text.includes(e.fks)) checks.push(key + ': fk command not shown as written');
+      if (key === 'access' && r.text.length) checks.push('access should show no command');
+      if (/(^|\s)(-p\S|--password=|--password\s+[^-\s]|-P\S)|PASSWORD=|IDENTIFIED BY/.test(r.text.join('\n'))) checks.push(key + ': a password seems to be on the command line');
+      if (e.tested && !/\d/.test(e.tested)) checks.push(key + ': tested label without version');
+    }
+    await page.select('#exEngine', 'postgresql'); await wait(40);
+    await page.evaluate(() => document.querySelector('#exBlocks button').click()); await wait(200);
+    const clip = await page.evaluate(() => window.__clip);
+    if (clip.length !== 1 || !clip[0].startsWith('pg_dump --schema-only')) checks.push('copy button: ' + JSON.stringify(clip).slice(0, 100));
+    const en = await page.$eval('#exTitle', (el) => el.textContent);
+    await page.select('#uiLang', 'fr'); await wait(200);
+    const fr = await page.$eval('#exTitle', (el) => el.textContent);
+    if (fr === en || !await page.evaluate(() => document.getElementById('exportDialog').open)) checks.push('language switch did not translate the open dialog');
+    await page.evaluate(() => document.getElementById('exClose').click()); await wait();
+    if (await page.evaluate(() => document.getElementById('exportDialog').open)) checks.push('close button');
+    const miss = await page.evaluate(() => {
+      const I = window.DB_I18N, out = [];
+      for (const l of I.langs.map((x) => x.code)) for (const k of ['exLink', 'exTitle', 'exIntro', 'exEngine', 'exSchema', 'exFull', 'exFks', 'exTested', 'exUntested', 'exDocs', 'exNoFk', 'exUnenforced', 'exGiveFile', 'exPassword', 'exNone']) if (!I.ui[l][k]) out.push(l + ':' + k);
+      return out;
+    });
+    if (miss.length) checks.push('missing texts: ' + miss.join(','));
+    if (!fs.existsSync(path.join(path.dirname(htmlPath), 'docs', 'export-your-database.md'))) checks.push('docs/export-your-database.md is missing');
+    await page.close();
+    if (checks.length) fail('export helper', checks.join(' | '));
+    else pass('export helper', '13 engines, 3 commands each as written, copy button, docs links, language switch while open, 15 languages');
+  }
+
   // ---------- SQL dumps and PostgreSQL archives (real dumps of tests/sql-fixtures) ----------
   {
     const checks = [];

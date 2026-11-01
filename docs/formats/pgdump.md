@@ -6,6 +6,8 @@ same result as the plain SQL dump of the same database.
 
 [← Back to the README](../../README.md#supported-formats)
 
+Need to produce this file? See [Export your database](../export-your-database.md).
+
 ## What DataBrief reads
 
 Files recognised **by their content** (the first bytes), whatever their name: usually `.dump`, `.backup` or `.tar`.

@@ -314,6 +314,18 @@ footer .powered { font-weight: 600; color: var(--text-2); }
   .btn { flex: 1 1 auto; justify-content: center; }
 }
 
+/* "How do I export my database?" */
+.export-link { text-align: center; margin-top: 4px; }
+#exportDialog { width: min(820px, calc(100vw - 32px)); max-width: min(820px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; }
+#exportDialog .select { max-width: 100%; }
+#exportDialog h3 { margin: 16px 0 6px; font-size: 14px; color: var(--text); font-weight: 600; }
+#exNotes .hint { margin: 8px 0 0; }
+.cmd { display: flex; gap: 8px; align-items: flex-start; }
+.cmd-text { flex: 1; min-width: 0; margin: 0; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border);
+  font: 12.5px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; user-select: all; }
+.cmd .btn { flex: none; }
+@media (max-width: 560px) { .cmd { flex-direction: column; } .cmd .btn { align-self: flex-end; } }
+
 </style>
 </head>
 <body>
@@ -351,6 +363,7 @@ footer .powered { font-weight: 600; color: var(--text-2); }
     <div class="formats-title" id="formatsTitle" data-i18n="accepted">Accepted formats</div>
     <div class="chips" id="chips"></div>
     <div class="hint chips-hint" data-i18n="chipsHint">Click a format to see what DataBrief reads and the best file to give.</div>
+    <div class="export-link"><button class="link-btn" type="button" id="exportBtn" data-i18n="exLink">How do I export my database?</button></div>
   </section>
 
   <label class="drop" id="drop" for="fileInput">
@@ -533,6 +546,20 @@ footer .powered { font-weight: 600; color: var(--text-2); }
     <button class="btn btn-outline" type="button" id="regenBtn" data-i18n="regenerate">Regenerate</button>
     <button class="btn btn-primary" type="button" id="keepBtn" data-i18n="keepMine">Keep my text</button>
   </div>
+</dialog>
+
+<dialog id="exportDialog" aria-labelledby="exTitle">
+  <div class="dialog-body">
+    <h2 id="exTitle" data-i18n="exTitle">Export your database</h2>
+    <p data-i18n="exIntro"></p>
+    <div class="opt-label"><label for="exEngine" data-i18n="exEngine">Database system</label></div>
+    <select class="select" id="exEngine"></select>
+    <div id="exNotes"></div>
+    <div id="exBlocks"></div>
+    <p class="hint" data-i18n="exPassword"></p>
+    <p><a id="exDocs" target="_blank" rel="noopener noreferrer"></a> · <a id="exGuide" target="_blank" rel="noopener noreferrer" href="https://github.com/Arfo-du-blo/DataBrief/blob/main/docs/export-your-database.md" data-i18n="fcGuide">Read the full guide</a></p>
+  </div>
+  <div class="dialog-foot"><button class="btn btn-outline" type="button" id="exClose" data-i18n="close">Close</button></div>
 </dialog>
 
 <dialog id="fmtDialog" aria-labelledby="fmtTitle">
@@ -3662,6 +3689,136 @@ window.DB_I18N = {
       "قاعدة بيانات Access هذه محمية بكلمة مرور أو بتشفير لا يستطيع DataBrief فتحه. في Access احفظ نسخة بلا كلمة مرور (ملف، معلومات، فك تشفير قاعدة البيانات) أو صدّر الجداول التي تحتاجها إلى CSV أو Excel."],
   };
   for (const [lang, vals] of Object.entries(P)) PK.forEach((k, i) => { window.DB_I18N.prompt[lang][k] = vals[i]; });
+  for (const [lang, vals] of Object.entries(U)) UK.forEach((k, i) => { window.DB_I18N.ui[lang][k] = vals[i]; });
+})();
+</script>
+<script>/* DataBrief - translations for the "how do I export my database?" helper. GPL-3.0-or-later.
+ * UI order: exLink, exTitle, exIntro, exEngine, exSchema, exFull, exFks, exTested ({v}), exUntested, exDocs, exNoFk, exUnenforced, exGiveFile, exPassword, exNone */
+'use strict';
+(function () {
+  const UK = ['exLink', 'exTitle', 'exIntro', 'exEngine', 'exSchema', 'exFull', 'exFks', 'exTested', 'exUntested', 'exDocs', 'exNoFk', 'exUnenforced', 'exGiveFile', 'exPassword', 'exNone'];
+  const U = {
+    en: ["How do I export my database?", "Export your database",
+      "These commands only read: they change nothing in your database. DataBrief never connects to a database and never runs them: you run a command yourself, then drop the file it writes. Replace the example names (localhost, myuser, mydb, customers) with yours.",
+      "Database system", "1 · Structure only (the best file with “Do not share data”)", "2 · Structure and data", "3 · The foreign keys as a table (optional)",
+      "These commands were run against {v}, and their output was read by DataBrief.", "These commands come from the official documentation and were not run here: try them on a copy first.", "Official documentation",
+      "This system has no foreign keys: DataBrief infers likely relationships from column names and values, and marks them as inferred.",
+      "This system records foreign keys without enforcing them: they are read as declared relationships, but the data may not respect them.",
+      "DataBrief reads this kind of file directly: you can give the database file itself. The commands are for when you prefer a text export.",
+      "Never type a password inside a command: let the tool ask for it, or use its own password file or an environment variable.", "Nothing to run here: see the notes above."],
+    fr: ["Comment exporter ma base de données ?", "Exporter votre base de données",
+      "Ces commandes ne font que lire : elles ne modifient rien dans votre base. DataBrief ne se connecte jamais à une base et ne les exécute jamais : vous lancez une commande vous-même, puis vous déposez le fichier qu'elle écrit. Remplacez les noms d'exemple (localhost, myuser, mydb, customers) par les vôtres.",
+      "Système de base de données", "1 · Structure seule (le meilleur fichier avec « Ne pas partager les données »)", "2 · Structure et données", "3 · Les clés étrangères sous forme de tableau (facultatif)",
+      "Ces commandes ont été exécutées sur {v}, et leur résultat a été lu par DataBrief.", "Ces commandes viennent de la documentation officielle et n'ont pas été exécutées ici : essayez-les d'abord sur une copie.", "Documentation officielle",
+      "Ce système n'a pas de clés étrangères : DataBrief déduit des relations probables d'après les noms et les valeurs des colonnes, et les marque comme déduites.",
+      "Ce système enregistre des clés étrangères sans les faire respecter : elles sont lues comme des relations déclarées, mais les données peuvent ne pas les respecter.",
+      "DataBrief lit directement ce type de fichier : vous pouvez fournir le fichier de la base lui-même. Les commandes servent si vous préférez un export texte.",
+      "Ne tapez jamais un mot de passe dans une commande : laissez l'outil vous le demander, ou utilisez son propre fichier de mots de passe ou une variable d'environnement.", "Rien à exécuter ici : voyez les remarques ci-dessus."],
+    es: ["¿Cómo exporto mi base de datos?", "Exportar tu base de datos",
+      "Estos comandos solo leen: no cambian nada en tu base de datos. DataBrief nunca se conecta a una base de datos ni ejecuta los comandos: tú ejecutas un comando y luego sueltas el archivo que escribe. Cambia los nombres de ejemplo (localhost, myuser, mydb, customers) por los tuyos.",
+      "Sistema de base de datos", "1 · Solo la estructura (el mejor archivo con «No compartir los datos»)", "2 · Estructura y datos", "3 · Las claves foráneas como tabla (opcional)",
+      "Estos comandos se ejecutaron en {v} y DataBrief leyó su resultado.", "Estos comandos proceden de la documentación oficial y no se ejecutaron aquí: pruébalos primero en una copia.", "Documentación oficial",
+      "Este sistema no tiene claves foráneas: DataBrief deduce relaciones probables a partir de los nombres y los valores de las columnas y las marca como deducidas.",
+      "Este sistema registra claves foráneas sin aplicarlas: se leen como relaciones declaradas, pero los datos pueden no respetarlas.",
+      "DataBrief lee directamente este tipo de archivo: puedes entregar el archivo de la base de datos. Los comandos son para cuando prefieras una exportación de texto.",
+      "No escribas nunca una contraseña dentro de un comando: deja que la herramienta te la pida o usa su propio archivo de contraseñas o una variable de entorno.", "Nada que ejecutar aquí: consulta las notas de arriba."],
+    de: ["Wie exportiere ich meine Datenbank?", "Datenbank exportieren",
+      "Diese Befehle lesen nur: Sie ändern nichts in Ihrer Datenbank. DataBrief verbindet sich nie mit einer Datenbank und führt die Befehle nie aus: Sie führen einen Befehl selbst aus und legen dann die Datei ab, die er schreibt. Ersetzen Sie die Beispielnamen (localhost, myuser, mydb, customers) durch Ihre eigenen.",
+      "Datenbanksystem", "1 · Nur die Struktur (die beste Datei mit „Daten nicht teilen“)", "2 · Struktur und Daten", "3 · Die Fremdschlüssel als Tabelle (optional)",
+      "Diese Befehle wurden mit {v} ausgeführt, und DataBrief hat ihre Ausgabe gelesen.", "Diese Befehle stammen aus der offiziellen Dokumentation und wurden hier nicht ausgeführt: Probieren Sie sie zuerst an einer Kopie aus.", "Offizielle Dokumentation",
+      "Dieses System hat keine Fremdschlüssel: DataBrief leitet wahrscheinliche Beziehungen aus Spaltennamen und Werten ab und kennzeichnet sie als abgeleitet.",
+      "Dieses System speichert Fremdschlüssel, ohne sie durchzusetzen: Sie werden als deklarierte Beziehungen gelesen, die Daten halten sich aber möglicherweise nicht daran.",
+      "DataBrief liest diese Art von Datei direkt: Sie können die Datenbankdatei selbst abgeben. Die Befehle sind für den Fall, dass Sie einen Textexport bevorzugen.",
+      "Geben Sie nie ein Kennwort in einem Befehl ein: Lassen Sie das Werkzeug danach fragen oder nutzen Sie seine eigene Kennwortdatei oder eine Umgebungsvariable.", "Hier ist nichts auszuführen: siehe die Hinweise oben."],
+    it: ["Come esporto il mio database?", "Esporta il tuo database",
+      "Questi comandi si limitano a leggere: non modificano nulla nel tuo database. DataBrief non si collega mai a un database e non li esegue mai: sei tu a lanciare un comando e poi a trascinare il file che scrive. Sostituisci i nomi di esempio (localhost, myuser, mydb, customers) con i tuoi.",
+      "Sistema di database", "1 · Solo la struttura (il file migliore con «Non condividere i dati»)", "2 · Struttura e dati", "3 · Le chiavi esterne come tabella (facoltativo)",
+      "Questi comandi sono stati eseguiti su {v} e il loro risultato è stato letto da DataBrief.", "Questi comandi vengono dalla documentazione ufficiale e non sono stati eseguiti qui: provali prima su una copia.", "Documentazione ufficiale",
+      "Questo sistema non ha chiavi esterne: DataBrief deduce le relazioni probabili dai nomi e dai valori delle colonne e le segnala come dedotte.",
+      "Questo sistema registra le chiavi esterne senza farle rispettare: vengono lette come relazioni dichiarate, ma i dati potrebbero non rispettarle.",
+      "DataBrief legge direttamente questo tipo di file: puoi fornire il file del database stesso. I comandi servono se preferisci un'esportazione di testo.",
+      "Non scrivere mai una password dentro un comando: lascia che sia lo strumento a chiederla, oppure usa il suo file di password o una variabile d'ambiente.", "Niente da eseguire qui: vedi le note qui sopra."],
+    pt: ["Como exporto meu banco de dados?", "Exportar seu banco de dados",
+      "Estes comandos só leem: não alteram nada no seu banco de dados. O DataBrief nunca se conecta a um banco de dados e nunca executa os comandos: você executa um comando e depois solta o arquivo que ele escreve. Troque os nomes de exemplo (localhost, myuser, mydb, customers) pelos seus.",
+      "Sistema de banco de dados", "1 · Só a estrutura (o melhor arquivo com «Não compartilhar os dados»)", "2 · Estrutura e dados", "3 · As chaves estrangeiras como tabela (opcional)",
+      "Estes comandos foram executados no {v} e o resultado foi lido pelo DataBrief.", "Estes comandos vêm da documentação oficial e não foram executados aqui: teste-os primeiro em uma cópia.", "Documentação oficial",
+      "Este sistema não tem chaves estrangeiras: o DataBrief deduz relações prováveis pelos nomes e valores das colunas e as marca como deduzidas.",
+      "Este sistema registra chaves estrangeiras sem aplicá-las: elas são lidas como relacionamentos declarados, mas os dados podem não respeitá-las.",
+      "O DataBrief lê esse tipo de arquivo diretamente: você pode entregar o próprio arquivo do banco de dados. Os comandos servem se você preferir uma exportação em texto.",
+      "Nunca digite uma senha dentro de um comando: deixe a ferramenta pedi-la ou use o arquivo de senhas dela ou uma variável de ambiente.", "Nada para executar aqui: veja as observações acima."],
+    nl: ["Hoe exporteer ik mijn database?", "Je database exporteren",
+      "Deze opdrachten lezen alleen: ze wijzigen niets in je database. DataBrief maakt nooit verbinding met een database en voert ze nooit uit: je voert zelf een opdracht uit en zet daarna het bestand neer dat ze schrijft. Vervang de voorbeeldnamen (localhost, myuser, mydb, customers) door de jouwe.",
+      "Databasesysteem", "1 · Alleen de structuur (het beste bestand bij ‘Gegevens niet delen’)", "2 · Structuur en gegevens", "3 · De refererende sleutels als tabel (optioneel)",
+      "Deze opdrachten zijn uitgevoerd op {v} en de uitvoer is door DataBrief gelezen.", "Deze opdrachten komen uit de officiële documentatie en zijn hier niet uitgevoerd: probeer ze eerst op een kopie.", "Officiële documentatie",
+      "Dit systeem heeft geen refererende sleutels: DataBrief leidt waarschijnlijke relaties af uit kolomnamen en waarden en markeert ze als afgeleid.",
+      "Dit systeem legt refererende sleutels vast zonder ze af te dwingen: ze worden gelezen als gedeclareerde relaties, maar de gegevens houden zich er mogelijk niet aan.",
+      "DataBrief leest dit soort bestand rechtstreeks: je kunt het databasebestand zelf geven. De opdrachten zijn voor als je een tekstexport verkiest.",
+      "Typ nooit een wachtwoord in een opdracht: laat het hulpprogramma erom vragen, of gebruik het eigen wachtwoordbestand of een omgevingsvariabele.", "Hier valt niets uit te voeren: zie de opmerkingen hierboven."],
+    pl: ["Jak wyeksportować moją bazę danych?", "Eksport bazy danych",
+      "Te polecenia tylko czytają: niczego nie zmieniają w Twojej bazie. DataBrief nigdy nie łączy się z bazą danych i nigdy ich nie uruchamia: polecenie uruchamiasz sam, a potem upuszczasz plik, który zapisuje. Zamień przykładowe nazwy (localhost, myuser, mydb, customers) na swoje.",
+      "System baz danych", "1 · Sama struktura (najlepszy plik przy „Nie udostępniaj danych”)", "2 · Struktura i dane", "3 · Klucze obce jako tabela (opcjonalnie)",
+      "Te polecenia uruchomiono na {v}, a ich wynik odczytał DataBrief.", "Te polecenia pochodzą z oficjalnej dokumentacji i nie były tu uruchamiane: wypróbuj je najpierw na kopii.", "Oficjalna dokumentacja",
+      "Ten system nie ma kluczy obcych: DataBrief wnioskuje prawdopodobne relacje z nazw i wartości kolumn i oznacza je jako wywnioskowane.",
+      "Ten system zapisuje klucze obce, ale ich nie egzekwuje: są odczytywane jako relacje zadeklarowane, lecz dane mogą ich nie przestrzegać.",
+      "DataBrief czyta ten rodzaj pliku bezpośrednio: możesz podać sam plik bazy danych. Polecenia są na wypadek, gdy wolisz eksport tekstowy.",
+      "Nigdy nie wpisuj hasła w poleceniu: pozwól, by narzędzie o nie zapytało, albo użyj jego własnego pliku z hasłami lub zmiennej środowiskowej.", "Nic tu do uruchomienia: zobacz uwagi powyżej."],
+    ru: ["Как экспортировать мою базу данных?", "Экспорт базы данных",
+      "Эти команды только читают: в вашей базе они ничего не меняют. DataBrief никогда не подключается к базе данных и никогда их не запускает: вы сами выполняете команду, а затем перетаскиваете файл, который она создаёт. Замените примеры имён (localhost, myuser, mydb, customers) своими.",
+      "Система баз данных", "1 · Только структура (лучший файл для режима «Не передавать данные»)", "2 · Структура и данные", "3 · Внешние ключи в виде таблицы (по желанию)",
+      "Эти команды были выполнены на {v}, а их результат прочитал DataBrief.", "Эти команды взяты из официальной документации и здесь не запускались: сначала попробуйте их на копии.", "Официальная документация",
+      "В этой системе нет внешних ключей: DataBrief выводит вероятные связи из имён и значений столбцов и помечает их как выведенные.",
+      "Эта система записывает внешние ключи, но не обеспечивает их соблюдение: они читаются как объявленные связи, но данные могут им не соответствовать.",
+      "DataBrief читает такой файл напрямую: можно передать сам файл базы данных. Команды нужны, если вы предпочитаете текстовый экспорт.",
+      "Никогда не вводите пароль в самой команде: пусть программа сама его запросит, либо используйте её файл паролей или переменную окружения.", "Здесь нечего запускать: см. примечания выше."],
+    tr: ["Veritabanımı nasıl dışa aktarırım?", "Veritabanınızı dışa aktarın",
+      "Bu komutlar yalnızca okur: veritabanınızda hiçbir şeyi değiştirmez. DataBrief hiçbir veritabanına bağlanmaz ve bu komutları asla çalıştırmaz: komutu kendiniz çalıştırır, sonra yazdığı dosyayı bırakırsınız. Örnek adları (localhost, myuser, mydb, customers) kendi adlarınızla değiştirin.",
+      "Veritabanı sistemi", "1 · Yalnızca yapı (“Verileri paylaşma” ile en iyi dosya)", "2 · Yapı ve veriler", "3 · Yabancı anahtarlar bir tablo olarak (isteğe bağlı)",
+      "Bu komutlar {v} üzerinde çalıştırıldı ve çıktısı DataBrief tarafından okundu.", "Bu komutlar resmi belgelerden alınmıştır ve burada çalıştırılmamıştır: önce bir kopya üzerinde deneyin.", "Resmi belgeler",
+      "Bu sistemde yabancı anahtar yok: DataBrief sütun adlarından ve değerlerinden olası ilişkileri çıkarır ve bunları çıkarım olarak işaretler.",
+      "Bu sistem yabancı anahtarları kaydeder ama uygulamaz: bildirilmiş ilişkiler olarak okunurlar, ancak veriler bunlara uymayabilir.",
+      "DataBrief bu tür dosyayı doğrudan okur: veritabanı dosyasının kendisini verebilirsiniz. Komutlar, metin dışa aktarımını tercih ettiğiniz durum içindir.",
+      "Bir komutun içine asla parola yazmayın: aracın sormasına izin verin ya da kendi parola dosyasını veya bir ortam değişkenini kullanın.", "Burada çalıştırılacak bir şey yok: yukarıdaki notlara bakın."],
+    zh: ["如何导出我的数据库？", "导出你的数据库",
+      "这些命令只读取，不会更改你数据库中的任何内容。DataBrief 从不连接数据库，也从不运行这些命令：你自己运行命令，然后把它写出的文件拖入。请把示例名称（localhost、myuser、mydb、customers）换成你自己的。",
+      "数据库系统", "1 · 仅结构（配合“不共享数据”的最佳文件）", "2 · 结构和数据", "3 · 以表格形式导出外键（可选）",
+      "这些命令已在 {v} 上运行过，其输出已由 DataBrief 读取。", "这些命令来自官方文档，未在此处运行：请先在副本上试用。", "官方文档",
+      "该系统没有外键：DataBrief 会根据列名和值推断可能的关系，并标记为推断。",
+      "该系统记录外键但不强制执行：它们会被读取为已声明的关系，但数据可能并不遵守。",
+      "DataBrief 可直接读取这类文件：你可以直接提供数据库文件。这些命令适用于你更想要文本导出的情况。",
+      "切勿在命令中输入密码：让工具提示你输入，或使用它自己的密码文件或环境变量。", "这里没有要运行的命令：请看上面的说明。"],
+    ja: ["データベースをエクスポートするには？", "データベースをエクスポートする",
+      "これらのコマンドは読み取るだけで、データベースの内容は何も変更しません。DataBrief はデータベースに接続せず、コマンドを実行することもありません。コマンドはご自身で実行し、書き出されたファイルをドロップしてください。例の名前（localhost、myuser、mydb、customers）はご自身のものに置き換えてください。",
+      "データベースシステム", "1 · 構造のみ（「データを共有しない」に最適なファイル）", "2 · 構造とデータ", "3 · 外部キーを表として（任意）",
+      "これらのコマンドは {v} で実行し、出力を DataBrief で読み取って確認しました。", "これらのコマンドは公式ドキュメントに基づくもので、ここでは実行していません。まずコピーで試してください。", "公式ドキュメント",
+      "このシステムには外部キーがありません。DataBrief は列名と値から可能性の高いリレーションを推定し、推定として表示します。",
+      "このシステムは外部キーを記録しますが強制はしません。宣言済みのリレーションとして読み取りますが、データがそれに従っているとは限りません。",
+      "DataBrief はこの種のファイルを直接読み取れます。データベースファイルそのものを渡せます。コマンドはテキストでエクスポートしたい場合のものです。",
+      "コマンドの中にパスワードを入力しないでください。ツールに尋ねさせるか、ツール固有のパスワードファイルや環境変数を使ってください。", "ここで実行するものはありません。上の注記を参照してください。"],
+    ko: ["내 데이터베이스는 어떻게 내보내나요?", "데이터베이스 내보내기",
+      "이 명령은 읽기만 하며 데이터베이스의 어떤 것도 바꾸지 않습니다. DataBrief는 데이터베이스에 연결하지 않고 이 명령을 실행하지도 않습니다. 명령은 직접 실행하고, 그 결과로 생긴 파일을 끌어다 놓으세요. 예시 이름(localhost, myuser, mydb, customers)은 본인 것으로 바꾸세요.",
+      "데이터베이스 시스템", "1 · 구조만(‘데이터 공유 안 함’에 가장 좋은 파일)", "2 · 구조와 데이터", "3 · 외래 키를 표로(선택)",
+      "이 명령은 {v}에서 실행했고, 그 출력을 DataBrief가 읽어 확인했습니다.", "이 명령은 공식 문서에서 가져온 것이며 여기서 실행하지 않았습니다. 먼저 사본에서 시험해 보세요.", "공식 문서",
+      "이 시스템에는 외래 키가 없습니다. DataBrief는 열 이름과 값으로 가능성 높은 관계를 추정해 추정으로 표시합니다.",
+      "이 시스템은 외래 키를 기록하지만 강제하지는 않습니다. 선언된 관계로 읽지만 데이터가 이를 지키지 않을 수 있습니다.",
+      "DataBrief는 이런 파일을 직접 읽을 수 있으므로 데이터베이스 파일 자체를 제공해도 됩니다. 명령은 텍스트로 내보내고 싶을 때를 위한 것입니다.",
+      "명령 안에 비밀번호를 입력하지 마세요. 도구가 직접 묻게 하거나 도구 자체의 비밀번호 파일 또는 환경 변수를 사용하세요.", "여기서 실행할 것은 없습니다. 위의 설명을 참고하세요."],
+    hi: ["मैं अपना डेटाबेस कैसे एक्सपोर्ट करूँ?", "अपना डेटाबेस एक्सपोर्ट करें",
+      "ये कमांड केवल पढ़ती हैं: आपके डेटाबेस में कुछ नहीं बदलतीं। DataBrief कभी किसी डेटाबेस से नहीं जुड़ता और इन्हें कभी नहीं चलाता: कमांड आप स्वयं चलाते हैं, फिर उसकी लिखी फ़ाइल छोड़ते हैं। उदाहरण के नामों (localhost, myuser, mydb, customers) को अपने नामों से बदलें।",
+      "डेटाबेस सिस्टम", "1 · केवल संरचना (“डेटा साझा न करें” के साथ सबसे अच्छी फ़ाइल)", "2 · संरचना और डेटा", "3 · विदेशी कुंजियाँ तालिका के रूप में (वैकल्पिक)",
+      "ये कमांड {v} पर चलाई गईं और उनका आउटपुट DataBrief ने पढ़ा।", "ये कमांड आधिकारिक दस्तावेज़ीकरण से ली गई हैं और यहाँ चलाई नहीं गईं: पहले किसी प्रति पर आज़माएँ।", "आधिकारिक दस्तावेज़ीकरण",
+      "इस सिस्टम में विदेशी कुंजियाँ नहीं होतीं: DataBrief स्तंभों के नामों और मानों से संभावित संबंध निकालता है और उन्हें अनुमानित के रूप में चिह्नित करता है।",
+      "यह सिस्टम विदेशी कुंजियाँ दर्ज करता है पर लागू नहीं करता: वे घोषित संबंधों के रूप में पढ़ी जाती हैं, लेकिन डेटा उनका पालन न करे, ऐसा हो सकता है।",
+      "DataBrief इस तरह की फ़ाइल सीधे पढ़ता है: आप डेटाबेस फ़ाइल ही दे सकते हैं। कमांड तब के लिए हैं जब आप टेक्स्ट एक्सपोर्ट पसंद करें।",
+      "कमांड के भीतर कभी पासवर्ड न लिखें: टूल को स्वयं पूछने दें, या उसकी अपनी पासवर्ड फ़ाइल या किसी एनवायरनमेंट वेरिएबल का उपयोग करें।", "यहाँ चलाने को कुछ नहीं है: ऊपर के नोट देखें।"],
+    ar: ["كيف أصدّر قاعدة بياناتي؟", "تصدير قاعدة بياناتك",
+      "هذه الأوامر تقرأ فقط ولا تغيّر شيئًا في قاعدة بياناتك. لا يتصل DataBrief بأي قاعدة بيانات ولا ينفّذ هذه الأوامر أبدًا: تنفّذ الأمر بنفسك ثم تُفلت الملف الذي يكتبه. استبدل الأسماء الواردة كأمثلة (localhost وmyuser وmydb وcustomers) بأسمائك.",
+      "نظام قاعدة البيانات", "1 · البنية فقط (أفضل ملف مع «عدم مشاركة البيانات»)", "2 · البنية والبيانات", "3 · المفاتيح الأجنبية كجدول (اختياري)",
+      "نُفّذت هذه الأوامر على {v} وقرأ DataBrief مخرجاتها.", "هذه الأوامر مأخوذة من الوثائق الرسمية ولم تُنفَّذ هنا: جرّبها أولًا على نسخة.", "الوثائق الرسمية",
+      "لا يحتوي هذا النظام على مفاتيح أجنبية: يستنتج DataBrief العلاقات المحتملة من أسماء الأعمدة وقيمها ويعلّمها على أنها مستنتجة.",
+      "يسجّل هذا النظام المفاتيح الأجنبية دون فرضها: تُقرأ كعلاقات مُعلَنة، لكن قد لا تلتزم بها البيانات.",
+      "يقرأ DataBrief هذا النوع من الملفات مباشرةً: يمكنك تقديم ملف قاعدة البيانات نفسه. الأوامر لمن يفضّل تصديرًا نصيًا.",
+      "لا تكتب كلمة المرور داخل أي أمر: دع الأداة تطلبها منك، أو استخدم ملف كلمات المرور الخاص بها أو متغيرًا بيئيًا.", "لا شيء للتنفيذ هنا: راجع الملاحظات أعلاه."],
+  };
   for (const [lang, vals] of Object.entries(U)) UK.forEach((k, i) => { window.DB_I18N.ui[lang][k] = vals[i]; });
 })();
 </script>
@@ -8330,6 +8487,138 @@ window.DB.DBF_CODEPAGES = {
   };
 })();
 </script>
+<script>/* DataBrief - the "how do I export my database?" helper. GPL-3.0-or-later.
+ *
+ * For each common database engine: read-only commands that write (1) the structure, (2) the structure and the data, (3) the
+ * foreign keys as a table. DataBrief never connects to a database and never runs these commands: it only shows them, and the
+ * user runs them. No password is ever written in a command (the tool asks, or uses its own password file or environment variable).
+ *
+ * tested: the engine and version the commands were run against, with their real output given to DataBrief's own readers
+ *         (tests/test_export_commands.sh); '' = taken from the official documentation, NOT run here (the dialog says so).
+ * fk:     'declared' (the engine enforces foreign keys), 'unenforced' (it records them without enforcing), 'none' (it has none).
+ * file:   DataBrief can read the database file itself (the commands are then an alternative).
+ * The example names (localhost, myuser, mydb, customers) are meant to be replaced by the user's own. */
+'use strict';
+(function () {
+  const DB = window.DB;
+  const FKQ_PG = "SELECT c.conrelid::regclass AS table_name, a.attname AS column_name, c.confrelid::regclass AS referenced_table, af.attname AS referenced_column " +
+    "FROM pg_constraint c CROSS JOIN LATERAL unnest(c.conkey, c.confkey) AS k(attnum, fattnum) " +
+    "JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = k.attnum JOIN pg_attribute af ON af.attrelid = c.confrelid AND af.attnum = k.fattnum " +
+    "WHERE c.contype = 'f' ORDER BY 1, 2";
+  const FKQ_MYSQL = "SELECT table_name, column_name, referenced_table_name, referenced_column_name FROM information_schema.key_column_usage " +
+    "WHERE table_schema = DATABASE() AND referenced_table_name IS NOT NULL ORDER BY table_name, constraint_name, ordinal_position";
+
+  DB.EXPORT_ENGINES = [
+    {
+      key: 'postgresql', label: 'PostgreSQL', tested: 'PostgreSQL 16', fk: 'declared', file: false,
+      docs: 'https://www.postgresql.org/docs/current/app-pgdump.html',
+      schema: 'pg_dump --schema-only --no-owner --no-privileges -h localhost -U myuser -d mydb -f schema.sql',
+      full: 'pg_dump --no-owner --no-privileges -h localhost -U myuser -d mydb -f dump.sql',
+      fks: 'psql -h localhost -U myuser -d mydb --csv -c "' + FKQ_PG + '" > foreign_keys.csv',
+    },
+    {
+      key: 'mysql', label: 'MySQL', tested: 'MySQL 8.4', fk: 'declared', file: false,
+      docs: 'https://dev.mysql.com/doc/refman/8.4/en/mysqldump.html',
+      schema: 'mysqldump --no-data -h localhost -u myuser -p mydb > schema.sql',
+      full: 'mysqldump --single-transaction -h localhost -u myuser -p mydb > dump.sql',
+      fks: 'mysql -h localhost -u myuser -p --batch --raw mydb -e "' + FKQ_MYSQL + '" > foreign_keys.tsv',
+    },
+    {
+      key: 'mariadb', label: 'MariaDB', tested: 'MariaDB 11.8', fk: 'declared', file: false,
+      docs: 'https://mariadb.com/docs/server/clients-and-utilities/backup-restore-and-import-clients/mariadb-dump',
+      schema: 'mariadb-dump --no-data -h localhost -u myuser -p mydb > schema.sql',
+      full: 'mariadb-dump --single-transaction -h localhost -u myuser -p mydb > dump.sql',
+      fks: 'mariadb -h localhost -u myuser -p --batch --raw mydb -e "' + FKQ_MYSQL + '" > foreign_keys.tsv',
+    },
+    {
+      key: 'sqlserver', label: 'SQL Server', tested: '', fk: 'declared', file: false,
+      docs: 'https://learn.microsoft.com/en-us/sql/tools/sqlpackage/sqlpackage-extract',
+      schema: 'sqlpackage /Action:Extract /SourceConnectionString:"Server=localhost;Database=mydb;Integrated Security=True;TrustServerCertificate=True" /TargetFile:schema.dacpac',
+      full: 'sqlcmd -S localhost -d mydb -E -C -W -s "," -Q "SET NOCOUNT ON; SELECT * FROM dbo.customers" -o customers.csv',
+      fks: 'sqlcmd -S localhost -d mydb -E -C -W -s "," -Q "SET NOCOUNT ON; SELECT OBJECT_NAME(fkc.parent_object_id) AS table_name, pc.name AS column_name, ' +
+        'OBJECT_NAME(fkc.referenced_object_id) AS referenced_table, rc.name AS referenced_column FROM sys.foreign_key_columns fkc ' +
+        'JOIN sys.columns pc ON pc.object_id = fkc.parent_object_id AND pc.column_id = fkc.parent_column_id ' +
+        'JOIN sys.columns rc ON rc.object_id = fkc.referenced_object_id AND rc.column_id = fkc.referenced_column_id ' +
+        'ORDER BY 1, fkc.constraint_object_id, fkc.constraint_column_id" -o foreign_keys.csv',
+    },
+    {
+      key: 'oracle', label: 'Oracle', tested: '', fk: 'declared', file: false,
+      docs: 'https://docs.oracle.com/en/database/oracle/oracle-database/19/arpls/DBMS_METADATA.html',
+      schema: "sqlplus -S myuser@//localhost:1521/MYSERVICE <<'EOF' > schema.sql\n" +
+        "SET LONG 1000000 PAGESIZE 0 LINESIZE 32767 TRIMSPOOL ON FEEDBACK OFF\n" +
+        "EXEC DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM, 'SQLTERMINATOR', TRUE);\n" +
+        "SELECT DBMS_METADATA.GET_DDL('TABLE', table_name) FROM user_tables;\n" +
+        "SELECT DBMS_METADATA.GET_DDL('REF_CONSTRAINT', constraint_name) FROM user_constraints WHERE constraint_type = 'R';\n" +
+        "EOF",
+      full: "sqlplus -S myuser@//localhost:1521/MYSERVICE <<'EOF' > customers.csv\n" +
+        "SET MARKUP CSV ON QUOTE ON\nSET FEEDBACK OFF\nSELECT * FROM customers;\nEOF",
+      fks: "sqlplus -S myuser@//localhost:1521/MYSERVICE <<'EOF' > foreign_keys.csv\n" +
+        "SET MARKUP CSV ON QUOTE ON\nSET FEEDBACK OFF\n" +
+        "SELECT a.table_name, a.column_name, c_pk.table_name AS referenced_table, b.column_name AS referenced_column FROM user_constraints c " +
+        "JOIN user_cons_columns a ON a.constraint_name = c.constraint_name JOIN user_constraints c_pk ON c_pk.constraint_name = c.r_constraint_name " +
+        "JOIN user_cons_columns b ON b.constraint_name = c_pk.constraint_name AND b.position = a.position WHERE c.constraint_type = 'R' " +
+        "ORDER BY a.table_name, c.constraint_name, a.position;\nEOF",
+    },
+    {
+      key: 'duckdb', label: 'DuckDB', tested: '', fk: 'declared', file: false,
+      docs: 'https://duckdb.org/docs/stable/sql/statements/export',
+      schema: 'duckdb mydb.duckdb -noheader -list -c "SELECT sql || \';\' FROM duckdb_tables() UNION ALL SELECT sql FROM duckdb_views() WHERE NOT internal" > schema.sql',
+      full: "duckdb mydb.duckdb -c \"EXPORT DATABASE 'export'\"\nzip -r export.zip export",
+      fks: 'duckdb mydb.duckdb -csv -c "SELECT table_name, constraint_column_names, referenced_table, referenced_column_names FROM duckdb_constraints() WHERE constraint_type = \'FOREIGN KEY\'" > foreign_keys.csv',
+    },
+    {
+      key: 'sqlite', label: 'SQLite', tested: 'SQLite 3.53', fk: 'declared', file: true,
+      docs: 'https://www.sqlite.org/cli.html',
+      schema: 'sqlite3 mydb.sqlite ".schema" > schema.sql',
+      full: 'sqlite3 mydb.sqlite ".dump" > dump.sql',
+      fks: 'sqlite3 -header -csv mydb.sqlite "SELECT m.name AS table_name, f.\\"from\\" AS column_name, f.\\"table\\" AS referenced_table, f.\\"to\\" AS referenced_column FROM sqlite_master m JOIN pragma_foreign_key_list(m.name) f WHERE m.type = \'table\'" > foreign_keys.csv',
+    },
+    {
+      key: 'access', label: 'Microsoft Access', tested: '', fk: 'declared', file: true,
+      docs: 'https://support.microsoft.com/en-us/access',
+      schema: '', full: '', fks: '',
+    },
+    {
+      key: 'db2', label: 'IBM Db2', tested: '', fk: 'declared', file: false,
+      docs: 'https://www.ibm.com/docs/en/db2/11.5?topic=commands-db2look-db2-statistics-ddl-extraction-tool',
+      schema: 'db2look -d MYDB -e -o schema.sql',
+      full: 'db2 "EXPORT TO customers.csv OF DEL MODIFIED BY COLDEL, SELECT * FROM myschema.customers"',
+      fks: 'db2 -x "SELECT TABNAME, FK_COLNAMES, REFTABNAME, PK_COLNAMES FROM SYSCAT.REFERENCES" > foreign_keys.txt',
+    },
+    {
+      key: 'snowflake', label: 'Snowflake', tested: '', fk: 'unenforced', file: false,
+      docs: 'https://docs.snowflake.com/en/sql-reference/functions/get_ddl',
+      schema: 'snowsql -q "SELECT GET_DDL(\'SCHEMA\', \'MYDB.MYSCHEMA\')" -o output_format=plain -o header=false -o timing=false -o friendly=false > schema.sql',
+      full: 'snowsql -q "SELECT * FROM mydb.myschema.customers" -o output_format=csv -o header=true -o timing=false -o friendly=false > customers.csv',
+      fks: 'snowsql -q "SHOW IMPORTED KEYS IN SCHEMA mydb.myschema" -o output_format=csv -o header=true -o timing=false -o friendly=false > foreign_keys.csv',
+    },
+    {
+      key: 'bigquery', label: 'BigQuery', tested: '', fk: 'unenforced', file: false,
+      docs: 'https://docs.cloud.google.com/bigquery/docs/information-schema-tables',
+      schema: 'bq query --nouse_legacy_sql --format=json "SELECT ddl FROM mydataset.INFORMATION_SCHEMA.TABLES WHERE table_type = \'BASE TABLE\'" | jq -r \'.[].ddl\' > schema.sql',
+      full: 'bq query --nouse_legacy_sql --format=csv --max_rows=1000000 "SELECT * FROM mydataset.customers" > customers.csv',
+      fks: 'bq query --nouse_legacy_sql --format=csv "SELECT k.table_name, k.column_name, c.table_name AS referenced_table, c.column_name AS referenced_column ' +
+        'FROM mydataset.INFORMATION_SCHEMA.KEY_COLUMN_USAGE k JOIN mydataset.INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE c ON c.constraint_name = k.constraint_name ' +
+        'WHERE k.constraint_name IN (SELECT constraint_name FROM mydataset.INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE constraint_type = \'FOREIGN KEY\') ' +
+        'AND c.table_name != k.table_name" > foreign_keys.csv',
+    },
+    {
+      key: 'redshift', label: 'Amazon Redshift', tested: '', fk: 'unenforced', file: false,
+      docs: 'https://docs.aws.amazon.com/redshift/latest/dg/r_SHOW_TABLE.html',
+      schema: 'psql -h mycluster.example.us-east-1.redshift.amazonaws.com -p 5439 -U myuser -d mydb -At -c "SHOW TABLE public.customers" > schema.sql',
+      full: 'psql -h mycluster.example.us-east-1.redshift.amazonaws.com -p 5439 -U myuser -d mydb --csv -c "SELECT * FROM public.customers" > customers.csv',
+      fks: 'psql -h mycluster.example.us-east-1.redshift.amazonaws.com -p 5439 -U myuser -d mydb --csv -c "' + FKQ_PG + '" > foreign_keys.csv',
+    },
+    {
+      key: 'clickhouse', label: 'ClickHouse', tested: 'ClickHouse 26.10', fk: 'none', file: false,
+      docs: 'https://clickhouse.com/docs/reference/statements/show',
+      schema: 'clickhouse-client --host localhost --user myuser --password --query "SELECT concat(create_table_query, \';\') FROM system.tables WHERE database = \'mydb\' ORDER BY name FORMAT TSVRaw" > schema.sql',
+      full: 'clickhouse-client --host localhost --user myuser --password --query "SELECT * FROM mydb.customers FORMAT CSVWithNames" > customers.csv',
+      fks: '',
+    },
+  ];
+})();
+</script>
 <script>/* DataBrief - page controller. GPL-3.0-or-later. */
 'use strict';
 (function () {
@@ -8450,6 +8739,7 @@ window.DB.DBF_CODEPAGES = {
     if (state.busy) setBusy(true, state.busyName);
     if (state.doc || state.ns) renderResult();
     if (state.lastErr) showError(state.lastErr);
+    if (typeof renderExport === 'function' && $('exportDialog').open) renderExport();   // the helper follows the language
   }
 
   /* ---------- theme ---------- */
@@ -9035,6 +9325,50 @@ window.DB.DBF_CODEPAGES = {
   $('viewBtn').addEventListener('click', openFormatted);
   $('mdClose').addEventListener('click', () => $('mdDialog').close());
   $('mdDialog').addEventListener('click', (e) => { if (e.target === $('mdDialog')) $('mdDialog').close(); });
+
+  /* ---------- "How do I export my database?": read-only commands per engine (export-helper.js); DataBrief runs nothing ---------- */
+  const exSel = $('exEngine');
+  for (const e of DB.EXPORT_ENGINES) { const o = document.createElement('option'); o.value = e.key; o.textContent = e.label; exSel.appendChild(o); }
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* not allowed here: the older way */ }
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    ta.remove();
+    return ok;
+  }
+  function renderExport() {
+    const e = DB.EXPORT_ENGINES.find((x) => x.key === exSel.value) || DB.EXPORT_ENGINES[0];
+    const notes = $('exNotes'), box = $('exBlocks');
+    notes.textContent = ''; box.textContent = '';
+    const note = (text) => { const p = document.createElement('p'); p.className = 'hint'; p.textContent = text; notes.appendChild(p); };
+    if (e.file) note(tu('exGiveFile'));
+    if (e.fk === 'none') note(tu('exNoFk')); else if (e.fk === 'unenforced') note(tu('exUnenforced'));
+    note(e.tested ? tu('exTested', { v: e.tested }) : tu('exUntested'));
+    for (const [k, title] of [['schema', 'exSchema'], ['full', 'exFull'], ['fks', 'exFks']]) {
+      const h = document.createElement('h3'); h.textContent = tu(title); box.appendChild(h);
+      const cmd = e[k];
+      if (!cmd) { const p = document.createElement('p'); p.className = 'hint'; p.textContent = tu(k === 'fks' && e.fk === 'none' ? 'exNoFk' : 'exNone'); box.appendChild(p); continue; }
+      const wrap = document.createElement('div'); wrap.className = 'cmd';
+      const pre = document.createElement('pre'); pre.className = 'cmd-text'; pre.tabIndex = 0;
+      const code = document.createElement('code'); code.textContent = cmd; pre.appendChild(code);
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn btn-outline btn-sm'; btn.textContent = tu('copy');
+      btn.addEventListener('click', async () => {
+        const ok = await copyText(cmd);
+        btn.textContent = ok ? tu('copied') : tu('copyFail');
+        setTimeout(() => { btn.textContent = tu('copy'); }, 1500);
+      });
+      wrap.appendChild(pre); wrap.appendChild(btn); box.appendChild(wrap);
+    }
+    $('exDocs').href = e.docs;
+    $('exDocs').textContent = tu('exDocs') + ' · ' + e.label;
+  }
+  exSel.addEventListener('change', renderExport);
+  $('exportBtn').addEventListener('click', () => { renderExport(); const dlg = $('exportDialog'); if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', ''); });
+  $('exClose').addEventListener('click', () => $('exportDialog').close());
+  $('exportDialog').addEventListener('click', (e) => { if (e.target === $('exportDialog')) $('exportDialog').close(); });
 
   $('fmtClose').addEventListener('click', () => $('fmtDialog').close());
   $('fmtDialog').addEventListener('click', (e) => { if (e.target === $('fmtDialog')) $('fmtDialog').close(); });

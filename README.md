@@ -632,6 +632,8 @@ how to export it, and its limits.
 | | **Microsoft Access** (`.mdb`, `.accdb`: tables, rows and the relationships Access stores; no Access needed) | [Access](docs/formats/access.md) |
 | Legacy databases | **DBF** (dBase, FoxPro, Visual FoxPro, shapefile attribute tables; any code page) | [DBF](docs/formats/dbf.md) |
 
+**Not sure how to export your database?** Click *How do I export my database?* under the formats on the page (it works offline and never connects to anything), or read [Export your database for DataBrief](docs/export-your-database.md): ready-to-copy, read-only commands for 13 engines (schema only, schema and data, foreign keys), with the official links; the PostgreSQL, MySQL, MariaDB, SQLite and ClickHouse ones were run against real servers.
+
 When a file holds several sheets or tables, each one becomes its own section, and the AI is told that they are separate.
 
 **What is extracted** (when the format provides it):

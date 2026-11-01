@@ -5,6 +5,8 @@ A DuckDB database (`.duckdb`) is a single binary file that only DuckDB can open,
 
 [← Back to the README](../../README.md#supported-formats)
 
+Need to produce this file? See [Export your database](../export-your-database.md).
+
 ## What DataBrief reads
 
 A **zip of the exported folder**. It must contain `schema.sql` and `load.sql` (the folder name inside the zip does not matter).

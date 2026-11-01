@@ -118,6 +118,7 @@
     if (state.busy) setBusy(true, state.busyName);
     if (state.doc || state.ns) renderResult();
     if (state.lastErr) showError(state.lastErr);
+    if (typeof renderExport === 'function' && $('exportDialog').open) renderExport();   // the helper follows the language
   }
 
   /* ---------- theme ---------- */
@@ -703,6 +704,50 @@
   $('viewBtn').addEventListener('click', openFormatted);
   $('mdClose').addEventListener('click', () => $('mdDialog').close());
   $('mdDialog').addEventListener('click', (e) => { if (e.target === $('mdDialog')) $('mdDialog').close(); });
+
+  /* ---------- "How do I export my database?": read-only commands per engine (export-helper.js); DataBrief runs nothing ---------- */
+  const exSel = $('exEngine');
+  for (const e of DB.EXPORT_ENGINES) { const o = document.createElement('option'); o.value = e.key; o.textContent = e.label; exSel.appendChild(o); }
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* not allowed here: the older way */ }
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    ta.remove();
+    return ok;
+  }
+  function renderExport() {
+    const e = DB.EXPORT_ENGINES.find((x) => x.key === exSel.value) || DB.EXPORT_ENGINES[0];
+    const notes = $('exNotes'), box = $('exBlocks');
+    notes.textContent = ''; box.textContent = '';
+    const note = (text) => { const p = document.createElement('p'); p.className = 'hint'; p.textContent = text; notes.appendChild(p); };
+    if (e.file) note(tu('exGiveFile'));
+    if (e.fk === 'none') note(tu('exNoFk')); else if (e.fk === 'unenforced') note(tu('exUnenforced'));
+    note(e.tested ? tu('exTested', { v: e.tested }) : tu('exUntested'));
+    for (const [k, title] of [['schema', 'exSchema'], ['full', 'exFull'], ['fks', 'exFks']]) {
+      const h = document.createElement('h3'); h.textContent = tu(title); box.appendChild(h);
+      const cmd = e[k];
+      if (!cmd) { const p = document.createElement('p'); p.className = 'hint'; p.textContent = tu(k === 'fks' && e.fk === 'none' ? 'exNoFk' : 'exNone'); box.appendChild(p); continue; }
+      const wrap = document.createElement('div'); wrap.className = 'cmd';
+      const pre = document.createElement('pre'); pre.className = 'cmd-text'; pre.tabIndex = 0;
+      const code = document.createElement('code'); code.textContent = cmd; pre.appendChild(code);
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn btn-outline btn-sm'; btn.textContent = tu('copy');
+      btn.addEventListener('click', async () => {
+        const ok = await copyText(cmd);
+        btn.textContent = ok ? tu('copied') : tu('copyFail');
+        setTimeout(() => { btn.textContent = tu('copy'); }, 1500);
+      });
+      wrap.appendChild(pre); wrap.appendChild(btn); box.appendChild(wrap);
+    }
+    $('exDocs').href = e.docs;
+    $('exDocs').textContent = tu('exDocs') + ' · ' + e.label;
+  }
+  exSel.addEventListener('change', renderExport);
+  $('exportBtn').addEventListener('click', () => { renderExport(); const dlg = $('exportDialog'); if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', ''); });
+  $('exClose').addEventListener('click', () => $('exportDialog').close());
+  $('exportDialog').addEventListener('click', (e) => { if (e.target === $('exportDialog')) $('exportDialog').close(); });
 
   $('fmtClose').addEventListener('click', () => $('fmtDialog').close());
   $('fmtDialog').addEventListener('click', (e) => { if (e.target === $('fmtDialog')) $('fmtDialog').close(); });

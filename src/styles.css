@@ -294,3 +294,15 @@ footer .powered { font-weight: 600; color: var(--text-2); }
   .card-body { padding: 16px; }
   .btn { flex: 1 1 auto; justify-content: center; }
 }
+
+/* "How do I export my database?" */
+.export-link { text-align: center; margin-top: 4px; }
+#exportDialog { width: min(820px, calc(100vw - 32px)); max-width: min(820px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; }
+#exportDialog .select { max-width: 100%; }
+#exportDialog h3 { margin: 16px 0 6px; font-size: 14px; color: var(--text); font-weight: 600; }
+#exNotes .hint { margin: 8px 0 0; }
+.cmd { display: flex; gap: 8px; align-items: flex-start; }
+.cmd-text { flex: 1; min-width: 0; margin: 0; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border);
+  font: 12.5px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; user-select: all; }
+.cmd .btn { flex: none; }
+@media (max-width: 560px) { .cmd { flex-direction: column; } .cmd .btn { align-self: flex-end; } }
