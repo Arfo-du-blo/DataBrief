@@ -478,7 +478,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       { f: 'json.json' }, { f: 'ndjson.ndjson' }, { f: 'yaml.yaml' }, { f: 'xml.xml' }, { f: 'html.html', cap: true },
       { f: 'sav.sav', txt: true, lab: true }, { f: 'zsav.zsav', txt: true, lab: true },
       { f: 'parquet.parquet', txt: true }, { f: 'sqlite.sqlite', sql: true },
-      { f: 'sql.sql', txt: true, lab: true, sql: true }, { f: 'pgdump.dump', txt: true, lab: true, sql: true }, { f: 'dbf.dbf', names: 'CONF_COL' },
+      { f: 'sql.sql', txt: true, lab: true, sql: true }, { f: 'pgdump.dump', txt: true, lab: true, sql: true }, { f: 'dbf.dbf', names: 'CONF_COL' }, { f: 'access.accdb' },
     ];
     const checks = [];
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
@@ -563,7 +563,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     {
       const p = await newPage();
       ok(await p.evaluate(() => document.getElementById('nsOn').offsetParent === null), '8: switch must not be visible before a file is read');
-      ok(await p.evaluate(() => document.getElementById('chips').children.length === 19 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
+      ok(await p.evaluate(() => document.getElementById('chips').children.length === 20 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
       const r0 = await load(p, F('confidential.csv'));
       ok(r0.md.includes('CONFIDENTIAL_CUSTOMER_74291') && await p.evaluate(() => document.getElementById('nsOn').offsetParent !== null && !document.getElementById('nsOn').checked), '8: after loading: data included, switch visible and off');
       const order = await p.evaluate(() => ['secSummary', 'secShare', 'secOutput'].map((id) => document.getElementById(id).getBoundingClientRect().top));
@@ -668,7 +668,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
     const page = await newPage();
     const chips = await page.$$eval('#chips button.chip', (els) => els.length);
-    if (chips !== 19) checks.push('expected 19 clickable formats, got ' + chips);
+    if (chips !== 20) checks.push('expected 20 clickable formats, got ' + chips);
     for (let i = 0; i < chips; i++) {
       await page.evaluate((n) => document.querySelectorAll('#chips button.chip')[n].click(), i); await wait(60);
       const r = await page.evaluate(() => ({
@@ -682,12 +682,12 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     // every card in every language, with the guide link
     const miss = await page.evaluate(() => {
       const I = window.DB_I18N, out = [];
-      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump', 'Dbf', 'Duckdb']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
+      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump', 'Dbf', 'Duckdb', 'Access']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
       return out;
     });
     if (miss.length) checks.push('missing card texts: ' + miss.join(','));
     // the guides the cards link to exist in the repository
-    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump', 'dbf', 'duckdb']) {
+    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump', 'dbf', 'duckdb', 'access']) {
       if (!fs.existsSync(path.join(path.dirname(htmlPath), 'docs', 'formats', g + '.md'))) checks.push('guide docs/formats/' + g + '.md is missing');
     }
     // "what was found"
@@ -696,7 +696,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     if (found !== 'Found: 7 sections · 16 columns · 5 relationships (0 declared, 5 inferred)') checks.push('found line: ' + found);
     await page.close();
     if (checks.length) fail('format cards', checks.join(' | '));
-    else pass('format cards', '19 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
+    else pass('format cards', '20 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
   }
 
   // ---------- SQL dumps and PostgreSQL archives (real dumps of tests/sql-fixtures) ----------
@@ -853,6 +853,55 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     await p.close();
     if (checks.length) fail('DBF files', checks.join(' | '));
     else pass('DBF files', 'dBase III with memo and a deleted record, DOS code page 866, Visual FoxPro, a cut file, a text file named .dbf, 15 languages');
+  }
+
+  // ---------- Microsoft Access databases (files written by Jackcess, not by Access: tests/access-fixtures) ----------
+  {
+    const checks = [];
+    const bad = (m) => checks.push(m);
+    for (const [file, fmtText] of [['shop.accdb', 'Access 2007 or later (.accdb)'], ['shop.mdb', 'Jet database (.mdb)']]) {
+      const p = await newPage();
+      const r = await load(p, F(file));
+      if (!r.ok) { bad(file + ': ' + r.err); await p.close(); continue; }
+      const d = await p.evaluate(() => {
+        const x = window.DataBrief.getState().doc;
+        return { k: x.formatKey, n: x.sections.length, cust: x.sections.find((s) => s.name === 'Customers').rows.length, declared: (x.relationships || []).filter((q) => q.source === 'declared').length,
+          types: x.sections.find((s) => s.name === 'Customers').columns.map((c) => c.type) };
+      });
+      if (d.k !== 'access' || d.n !== 7 || d.cust !== 6 || d.declared !== 6) bad(file + ': ' + JSON.stringify(d));
+      if (JSON.stringify(d.types) !== JSON.stringify(['integer', 'text', 'text', 'text', 'datetime', 'text', 'boolean', 'decimal', 'decimal'])) bad(file + ': column kinds ' + JSON.stringify(d.types));
+      if (!r.md.includes('**Access format:** ' + fmtText) || !r.md.includes('**Not read:** saved queries') || !r.md.includes("Bob O'Brien") || !r.md.includes('Unit Price')) bad(file + ': the prompt');
+      if ((await p.$eval('#stFormat', (el) => el.textContent)) !== 'Access') bad(file + ': the Format stat should say Access');
+      await p.close();
+    }
+    // a text file named .accdb: the clear error; the page never runs anything from the file
+    fs.writeFileSync(path.join(outDir, 'fake.accdb'), 'a,b\n1,2\n');
+    let p = await newPage();
+    let r = await load(p, path.join(outDir, 'fake.accdb'));
+    if (r.ok || !r.err) bad('a text file named .accdb should be refused with a message');
+    await p.close();
+    // no-share: the rows are dropped, the relationships and the structure stay, names can be hidden
+    p = await newPage();
+    r = await load(p, F('shop.accdb'));
+    await p.click('#nsOn'); await new Promise((res) => setTimeout(res, 500));
+    const ns = await p.evaluate(() => window.DataBrief.getMarkdown());
+    if (ns.includes('ana.secret@example.com') || ns.includes('CONFIDENTIAL_CUSTOMER_74291') || !ns.includes('Shipments') || !/Declared by the source/.test(ns)) bad('no-share on an Access file: a row leaked, or the structure or relationships are missing');
+    await p.evaluate(() => localStorage.clear());
+    await p.close();
+    // every text in all 15 languages
+    p = await newPage();
+    const miss = await p.evaluate(() => {
+      const I = window.DB_I18N, out = [];
+      for (const l of I.langs.map((x) => x.code)) {
+        for (const k of ['fcAccessReads', 'fcAccessBest', 'fcAccessGood', 'errAccessProtected']) if (!I.ui[l][k]) out.push(l + ':' + k);
+        for (const k of ['mAccess', 'mNotRead']) if (!I.prompt[l][k]) out.push(l + ':' + k);
+      }
+      return out;
+    });
+    if (miss.length) bad('missing texts: ' + miss.join(','));
+    await p.close();
+    if (checks.length) fail('Access databases', checks.join(' | '));
+    else pass('Access databases', '.accdb and .mdb read with types, rows and the six stored relationships; a text file named .accdb refused; no-share; 15 languages');
   }
 
   // ---------- DuckDB "EXPORT DATABASE" folders, zipped (real exports of tests/sql-fixtures) ----------

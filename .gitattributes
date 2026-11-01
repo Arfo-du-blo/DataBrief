@@ -6,3 +6,4 @@ vendor/*.js text eol=lf
 examples/tampered/*.html text eol=lf
 tests/sql-fixtures/** -text
 tests/dbf-fixtures/** -text
+tests/access-fixtures/** -text

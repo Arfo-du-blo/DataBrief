@@ -443,3 +443,10 @@ for _name, _kind, _prefix, _skip in (("duckdb-csv.zip", "csv", "shop/", None), (
         for _f in sorted(os.listdir(_d)):
             if _f != _skip:
                 _z.write(os.path.join(_d, _f), _prefix + _f)
+
+# --- Access: real files written by Jackcess (NOT by Microsoft Access), and their canary (tests/make_access_fixtures.sh) ---
+_acc = os.path.join(os.path.dirname(os.path.abspath(__file__)), "access-fixtures")
+for _f in sorted(os.listdir(_acc)):
+    if _f.endswith((".accdb", ".mdb")) and not _f.startswith("CONFIDENTIAL"):
+        shutil.copy(os.path.join(_acc, _f), P(_f))
+shutil.copy(os.path.join(_acc, "CONFIDENTIAL_FILE_access.accdb"), Q("access", "accdb"))

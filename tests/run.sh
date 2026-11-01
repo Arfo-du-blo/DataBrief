@@ -8,6 +8,9 @@ export PATH="$E/node/bin:$PATH" PUPPETEER_CACHE_DIR="$E/puppeteer-cache" NODE_PA
 echo "=== SQL dump reader (Node, real dumps in tests/sql-fixtures)"
 node "$HERE/test_sql_parser.cjs" | grep -v '^PASS'   # failures and the summary only; pipefail stops here on a failure
 echo
+echo "=== Access reader (Node, real files of tests/access-fixtures)"
+node "$HERE/test_access.cjs" | grep -v "^PASS"
+echo
 echo "=== DBF reader (Node, real files of tests/dbf-fixtures)"
 node "$HERE/test_dbf.cjs" | grep -v '^PASS'
 echo

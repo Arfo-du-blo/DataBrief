@@ -1,0 +1,4 @@
+Real Access files in this folder were written by Jackcess (NOT by Microsoft Access): see tests/make_access_fixtures.sh
+Generated: 2026-11-01
+Libraries: commons-lang3-3.17.0.jar commons-lang3-3.17.0.jar.sha1 commons-logging-1.3.4.jar commons-logging-1.3.4.jar.sha1 jackcess-4.0.8.jar jackcess-4.0.8.jar.sha1 
+Java: openjdk version "17.0.20.1" 2026-08-18

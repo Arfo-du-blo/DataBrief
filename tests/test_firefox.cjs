@@ -54,7 +54,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms || 200));
     ['page.html', 'Quarterly KPIs'], ['survey.sav', 'Customer survey 2024'], ['survey.zsav', 'Customer survey 2024'],
     ['table_snappy.parquet', '`geo.lat`'], ['table_zstd.parquet', '`geo.lat`'], ['nested.parquet', 'LIST<'], ['shop.sqlite', '`customers`'],
     ['schema_features.sqlite', '**Primary key:** `k1`, `k2`'], ['relations.xlsx', 'Inferred candidates'], ['features.xlsx', '**Hidden rows:** 3'],
-    ['dbase3.dbf', 'dBase III with memo'], ['duckdb-csv.zip', 'DuckDB (EXPORT DATABASE)'], ['pg16-default.sql', '**SQL dialect:** PostgreSQL'], ['pg17-custom-zstd.dump', 'custom archive 1.16.0 · zstd'], ['pg16-custom-lz4.dump', 'custom archive 1.15.0 · lz4'], ['pg13-tar.tar', 'tar archive'], ['mysql8-default.sql', '**SQL dialect:** MySQL / MariaDB'],
+    ['dbase3.dbf', 'dBase III with memo'], ['shop.accdb', 'Access 2007 or later'], ['shop.mdb', 'Jet database'], ['duckdb-csv.zip', 'DuckDB (EXPORT DATABASE)'], ['pg16-default.sql', '**SQL dialect:** PostgreSQL'], ['pg17-custom-zstd.dump', 'custom archive 1.16.0 · zstd'], ['pg16-custom-lz4.dump', 'custom archive 1.15.0 · lz4'], ['pg13-tar.tar', 'tar archive'], ['mysql8-default.sql', '**SQL dialect:** MySQL / MariaDB'],
   ];
   for (const [file, expected] of FORMATS) {
     const p = await open();
