@@ -147,6 +147,18 @@ main { width: 100%; max-width: 780px; margin: 0 auto; padding: 8px 16px 32px; fl
 .opt-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
 .check { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; min-height: 36px; }
 .check input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); }
+
+/* "Do not share data" */
+.share-box { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.ns-toggle { font-weight: 600; }
+.ns-banner { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--accent); color: #fff; font-size: 14px; }
+.ns-options { margin-top: 12px; }
+.ns-warn { margin-top: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--warn-border); font-size: 13px; }
+.ns-switches { margin-top: 10px; font-size: 14px; }
+.ns-switches summary { cursor: pointer; color: var(--muted); }
+.ns-switches .check { display: flex; min-height: 30px; }
+/* In "Do not share data" the controls that carry records are not shown (their actions also refuse to run). */
+.ns-on #modeBox, .ns-on #layoutOpt, .ns-on #layoutHint, .ns-on #profileOpt, .ns-on #warnBox, .ns-on #dataBtn, .ns-on #allBtn { display: none !important; }
 .segmented { display: inline-flex; background: var(--surface-2); border-radius: 9px; padding: 3px; }
 .segmented button { border: 0; background: transparent; padding: 5px 12px; border-radius: 7px; cursor: pointer; color: var(--text-2); font-size: 14px; }
 .segmented button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, .12); font-weight: 500; }

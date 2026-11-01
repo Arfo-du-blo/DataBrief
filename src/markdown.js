@@ -213,7 +213,7 @@
     const f = si.formulas;
     if (f && f.count) {
       let s = '**' + t('xFormulas') + ':** ' + f.count + (f.noResult ? ' · ' + t('xNoResult') + ': ' + f.noResult : '');
-      s += '\n' + f.examples.map((e) => '- `' + e.addr + '`: ' + code('=' + e.f)).join('\n') + (f.count > f.examples.length ? '\n- …' : '');
+      if (f.examples.length) s += '\n' + f.examples.map((e) => '- `' + e.addr + '`: ' + code('=' + e.f)).join('\n') + (f.count > f.examples.length ? '\n- …' : '');
       out.push(s);
     }
     if (si.merges && si.merges.length) {
@@ -400,6 +400,200 @@
     });
     // Locked: closing line
     b.lock('---\n_'); say('end'); b.lock('_\n');
+    return b.parts;
+  };
+
+  /* ============================== "Do not share data" ==============================
+   * A different prompt with a different purpose: the AI gets a description of the data and helps plan the
+   * analysis. Its only input is the copy made by DB.makeNoShareSource (noshare.js), which holds no record.
+   * level: 1 structure, 2 + counts, 3 + summaries. sw: what the user allows (see DB.NS_DEFAULTS). */
+  DB.NS_DEFAULTS = { names: true, labels: true, rel: true, file: true, text: false, sql: false };
+  DB.NS_K = 5;           // category groups smaller than this are hidden (applied when the copy is made, noshare.js)
+  DB.NS_MIN_ROWS = 10;   // ranges are hidden for smaller tables (idem)
+
+  function nsSummary(c, small, t) {
+    const pct = (x) => (x >= 10 ? Math.round(x) : Math.round(x * 10) / 10) + '%';
+    const num = (x) => String(Number(Number(x).toPrecision(6)));
+    if (c.note) return c.note === 'nsRangeSmall' ? t('nsRangeSmall', { n: DB.NS_MIN_ROWS }) : t(c.note);
+    const s = c.summary;
+    if (!s) return '';
+    if (s.top) { // small groups were already removed from the copy; checked again here
+      const kept = s.top.filter((x) => x.count >= DB.NS_K);
+      const hidden = c.n - c.missing - kept.reduce((a, x) => a + x.count, 0);
+      const parts = kept.map((x) => x.value + ': ' + x.count + ' (' + pct(x.pct) + ')');
+      if (hidden > 0) parts.push(t('nsOtherSmall') + ': ' + hidden);
+      return parts.join(' · ');
+    }
+    if (small) return t('nsRangeSmall', { n: DB.NS_MIN_ROWS });
+    if (s.mean !== undefined) {
+      return [[t('statMin'), num(s.min)], [t('statMax'), num(s.max)], [t('statMean'), num(s.mean)], [t('statSd'), num(s.sd)],
+        [t('statMedian'), num(s.median)], [t('statOutliers'), s.outliers]].map(([k, v]) => k + ': ' + v).join(' · ');
+    }
+    return t('statMin') + ': ' + s.min + ' · ' + t('statMax') + ': ' + s.max;
+  }
+
+  DB.buildNoShareParts = function (ns, opts) {
+    const L = opts.lang;
+    const t = (k, v) => DB.tp(L, k, v);
+    const nf = new Intl.NumberFormat(DB.locale(L));
+    const N = (n) => nf.format(n);
+    const level = [1, 2, 3].includes(opts.level) ? opts.level : 1;
+    const sw = Object.assign({}, DB.NS_DEFAULTS, opts.sw || {});
+    if (!sw.names) sw.sql = false; // SQL definitions spell the real names out
+    const b = Builder(L, opts.overrides);
+    const say = (key, vars) => b.say(key, vars);
+    const line = (prefix, key, vars) => { b.lock(prefix); say(key, vars); b.lock('\n'); };
+
+    // Neutral names when the real ones are not to be shared
+    const secMap = new Map(), colMap = new Map();
+    ns.sections.forEach((s, i) => {
+      secMap.set(s.name, sw.names ? s.name : 'table_' + (i + 1));
+      s.columns.forEach((c, j) => colMap.set(s.name + '\u0001' + c.name, sw.names ? c.name : 'column_' + (j + 1)));
+    });
+    const S = (n) => (secMap.has(n) ? secMap.get(n) : sw.names ? n : '?');
+    const C = (sec, col) => { const k = sec + '\u0001' + col; return colMap.has(k) ? colMap.get(k) : sw.names ? col : '?'; };
+
+    // Title, introduction (free text), and the constraint the AI must respect (locked)
+    const ext = (/\.([^.]+)$/.exec(ns.fileName || '') || [])[1];
+    const fileLabel = sw.file ? ns.fileName : t('nsDataset') + (ext ? '.' + ext : '');
+    b.lock('# '); say('nsTitle', { file: fileLabel }); b.lock('\n\n');
+    b.region('nsIntro', () => { say('nsIntro'); });
+    b.lock('\n\n');
+    line('## ', 'nsConstraintTitle');
+    for (const k of ['nsC1', 'nsC2', 'nsC3']) line('- ', k);
+    b.lock('\n');
+
+    // Overview
+    line('## ', 'overview');
+    b.lock('- **'); say('file'); b.lock(':** ' + code(fileLabel) + ' · **');
+    say('format'); b.lock(':** ' + ns.formatName + ' · **');
+    say('size'); b.lock(':** ' + DB.fmtBytes(ns.fileSize) + '\n');
+    if (ns.sections.length > 1) {
+      const sep = ns.sectionKind === 'sheets' ? 'sepSheets' : ns.sectionKind === 'tables' ? 'sepTables' : 'sepRecords';
+      b.lock('- **'); say('sections'); b.lock(':** ' + N(ns.sections.length) + '. '); say(sep); b.lock('\n');
+    }
+    b.lock('- **'); say('rows'); b.lock(':** ' + N(ns.sections.reduce((a, s) => a + s.rows, 0)) + '\n');
+    b.lock('- **'); say('nsLevelLabel'); b.lock(':** '); say('nsL' + level); b.lock('\n');
+    for (const m of ns.fileMeta) {
+      if ((m.freeText && !sw.text) || (m.names && !sw.names) || m.key === 'mViews') continue;
+      b.lock('- **'); say(m.key); b.lock(':**');
+      if (m.value.includes('\n')) b.lock('\n' + m.value.split('\n').map((l) => '  > ' + l).join('\n') + '\n');
+      else b.lock(' ' + m.value + '\n');
+    }
+    b.lock('\n');
+
+    // Sections and columns: structure only
+    line('## ', 'details'); b.lock('\n');
+    ns.sections.forEach((s, i) => {
+      b.lock('### ' + (i + 1) + '. ' + code(S(s.name)) + '\n');
+      say('secRows', { n: N(s.rows), c: N(s.columns.length) });
+      if (s.hidden) { b.lock(' · '); say('hidden'); }
+      b.lock('\n');
+      if (s.caption && sw.labels && sw.names) { b.lock('\n**'); say('caption'); b.lock(':** ' + s.caption + '\n'); }
+      b.lock('\n');
+      if (s.columns.length) {
+        const cols = s.columns.map((c) => {
+          const meta = {};
+          for (const [k, v] of Object.entries(c.meta)) if (sw.labels || (k !== 'label' && k !== 'values')) meta[k] = v;
+          if (c.keyInfo) {
+            meta.key = [c.keyInfo.pk ? { key: 'pk' } : null]
+              .concat(c.keyInfo.refs.map((r) => '→ `' + S(r.table) + '.' + (r.col ? C(r.table, r.col) : '?') + '`')).filter(Boolean);
+          }
+          return { name: C(s.name, c.name), type: c.type, meta };
+        });
+        b.lock(columnsTable({ columns: cols }, t) + '\n\n');
+      }
+      if (s.constraints) {
+        const c = s.constraints;
+        const ixCols = (cols) => cols.map((x) => (x === '<expression>' ? x : C(s.name, x)));
+        b.lock(constraintsText({
+          pk: c.pk.map((x) => C(s.name, x)),
+          fks: c.fks.map((f) => ({ table: S(f.table), from: f.from.map((x) => C(s.name, x)), to: f.to.map((x) => (x ? C(f.table, x) : '?')), onDelete: f.onDelete, onUpdate: f.onUpdate })),
+          unique: c.unique.map((u) => ({ name: sw.names ? u.name : '', cols: ixCols(u.cols) })),
+          indexes: c.indexes.map((u) => ({ name: sw.names ? u.name : '', cols: ixCols(u.cols) })),
+          ddl: sw.sql ? c.ddl : '',
+        }, t));
+      }
+      if (s.sheetInfo) b.lock(sheetInfoText(s.sheetInfo, t));
+      if (sw.text && s.comments.length) {
+        b.lock('**'); say('comments'); b.lock(':**\n');
+        const list = s.comments.slice(0, 200).map((c) => '- `' + c.cell + '`: ' + c.text.replace(/\n/g, ' '));
+        if (s.comments.length > 200) list.push('- … (+' + (s.comments.length - 200) + ')');
+        b.lock(list.join('\n') + '\n\n');
+      }
+    });
+
+    // Saved queries: names, and their SQL only when allowed
+    if (ns.views.length) {
+      line('## ', 'mViews'); b.lock('\n');
+      ns.views.forEach((v, i) => {
+        const name = code(sw.names ? v.name : 'view_' + (i + 1));
+        b.lock(sw.sql ? '### ' + name + '\n\n' + sqlBlock(v.sql) + '\n\n' : '- ' + name + '\n');
+      });
+      if (!sw.sql) b.lock('\n');
+    }
+
+    // Relationships (names replaced if needed; value-overlap ratios only at level 3)
+    if (sw.rel && ns.relationships.length) {
+      const rels = ns.relationships.map((r) => Object.assign({}, r, {
+        from: { section: S(r.from.section), columns: r.from.columns.map((x) => (x === '?' ? x : C(r.from.section, x))) },
+        to: { section: S(r.to.section), columns: r.to.columns.map((x) => (x === '?' ? x : C(r.to.section, x))) },
+        via: r.via ? S(r.via) : r.via,
+        evidence: r.evidence ? r.evidence.filter((e) => level >= 3 || typeof e === 'string') : r.evidence,
+      }));
+      line('## ', 'relTitle'); b.lock('\n');
+      b.lock(relationshipsText(rels, t));
+    }
+
+    // Statistics: counts at level 2, summaries at level 3 (small groups and small tables hidden)
+    if (level >= 2) {
+      line('## ', 'nsContextTitle'); b.lock('\n'); say(level >= 3 ? 'nsContextL3' : 'nsContextL2'); b.lock('\n\n');
+      const KIND = { identifier: 'kindIdentifier', categorical: 'kindCategorical', continuous: 'kindContinuous', datetime: 'kindDatetime',
+        text: 'kindText', empty: 'kindEmpty', mixed: 'kindMixed' };
+      const pct = (x) => (x >= 10 ? Math.round(x) : Math.round(x * 10) / 10) + '%';
+      const head = [t('cName'), t('profKind'), t('profMissing'), t('profDistinct')].concat(level >= 3 ? [t('profSummary')] : []);
+      ns.sections.forEach((s, i) => {
+        const p = s.profile;
+        if (!p || !p.columns.length) return;
+        const small = s.rows < DB.NS_MIN_ROWS;
+        const rows = p.columns.map((c) => {
+          const cells = [code(C(s.name, c.name)), t(KIND[c.kind]), c.missing ? c.missing + ' (' + pct((c.missing / c.n) * 100) + ')' : '0',
+            c.kind === 'categorical' ? String(c.distinct) : '']; // distinct counts: categorical columns only
+          if (level >= 3) cells.push(nsSummary(c, small, t));
+          return cells;
+        });
+        let out = '### ' + (i + 1) + '. ' + code(S(s.name)) + '\n\n' +
+          ['| ' + head.join(' | ') + ' |', '|' + head.map(() => '---').join('|') + '|'].concat(rows.map((r) => '| ' + r.map(cellMd).join(' | ') + ' |')).join('\n') + '\n\n';
+        if (p.duplicateRows) out += '**' + t('profDup') + ':** ' + p.duplicateRows + '\n\n';
+        if (p.constantColumns.length) out += '**' + t('profConst') + ':** ' + p.constantColumns.map((x) => code(C(s.name, x))).join(', ') + '\n\n';
+        b.lock(out);
+      });
+    }
+
+    // What the AI does not have (locked: generated from the choices above)
+    line('## ', 'nsMissingTitle'); say('nsMissingIntro'); b.lock('\n\n');
+    const missing = ['nsMRecords'];
+    if (level < 2) missing.push('nsMCounts');
+    if (level < 3) missing.push('nsMSummaries');
+    if (!sw.names) missing.push('nsMNames');
+    if (!sw.labels && ns.hasLabels) missing.push('nsMLabels');
+    if (!sw.rel && ns.relationships.length) missing.push('nsMRel');
+    if (!sw.sql && ns.hasSql) missing.push('nsMSql');
+    if (!sw.text && ns.hasFreeText) missing.push('nsMText');
+    for (const k of missing) line('- ', k);
+    b.lock('\n');
+
+    // What is asked of the AI (free text)
+    b.region('nsRespond', () => {
+      line('## ', 'nsRespondTitle');
+      line('\n### ', 'first');
+      line('1. ', 'nsF1');
+      line('2. ', 'nsF2');
+      line('\n### ', 'next');
+      for (const k of ['nsN1', 'nsN2', 'nsN3', 'nsN4', 'nsN5']) line('- ', k);
+    });
+    b.lock('\n');
+    b.lock('---\n_'); say('nsEnd'); b.lock('_\n');
     return b.parts;
   };
 

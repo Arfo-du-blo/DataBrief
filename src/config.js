@@ -2,7 +2,8 @@
  *
  * Sources, from strongest to weakest:
  *   1. Locked settings of the config block (set by a team admin, a server or the settings page)
- *   2. URL parameters: ?lang=fr&prompt=en&mode=files&layout=csv&theme=dark   (ignored for locked settings)
+ *   2. URL parameters: ?lang=fr&prompt=en&mode=files&layout=csv&theme=dark&share=no   (ignored for locked settings;
+ *      share=no only: a link can switch "Do not share data" on, never off)
  *   3. The visitor's own saved choices (interface language, theme)
  *   4. Defaults of the config block
  *   5. Built-in defaults
@@ -10,9 +11,9 @@
  * Config block (JSON, inside the page):
  *   <script id="databrief-config" type="application/json">{ ... }</script>
  *   {
- *     "lang": "fr", "promptLang": "en", "mode": "inline|files", "layout": "auto|table|csv", "theme": "system|light|dark",
+ *     "lang": "fr", "promptLang": "en", "mode": "inline|files", "layout": "auto|table|csv", "theme": "system|light|dark", "share": "yes|no",
  *     "sampleRows": 5, "warnTokens": 150000,
- *     "lock": ["lang", "promptLang", "mode", "layout", "theme", "limit", "edit", "view"],
+ *     "lock": ["lang", "promptLang", "mode", "layout", "theme", "limit", "edit", "view", "share"],
  *     "promptIntro": "...", "promptRespond": "...", "promptRespondFiles": "..."
  *   }
  */
@@ -26,8 +27,9 @@
     mode: (v) => v === 'inline' || v === 'files',
     layout: (v) => v === 'auto' || v === 'table' || v === 'csv',
     theme: (v) => v === 'system' || v === 'light' || v === 'dark',
+    share: (v) => v === 'yes' || v === 'no', // 'no' = "Do not share data"
   };
-  DB.LOCKABLE = ['lang', 'promptLang', 'mode', 'layout', 'theme', 'limit', 'edit', 'view'];
+  DB.LOCKABLE = ['lang', 'promptLang', 'mode', 'layout', 'theme', 'limit', 'edit', 'view', 'share'];
 
   function str(v) { return typeof v === 'string' && v.trim() ? v.replace(/\r\n?/g, '\n') : ''; }
   function int(v, d, min, max) { const n = parseInt(v, 10); return Number.isFinite(n) && n >= min && n <= max ? n : d; }
@@ -47,7 +49,7 @@
     const out = {};
     let p;
     try { p = new URLSearchParams(window.location.search); } catch (e) { return out; }
-    const names = { lang: 'lang', prompt: 'promptLang', promptLang: 'promptLang', mode: 'mode', layout: 'layout', theme: 'theme' };
+    const names = { lang: 'lang', prompt: 'promptLang', promptLang: 'promptLang', mode: 'mode', layout: 'layout', theme: 'theme', share: 'share' };
     for (const [param, key] of Object.entries(names)) {
       const v = p.get(param);
       if (v) out[key] = v.trim().toLowerCase().replace(/^promptlang$/, 'promptLang');
@@ -63,6 +65,8 @@
   const url = readUrl();
   const fromUrl = {};
   for (const k of Object.keys(VALID)) if (url[k] && VALID[k](url[k]) && !locks.has(k)) fromUrl[k] = url[k];
+  // A link may switch "Do not share data" on, never off: it can only make the page more private.
+  if (fromUrl.share === 'yes') delete fromUrl.share;
 
   DB.CONFIG = {
     raw,

@@ -20,7 +20,12 @@
     lastErr: null, busy: false,
     mode: 'inline',  // 'inline': data inside the prompt, 'files': data in separate CSV files
     profile: false,  // add the optional data profile (statistics of every column)
-    edits: { inline: {}, files: {} }, // user edits of the free regions, kept separately per mode: { regionId: text }
+    // "Do not share data": share 'no' = the prompt describes the file without any record. Then state.doc is null
+    // (the parsed rows are dropped) and state.ns holds the record-free copy (noshare.js); `file` lets the page
+    // read the file again if the user decides to share after all.
+    share: 'yes', ns: null, nsLevel: 1, nsSw: null, file: null,
+    // user edits of the free regions, kept separately per mode (and for no-share): { regionId: text }
+    edits: { inline: {}, files: {}, noshare: {} },
     editing: false,
     lockedRaw: 0,    // token estimate of the locked parts while editing
   };
@@ -28,7 +33,8 @@
   const PLAIN_EDIT = (() => {
     try { const s = document.createElement('span'); s.contentEditable = 'plaintext-only'; return s.contentEditable === 'plaintext-only'; } catch (e) { return false; }
   })();
-  const curEdits = () => state.edits[state.mode];
+  const noShare = () => state.share === 'no';
+  const curEdits = () => state.edits[noShare() ? 'noshare' : state.mode];
   const hasEdits = () => Object.keys(curEdits()).length > 0;
   void codes;
   state.ui = DB.setting('lang', store.get('ui'), 'en');
@@ -36,11 +42,17 @@
   state.prompt = DB.setting('promptLang', null, state.ui);
   state.mode = DB.setting('mode', null, 'inline');
   state.layout = DB.setting('layout', null, 'auto');
+  // The visitor's choice is remembered, so the page never silently goes back to sharing the data.
+  state.share = DB.setting('share', store.get('share'), 'yes');
+  // Started in "Do not share data" (link, team default or earlier choice): remember it, so a reload without the
+  // link never switches back to sharing behind the user's back. Only an explicit "Include my data" does.
+  if (state.share === 'no' && !CFG.locked('share')) store.set('share', 'no');
+  state.nsSw = Object.assign({}, DB.NS_DEFAULTS);
 
   /* Settings locked by the team are hidden. */
   const LOCK_TARGETS = {
     lang: ['uiLangWrap'], promptLang: ['promptLangOpt'], mode: ['modeBox'], layout: ['layoutOpt', 'layoutHint'],
-    theme: ['themeBtn'], limit: ['limitRow'], edit: ['editBtn'], view: ['viewBtn'],
+    theme: ['themeBtn'], limit: ['limitRow'], edit: ['editBtn'], view: ['viewBtn'], share: ['nsToggleWrap'],
   };
   for (const [key, ids] of Object.entries(LOCK_TARGETS)) {
     if (CFG.locked(key)) for (const id of ids) { const el = $(id); if (el) el.classList.add('locked-hidden'); }
@@ -83,7 +95,7 @@
     document.querySelectorAll('[data-i18n-aria]').forEach((el) => { el.setAttribute('aria-label', tu(el.dataset.i18nAria)); });
     $('uiLang').value = state.ui;
     if (state.busy) setBusy(true, state.busyName);
-    if (state.doc) renderResult();
+    if (state.doc || state.ns) renderResult();
     if (state.lastErr) showError(state.lastErr);
   }
 
@@ -117,6 +129,7 @@
     let msg, detail;
     if (e instanceof DB.UserError) { msg = tu(e.key, e.vars); detail = e.detail; }
     else { msg = tu('errGeneric'); detail = String((e && e.message) || e); }
+    if (noShare()) detail = ''; // technical details can quote part of the file
     $('errorMsg').textContent = msg;
     $('errorCode').textContent = detail || '';
     $('errorDetails').classList.toggle('hidden', !detail);
@@ -124,7 +137,8 @@
   }
   function hideError() { state.lastErr = null; $('errorBox').classList.add('hidden'); }
 
-  async function handleFile(file) {
+  /* keepEdits: reading the same file again after leaving "Do not share data" keeps the user's edits. */
+  async function handleFile(file, keepEdits) {
     if (!file || state.busy || state.editing) return; // finish or cancel the edit first
     hideError();
     setBusy(true, file.name);
@@ -132,18 +146,27 @@
     try {
       const buf = await file.arrayBuffer();
       const doc = await DB.parseFile(buf, file.name);
-      state.doc = doc;
+      state.file = file;
+      if (noShare()) {
+        // Only the record-free copy is kept: the parsed rows are never stored in the page state.
+        state.ns = DB.makeNoShareSource(doc);
+        state.doc = null;
+      } else {
+        state.doc = doc;
+        state.ns = null;
+      }
       state.limitOn = false;
       state.limitN = null;
-      state.edits = { inline: {}, files: {} };
+      if (!keepEdits) state.edits = { inline: {}, files: {}, noshare: {} };
       state.editing = false;
       rebuild(true);
       $('result').classList.remove('hidden');
       renderResult();
       $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (e) {
-      console.error(e);
+      if (!noShare()) console.error(e); // an error can quote part of the file
       state.doc = null;
+      state.ns = null;
       state.lastErr = e;
       $('result').classList.add('hidden');
       showError(e);
@@ -167,8 +190,16 @@
   function build(limit) {
     return DB.buildParts(state.doc, buildOpts({ limit }));
   }
-  const limitActive = () => state.mode === 'inline' && state.limitOn && state.limitN;
+  const limitActive = () => !!state.doc && state.mode === 'inline' && state.limitOn && state.limitN;
+  const nsOpts = () => ({ lang: state.prompt, overrides: state.edits.noshare, level: state.nsLevel, sw: state.nsSw });
   function rebuild(full) {
+    if (state.ns) {
+      // "Do not share data": a different prompt, built from the record-free copy only.
+      state.fullParts = state.parts = DB.buildNoShareParts(state.ns, nsOpts());
+      state.fullMd = state.md = DB.joinParts(state.parts);
+      state.fullTokens = state.tokens = DB.estimateTokens(state.md);
+      return;
+    }
     if (!state.doc) return;
     if (full) {
       state.fullParts = build(null);
@@ -251,8 +282,8 @@
     $('editedBadge').classList.toggle('hidden', ed || !hasEdits());
     $('resetBtn').classList.toggle('hidden', ed || !hasEdits());
     // While editing, actions use the confirmed version only, so they wait for Confirm or Cancel.
-    for (const id of ['copyBtn', 'downloadBtn', 'dataBtn', 'allBtn', 'viewBtn', 'promptLang', 'uiLang', 'limitOn', 'limitN', 'anotherBtn', 'profileOn']) $(id).disabled = ed;
-    document.querySelectorAll('#layoutGroup button, #modeGroup button').forEach((b) => { b.disabled = ed; });
+    for (const id of ['copyBtn', 'downloadBtn', 'dataBtn', 'allBtn', 'viewBtn', 'promptLang', 'uiLang', 'limitOn', 'limitN', 'anotherBtn', 'profileOn', 'nsOn']) $(id).disabled = ed;
+    document.querySelectorAll('#layoutGroup button, #modeGroup button, #nsLevelGroup button, #nsOptions input').forEach((b) => { b.disabled = ed; });
     $('fileInput').disabled = ed;
   }
 
@@ -311,7 +342,7 @@
       const v = readEditable(el);
       if (v === orig.get(k)) delete ov[k]; else ov[k] = v;
     }
-    state.edits[state.mode] = ov;
+    state.edits[noShare() ? 'noshare' : state.mode] = ov; // each mode keeps its own edits: they never cross over
     state.editing = false;
     rebuild(true);
     renderResult();
@@ -339,14 +370,14 @@
   async function applySetting(mutate, opts) {
     opts = opts || {};
     const after = opts.after || renderResult;
-    if (!state.doc) { mutate(); after(); return; }
+    if (!state.doc && !state.ns) { mutate(); after(); return; }
     const before = regionOrigs();
     mutate();
     rebuild(true);
     const now = regionOrigs();
     const ed = curEdits();
     const affected = Object.keys(ed).filter((k) => before[k] !== now[k]);
-    const other = opts.lang ? state.edits[state.mode === 'inline' ? 'files' : 'inline'] : {};
+    const other = opts.lang && !noShare() ? state.edits[state.mode === 'inline' ? 'files' : 'inline'] : {};
     const otherKeys = Object.keys(other);
     if (affected.length || otherKeys.length) {
       if (await askRegenerate()) {
@@ -359,20 +390,32 @@
   }
 
   function renderResult() {
-    const d = state.doc;
+    const d = state.doc || state.ns;
     if (!d) return;
+    const rowsOf = (s) => (typeof s.rows === 'number' ? s.rows : s.rows.length); // the no-share copy keeps counts only
     const fmtDef = DB.FORMATS.find((f) => f.key === d.formatKey || (d.formatKey === 'zsav' && f.key === 'sav'));
     $('fileName').textContent = d.fileName;
     $('fileSub').textContent = d.formatName + ' · ' + DB.fmtBytes(d.fileSize);
     $('stFormat').textContent = fmtDef ? (fmtDef.key === 'sav' ? 'SPSS' : fmtDef.label) : d.formatKey.toUpperCase();
     $('stSections').textContent = fmt(d.sections.length);
-    const totalRows = d.sections.reduce((a, s) => a + s.rows.length, 0);
+    const totalRows = d.sections.reduce((a, s) => a + rowsOf(s), 0);
     $('stRows').textContent = fmt(totalRows);
     $('stCols').textContent = fmt(d.sections.reduce((a, s) => a + s.columns.length, 0));
     $('stTokens').textContent = '~' + fmt(state.tokens);
     $('stTokensUnit').textContent = tu('tokensUnit');
 
-    const files = state.mode === 'files';
+    // "Do not share data": the data-bearing controls are not shown (and their actions refuse to run, see below)
+    const ns = noShare();
+    $('result').classList.toggle('ns-on', ns);
+    $('nsOn').checked = ns;
+    $('nsBanner').classList.toggle('hidden', !ns);
+    $('nsOptions').classList.toggle('hidden', !ns);
+    $('nsTeam').classList.toggle('hidden', !(ns && CFG.locked('share')));
+    document.querySelectorAll('#nsLevelGroup button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.level) === state.nsLevel)));
+    $('nsL3Warn').classList.toggle('hidden', !(ns && state.nsLevel === 3));
+    document.querySelectorAll('#nsOptions [data-sw]').forEach((x) => { x.checked = !!state.nsSw[x.dataset.sw]; });
+
+    const files = !ns && state.mode === 'files';
     document.querySelectorAll('#modeGroup button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode)));
     $('modeHint').classList.toggle('hidden', !files);
     $('modeHint').textContent = tu('modeHint', { n: fmt(SAMPLE_ROWS) });
@@ -380,13 +423,13 @@
     $('allBtn').classList.toggle('hidden', !files);
     $('dataLabel').textContent = d.sections.length > 1 ? tu('downloadDataZip') : tu('downloadData');
 
-    const big = !files && state.fullTokens > WARN_AT;
+    const big = !ns && !files && state.fullTokens > WARN_AT;
     $('warnBox').classList.toggle('hidden', !big);
     if (big) {
       $('warnText').textContent = tu('warnText', { n: fmt(state.fullTokens) });
       $('limitOn').checked = state.limitOn;
       if (document.activeElement !== $('limitN')) $('limitN').value = state.limitN || '';
-      const shown = d.sections.reduce((a, s) => a + Math.min(s.rows.length, state.limitOn && state.limitN ? state.limitN : s.rows.length), 0);
+      const shown = d.sections.reduce((a, s) => a + Math.min(rowsOf(s), state.limitOn && state.limitN ? state.limitN : rowsOf(s)), 0);
       $('limitShown').textContent = state.limitOn ? tu('limitShown', { a: fmt(shown), b: fmt(totalRows) }) : '';
     }
     document.querySelectorAll('#layoutGroup button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.layout === state.layout)));
@@ -399,9 +442,11 @@
   }
 
   /* ---------- downloads ---------- */
-  const baseName = () => DB.safeName((state.doc.fileName || 'data').replace(/\.[^.]+$/, ''));
-  /* All data files (always complete), as { name: bytes }. */
+  const baseName = () => (noShare() && !state.nsSw.file ? DB.safeName(DB.tp(state.prompt, 'nsDataset'))
+    : DB.safeName(((state.doc || state.ns).fileName || 'data').replace(/\.[^.]+$/, '')));
+  /* All data files (always complete), as { name: bytes }. Never in "Do not share data" (there are no rows anyway). */
   function dataFiles() {
+    if (noShare() || !state.doc) return null;
     const names = DB.dataFileNames(state.doc);
     const files = {};
     state.doc.sections.forEach((s, i) => { files[names[i]] = window.fflate.strToU8(DB.toCsv(s)); });
@@ -456,7 +501,7 @@
 
   $('editBtn').addEventListener('click', () => { if (state.editing) confirmEdit(); else startEdit(); });
   $('cancelEditBtn').addEventListener('click', cancelEdit);
-  $('resetBtn').addEventListener('click', () => { state.edits[state.mode] = {}; rebuild(true); renderResult(); });
+  $('resetBtn').addEventListener('click', () => { state.edits[noShare() ? 'noshare' : state.mode] = {}; rebuild(true); renderResult(); });
   const pre = $('preview');
   pre.addEventListener('input', () => { if (state.editing) updateLiveTokens(); });
   // Enter always inserts a plain line break (not a <br> or <div>), in every browser.
@@ -512,6 +557,7 @@
   // Data files: one CSV as is, several CSVs in a zip. Always the complete data.
   $('dataBtn').addEventListener('click', () => {
     const files = dataFiles();
+    if (!files) return; // "Do not share data": no data file, whatever triggered the click
     const names = Object.keys(files);
     if (names.length === 1) save(new Blob([files[names[0]]], { type: 'text/csv;charset=utf-8' }), names[0]);
     else save(zip(files), baseName() + '_data.zip');
@@ -519,12 +565,54 @@
   // Prompt + data files together.
   $('allBtn').addEventListener('click', () => {
     const files = dataFiles();
+    if (!files) return;
     files[baseName() + '.md'] = window.fflate.strToU8(state.md);
     save(zip(files), baseName() + '_databrief.zip');
   });
 
+  /* ---------- "Do not share data" ---------- */
+  function enterNoShare() {
+    state.share = 'no';
+    store.set('share', 'no');
+    if (state.doc) {
+      state.ns = DB.makeNoShareSource(state.doc);
+      state.doc = null; // the parsed rows are released: only the record-free copy remains
+    }
+    rebuild(true);
+    renderResult();
+  }
+  /* Leaving asks first ("Include my data" / "Keep my data out"). Esc keeps the data out. */
+  function askLeave() {
+    return new Promise((resolve) => {
+      const dlg = $('nsLeaveDialog');
+      dlg.returnValue = '';
+      const done = () => { dlg.removeEventListener('close', done); resolve(dlg.returnValue === 'share'); };
+      dlg.addEventListener('close', done);
+      dlg.showModal();
+    });
+  }
+  $('nsLeaveYes').addEventListener('click', () => $('nsLeaveDialog').close('share'));
+  $('nsLeaveNo').addEventListener('click', () => $('nsLeaveDialog').close('keep'));
+  $('nsOn').addEventListener('change', async (e) => {
+    if (e.target.checked) { enterNoShare(); return; }
+    e.target.checked = true; // stays on until the user confirms
+    if (CFG.locked('share') || !(await askLeave())) { renderResult(); return; }
+    state.share = 'yes';
+    store.set('share', 'yes');
+    state.ns = null;
+    if (state.file) await handleFile(state.file, true); // read the file again: the rows were not kept
+    else renderResult();
+  });
+  document.querySelectorAll('#nsLevelGroup button').forEach((b) => b.addEventListener('click', () => {
+    const v = Number(b.dataset.level);
+    applySetting(() => { state.nsLevel = v; });
+  }));
+  document.querySelectorAll('#nsOptions [data-sw]').forEach((x) => x.addEventListener('change', () => {
+    applySetting(() => { state.nsSw[x.dataset.sw] = x.checked; });
+  }));
+
   document.querySelectorAll('#modeGroup button').forEach((b) => b.addEventListener('click', () => {
-    if (state.mode === b.dataset.mode) return;
+    if (noShare() || state.mode === b.dataset.mode) return;
     state.mode = b.dataset.mode;
     rebuild(true);
     renderResult();
@@ -560,8 +648,8 @@
     return mdRenderer;
   }
   function openFormatted() {
-    const opts = buildOpts({ limit: limitActive() ? state.limitN : null, displayLimit: VIEW_ROWS });
-    const md = DB.joinParts(DB.buildParts(state.doc, opts));
+    const md = state.ns ? DB.joinParts(DB.buildNoShareParts(state.ns, nsOpts()))
+      : DB.joinParts(DB.buildParts(state.doc, buildOpts({ limit: limitActive() ? state.limitN : null, displayLimit: VIEW_ROWS })));
     const body = $('mdBody');
     body.innerHTML = renderer().parse(md);
     for (const t of Array.from(body.querySelectorAll('table'))) {
@@ -570,7 +658,7 @@
       t.replaceWith(wrap);
       wrap.appendChild(t);
     }
-    const cut = state.doc.sections.some((s) => Math.min(s.rows.length, limitActive() ? state.limitN : Infinity) > VIEW_ROWS && state.mode === 'inline');
+    const cut = !!state.doc && state.doc.sections.some((s) => Math.min(s.rows.length, limitActive() ? state.limitN : Infinity) > VIEW_ROWS && state.mode === 'inline');
     $('mdNote').textContent = cut ? tu('renderCut', { n: fmt(VIEW_ROWS) }) : '';
     $('mdNote').classList.toggle('hidden', !cut);
     body.scrollTop = 0;

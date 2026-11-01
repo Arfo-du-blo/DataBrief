@@ -81,6 +81,32 @@
         <button class="link-btn" type="button" id="anotherBtn" data-i18n="another">Choose another file</button>
       </div>
 
+      <div class="share-box" id="shareBox">
+        <div id="nsToggleWrap">
+          <label class="check ns-toggle"><input type="checkbox" id="nsOn"> <span data-i18n="nsToggle">Do not share data</span></label>
+          <div class="hint" data-i18n="nsToggleHint"></div>
+        </div>
+        <div class="ns-banner hidden" id="nsBanner" role="status"><strong data-i18n="nsBanner"></strong> <span class="hidden" id="nsTeam" data-i18n="nsTeamLock"></span></div>
+        <div class="ns-options hidden" id="nsOptions">
+          <div class="opt-label" data-i18n="nsLevelUi">Information included</div>
+          <div class="segmented" role="group" id="nsLevelGroup">
+            <button type="button" data-level="1" aria-pressed="true" data-i18n="nsL1u">Structure only</button>
+            <button type="button" data-level="2" aria-pressed="false" data-i18n="nsL2u">+ counts</button>
+            <button type="button" data-level="3" aria-pressed="false" data-i18n="nsL3u">+ summaries</button>
+          </div>
+          <div class="ns-warn hidden" id="nsL3Warn" data-i18n="nsL3Warn"></div>
+          <details class="ns-switches">
+            <summary data-i18n="nsSwitchesTitle">What to include</summary>
+            <label class="check"><input type="checkbox" data-sw="names"> <span data-i18n="nsSwNames"></span></label>
+            <label class="check"><input type="checkbox" data-sw="labels"> <span data-i18n="nsSwLabels"></span></label>
+            <label class="check"><input type="checkbox" data-sw="rel"> <span data-i18n="nsSwRel"></span></label>
+            <label class="check"><input type="checkbox" data-sw="file"> <span data-i18n="nsSwFile"></span></label>
+            <label class="check"><input type="checkbox" data-sw="text"> <span data-i18n="nsSwText"></span></label>
+            <label class="check"><input type="checkbox" data-sw="sql"> <span data-i18n="nsSwSql"></span></label>
+          </details>
+        </div>
+      </div>
+
       <div class="mode" id="modeBox">
         <div class="opt-label" data-i18n="modeQ">How will you give the data to the AI?</div>
         <div class="segmented" role="group" id="modeGroup">
@@ -204,6 +230,17 @@
   </div>
 </dialog>
 
+<dialog id="nsLeaveDialog" aria-labelledby="nsLeaveTitle">
+  <div class="dialog-body">
+    <h2 id="nsLeaveTitle" data-i18n="nsLeaveTitle">Include your data again?</h2>
+    <p data-i18n="nsLeaveText"></p>
+  </div>
+  <div class="dialog-foot gap">
+    <button class="btn btn-outline" type="button" id="nsLeaveYes" data-i18n="nsLeaveYes">Include my data</button>
+    <button class="btn btn-primary" type="button" id="nsLeaveNo" data-i18n="nsLeaveNo">Keep my data out</button>
+  </div>
+</dialog>
+
 <dialog id="mdDialog" class="md-dialog" aria-labelledby="mdTitle">
   <div class="md-head">
     <h2 id="mdTitle" data-i18n="formattedTitle">Formatted preview</h2>
@@ -230,9 +267,11 @@
 <script>/*@inline src/i18n-structure.js*/</script>
 <script>/*@inline src/i18n-relations.js*/</script>
 <script>/*@inline src/i18n-profile.js*/</script>
+<script>/*@inline src/i18n-noshare.js*/</script>
 <script>/*@inline src/util.js*/</script>
 <script>/*@inline src/relationships.js*/</script>
 <script>/*@inline src/profile.js*/</script>
+<script>/*@inline src/noshare.js*/</script>
 <script>/*@inline src/config.js*/</script>
 <script>/*@inline src/spss.js*/</script>
 <script>/*@inline src/parsers.js*/</script>

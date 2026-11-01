@@ -284,6 +284,16 @@ with open(P("profile.csv"), "w", encoding="utf-8", newline="") as f:
 with open(P("dupes.csv"), "w", encoding="utf-8", newline="") as f:
     f.write("a,b\n1,x\n1,x\n2,y\n")
 
+# --- "Do not share data": values that must never reach the prompt, whatever the level ---
+with open(P("confidential.csv"), "w", encoding="utf-8", newline="") as f:
+    f.write("customer,email,segment,amount,signup,note\n")
+    segs = ["gold"] * 6 + ["silver"] * 5 + ["CONFIDENTIAL_SEGMENT_X"]
+    for i in range(12):
+        cust = "CONFIDENTIAL_CUSTOMER_74291" if i == 0 else f"Cust_{i + 1:02d}"
+        email = "ana.secret@example.com" if i == 0 else f"cust{i + 1:02d}@example.com"
+        note = "call CONFIDENTIAL_NOTE_123 tomorrow" if i == 0 else f"note number {i + 1}"
+        f.write(f"{cust},{email},{segs[i]},{100 + i * 7.25:.2f},2024-01-{i + 1:02d},{note}\n")
+
 # --- Large CSV to trigger the warning ---
 with open(P("big.csv"), "w", encoding="utf-8", newline="") as f:
     f.write("id,label,value,category,created\n")

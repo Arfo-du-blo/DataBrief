@@ -296,6 +296,134 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     await page2.close();
   }
 
+  // ---------- "Do not share data": no record in any output, at any level; the structure stays ----------
+  {
+    const CANARIES = ['CONFIDENTIAL_CUSTOMER_74291', 'ana.secret@example.com', 'CONFIDENTIAL_SEGMENT_X', 'CONFIDENTIAL_NOTE_123', 'CONFIDENTIAL_EDIT_555'];
+    const checks = [];
+    const ok = (cond, msg) => { if (!cond) checks.push(msg); };
+    const leaks = (text) => CANARIES.filter((c) => String(text).includes(c));
+    const md = (p) => p.evaluate(() => window.DataBrief.getMarkdown());
+    const wait = (ms) => new Promise((res) => setTimeout(res, ms || 300));
+    const stateJson = (p) => p.evaluate(() => JSON.stringify(window.DataBrief.getState(), (k, v) => (typeof v === 'bigint' ? String(v) : v)));
+
+    const page = await newPage();
+    const dl = path.join(outDir, 'downloads_ns');
+    fs.rmSync(dl, { recursive: true, force: true });
+    fs.mkdirSync(dl, { recursive: true });
+    const cdp = await page.createCDPSession();
+    await cdp.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: dl });
+    await page.evaluate(() => { window.__clip = []; navigator.clipboard.writeText = (t) => { window.__clip.push(t); return Promise.resolve(); }; });
+
+    const normal = await load(page, F('confidential.csv'));
+    ok(normal.md.includes('CONFIDENTIAL_CUSTOMER_74291'), 'normal mode should contain the data (sanity check)');
+    // An edit made in normal mode with a record in it must never appear in the no-share prompt.
+    await page.evaluate(() => { window.DataBrief.getState().edits.inline.respond = 'CONFIDENTIAL_EDIT_555'; });
+
+    await page.click('#nsOn'); await wait();
+    const l1 = await md(page);
+    ok(l1.startsWith('# Analysis planning request (data not shared): `confidential.csv`'), 'L1 title');
+    ok(l1.includes('| `customer` |') && l1.includes('| `segment` |') && l1.includes('You have **not** received the records'), 'L1 structure and constraint');
+    ok(l1.includes('structure only (no statistics)') && !l1.includes('## Statistics') && !l1.includes('gold'), 'L1 has no statistics and no category');
+    ok(!leaks(l1).length, 'L1 leaks ' + leaks(l1));
+    ok(await page.evaluate(() => window.DataBrief.getState().doc === null), 'the parsed rows should be released (state.doc null)');
+    // The page state may keep the user's own normal-mode edit (restored if they share again), never a record.
+    const st = await stateJson(page);
+    ok(!leaks(st).filter((c) => c !== 'CONFIDENTIAL_EDIT_555').length, 'page state leaks ' + leaks(st));
+    ok(await page.evaluate(() => getComputedStyle(document.getElementById('modeBox')).display === 'none'), 'data mode choice should be hidden');
+
+    await page.click('#nsLevelGroup button[data-level="2"]'); await wait();
+    const l2 = await md(page);
+    ok(l2.includes('| `segment` | categorical | 0 | 3 |') && l2.includes('| `customer` | identifier (candidate) | 0 |  |'), 'L2 counts (distinct for categorical only)');
+    ok(!l2.includes('gold') && !leaks(l2).length, 'L2 leaks ' + leaks(l2));
+
+    await page.click('#nsLevelGroup button[data-level="3"]'); await wait();
+    const l3 = await md(page);
+    ok(l3.includes('gold: 6 (50%) · silver: 5 (42%) · groups of fewer than 5 records: 1'), 'L3 categories with small groups hidden');
+    ok(!leaks(l3).length, 'L3 leaks ' + leaks(l3));
+    ok(await page.evaluate(() => !document.getElementById('nsL3Warn').classList.contains('hidden')), 'L3 warning shown');
+
+    // Every output: preview, formatted view, clipboard, download, data buttons (hidden, and inert if clicked)
+    ok(!leaks(await page.$eval('#preview', (el) => el.textContent)).length, 'preview leaks');
+    await page.click('#viewBtn'); await wait();
+    ok(!leaks(await page.$eval('#mdBody', (el) => el.innerHTML)).length, 'formatted view leaks');
+    await page.evaluate(() => document.getElementById('mdDialog').close());
+    await page.click('#copyBtn'); await wait();
+    const clip = await page.evaluate(() => window.__clip[window.__clip.length - 1] || '');
+    ok(clip === l3 && !leaks(clip).length, 'clipboard leaks or differs from the prompt');
+    await page.click('#downloadBtn'); await wait(800);
+    await page.evaluate(() => { document.getElementById('dataBtn').click(); document.getElementById('allBtn').click(); }); await wait(800);
+    const files = fs.readdirSync(dl);
+    ok(files.length === 1 && files[0].endsWith('.md'), 'only the .md should be downloaded, got ' + files.join(', '));
+    if (files[0]) ok(!leaks(fs.readFileSync(path.join(dl, files[0]), 'utf8')).length, 'downloaded file leaks');
+
+    // Switches: neutral names, hidden file name; another prompt language
+    await page.evaluate(() => { document.querySelector('[data-sw="names"]').click(); document.querySelector('[data-sw="file"]').click(); }); await wait();
+    const anon = await md(page);
+    ok(anon.includes('`table_1`') && anon.includes('`column_1`') && !anon.includes('`customer`') && !anon.includes('confidential.csv') && anon.includes('dataset.csv'), 'neutral names and hidden file name');
+    await page.select('#promptLang', 'fr'); await wait();
+    const fr = await md(page);
+    ok(fr.startsWith('# Demande d') && !leaks(fr).length, 'French no-share prompt');
+    await page.evaluate(() => { document.querySelector('[data-sw="names"]').click(); document.querySelector('[data-sw="file"]').click(); });
+    await page.select('#promptLang', 'en'); await wait();
+
+    // Leaving asks first; "Keep my data out" keeps it; "Include my data" reads the file again (edits kept)
+    await page.click('#nsOn'); await wait();
+    ok(await page.evaluate(() => document.getElementById('nsLeaveDialog').open), 'leave dialog should open');
+    await page.click('#nsLeaveNo'); await wait();
+    ok(await page.evaluate(() => document.getElementById('nsOn').checked) && (await md(page)).includes('(data not shared)'), '"keep my data out" should stay in no-share');
+    await page.click('#nsOn'); await wait();
+    await page.click('#nsLeaveYes');
+    await page.waitForFunction(() => window.DataBrief.getMarkdown().includes('CONFIDENTIAL_CUSTOMER_74291'), { timeout: 20000 }).catch(() => {});
+    const back = await md(page);
+    ok(back.includes('CONFIDENTIAL_CUSTOMER_74291') && back.includes('CONFIDENTIAL_EDIT_555'), 'back to normal: data again and the normal edit kept');
+
+    // Remembered: after a reload the page is still in no-share mode
+    await page.click('#nsOn'); await wait();
+    await page.reload({ waitUntil: 'load' });
+    const again = await load(page, F('confidential.csv'));
+    ok(again.md.includes('(data not shared)') && !leaks(again.md).length, 'no-share should be remembered after a reload');
+    // Errors in no-share mode carry no technical details (they can quote the file)
+    const bad = await load(page, F('fake.xlsx'));
+    ok(!bad.ok && bad.detail === '', 'no technical details in no-share errors, got: ' + bad.detail);
+    await page.close();
+
+    // A link can switch it on (?share=no), never off (?share=yes)
+    const p2 = await newPage();
+    await p2.goto(url + '?share=no', { waitUntil: 'load' });
+    ok((await load(p2, F('confidential.csv'))).md.includes('(data not shared)'), '?share=no should switch it on');
+    await p2.goto(url + '?share=yes', { waitUntil: 'load' });
+    ok((await load(p2, F('confidential.csv'))).md.includes('(data not shared)'), '?share=yes must not switch it off');
+    await p2.evaluate(() => localStorage.clear());
+    await p2.close();
+
+    // Team lock: no-share imposed, the switch is hidden and cannot be turned off
+    const BLOCK = /(<script id="databrief-config" type="application\/json">)[\s\S]*?(<\/script>)/;
+    const lockedFile = path.join(outDir, 'cfg_noshare_locked.html');
+    fs.writeFileSync(lockedFile, fs.readFileSync(htmlPath, 'utf8').replace(BLOCK, (m, a, b) => a + '\n{"share":"no","lock":["share"]}\n' + b));
+    const p3 = await newPageAt('file://' + lockedFile);
+    await p3.evaluate(() => localStorage.clear()); await p3.reload({ waitUntil: 'load' });
+    const locked = await load(p3, F('confidential.csv'));
+    ok(locked.md.includes('(data not shared)'), 'team lock should impose no-share');
+    ok(await p3.evaluate(() => document.getElementById('nsToggleWrap').classList.contains('locked-hidden') && !document.getElementById('nsTeam').classList.contains('hidden')), 'locked: switch hidden, team note shown');
+    await p3.evaluate(() => { const x = document.getElementById('nsOn'); x.checked = false; x.dispatchEvent(new Event('change')); }); await wait();
+    ok((await md(p3)).includes('(data not shared)') && !(await p3.evaluate(() => document.getElementById('nsLeaveDialog').open)), 'locked: cannot be turned off');
+    await p3.close();
+
+    // A database with neutral names: relationships keep their shape, the real names disappear
+    const p4 = await newPage();
+    await p4.click('#nsOn').catch(() => {});
+    await load(p4, F('schema_features.sqlite'));
+    await p4.click('#nsOn'); await wait();
+    await p4.evaluate(() => document.querySelector('[data-sw="names"]').click()); await wait();
+    const db = await md(p4);
+    ok(db.includes('many to many') && db.includes('`table_') && !db.includes('people_tags') && !db.includes('CREATE TABLE'), 'database with neutral names: relationships kept, no real names, no SQL');
+    await p4.evaluate(() => localStorage.clear());
+    await p4.close();
+
+    if (checks.length) fail('do not share data', checks.join(' | '));
+    else pass('do not share data', '3 levels, every output checked (prompt, preview, formatted view, clipboard, download, state), switches, leave dialog, reload, URL, team lock, errors');
+  }
+
   // ---------- layout toggle + downloads ----------
   {
     const page = await newPage();
@@ -692,7 +820,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
 
   if (external.length) fail('NO NETWORK', external.length + ' external request(s): ' + [...new Set(external)].join(', '));
   else pass('NO NETWORK', 'zero external requests; file requests: ' + [...fileRequests].map((u) => path.basename(u)).join(', '));
-  const otherFiles = [...fileRequests].filter((u) => !u.endsWith('/databrief.html'));
+  const otherFiles = [...fileRequests].filter((u) => !u.split('?')[0].endsWith('/databrief.html')); // ?share=no links are the same page
   if (otherFiles.length) fail('single file', 'page loaded other files: ' + otherFiles.join(', '));
   if (problems.length) fail('console/page errors', [...new Set(problems)].join(' | '));
 

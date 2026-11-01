@@ -65,7 +65,7 @@
     else p.kind = 'text';
 
     if (p.kind === 'categorical') {
-      const top = Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 10);
+      const top = Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, CAT_MAX); // every category (at most 20)
       const rest = m - top.reduce((s, x) => s + x[1], 0);
       p.summary = { top: top.map(([value, count]) => ({ value, count, pct: (count / m) * 100 })), other: rest, otherPct: (rest / m) * 100 };
     } else if (p.kind === 'continuous') {
