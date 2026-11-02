@@ -17,7 +17,7 @@ records in blocks, often compressed.
   09:30:00`, in UTC), times, UUIDs; bytes in hexadecimal.
 - **Enum symbols** as the column's value labels (`PT, CN, FR, IE`).
 - The **documentation** written in the schema: the record's (as a table description) and each field's (as a label).
-- The **record name** (`shop.Customer`), the compression, and the metadata the writer added (other than the schema).
+- The **record name** (`shop.Customer`), the compression, and the metadata the writer added (other than the schema; keys that name a person or a team, such as `owner` or `author`, are left out).
 - Compression: none, **deflate**, **snappy** and **Zstandard**.
 
 ## The best file to give

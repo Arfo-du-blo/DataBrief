@@ -22,8 +22,8 @@ text, **`.odp`** presentations).
 - **Documents:** the headings (with their level, also in a translated Word), paragraphs and list items, in order, with
   the place of each table. Tracked changes are read as accepted (deleted text left out).
 - **Presentations:** every slide in order, with its title, its text and its **speaker notes**, and the tables it holds.
-- **Document properties:** title, subject, author, last author, keywords, description, creation and modification dates,
-  and the program that wrote the file.
+- **Document properties:** title, subject, keywords, description, creation and modification dates, and the program that
+  wrote the file. **Never the author, the last editor or the company**: who made a file is not shown, in any mode.
 
 ## The best file to give
 
@@ -50,6 +50,6 @@ text, **`.odp`** presentations).
 
 The **tables** are described like any other data: their structure, and the statistics of the level you choose; their
 cells are never included. The **text** of the document (headings, paragraphs, slide titles and text, speaker notes) and
-the **document properties** that people write (title, subject, author, keywords, description) are free text: they are
+the **document properties** that people write (title, subject, keywords, description) are free text: they are
 included only when you allow *Comments, notes and other free text*. Without it, the prompt keeps only the outline: the
 level of each heading, how many paragraphs, and where each table is.

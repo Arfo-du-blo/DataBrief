@@ -2,7 +2,8 @@
 #
 #   Push to the default branch  -> GitLab Pages: https://<group>.gitlab.io/<project>/
 #   Push a tag v*  (git tag v1.1.0 && git push origin v1.1.0)
-#                               -> both HTML files and SHA256SUMS.txt (their fingerprints) in the Generic Package Registry
+#                               -> both HTML files, the command-line tool databrief-cli.cjs, its manual databrief.1 and
+#                                  SHA256SUMS.txt (their fingerprints) in the Generic Package Registry
 #                               -> Docker images in the Container Registry, for PCs (amd64) and ARM boards such as
 #                                  the Raspberry Pi (arm64):
 #                                    $CI_REGISTRY_IMAGE:latest, :nginx, :<tag>, :<tag>-nginx   (nginx variant)
@@ -23,9 +24,25 @@ build:
   image: mcr.microsoft.com/powershell:lts-ubuntu-22.04
   script:
     - pwsh ./build.ps1
-    - sha256sum databrief.html databrief_set_default.html | tee SHA256SUMS.txt
   artifacts:
-    paths: [databrief.html, databrief_set_default.html, SHA256SUMS.txt]
+    paths: [databrief.html, databrief_set_default.html]
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG =~ /^v/
+
+# The command-line tool (one file, built by Node) and its manual; the fingerprints of all the released files.
+cli:
+  stage: build
+  image: node:22-alpine
+  needs: [build]
+  script:
+    - node tools/build-cli.cjs databrief-cli.cjs
+    - node tools/build-man.cjs databrief.1
+    - cmp databrief.1 man/databrief.1
+    - sha256sum databrief.html databrief_set_default.html databrief-cli.cjs databrief.1 | tee SHA256SUMS.txt
+  artifacts:
+    paths: [databrief.html, databrief_set_default.html, databrief-cli.cjs, databrief.1, SHA256SUMS.txt]
     expire_in: 1 week
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -51,10 +68,10 @@ upload:
   image:
     name: curlimages/curl:8.10.1
     entrypoint: [""]
-  needs: [build]
+  needs: [cli]
   script:
     - |
-      for f in databrief.html databrief_set_default.html SHA256SUMS.txt; do
+      for f in databrief.html databrief_set_default.html databrief-cli.cjs databrief.1 SHA256SUMS.txt; do
         curl --fail --silent --show-error --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "$f" "${PACKAGE_URL}/$f"
         echo "uploaded $f"
       done
@@ -105,6 +122,12 @@ release:
         - name: databrief_set_default.html
           url: "${PACKAGE_URL}/databrief_set_default.html"
           link_type: package
+        - name: databrief-cli.cjs
+          url: "${PACKAGE_URL}/databrief-cli.cjs"
+          link_type: package
+        - name: databrief.1
+          url: "${PACKAGE_URL}/databrief.1"
+          link_type: other
         - name: SHA256SUMS.txt
           url: "${PACKAGE_URL}/SHA256SUMS.txt"
           link_type: other

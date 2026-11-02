@@ -1,0 +1,136 @@
+.\" DataBrief 1.5.0 manual. Written by tools/build-man.cjs from cli/args.cjs: do not edit by hand.
+.TH DATABRIEF 1 "" "DataBrief 1.5.0" "User Commands"
+.SH NAME
+databrief \- turn a data file into a prompt for an AI, offline
+.SH SYNOPSIS
+.B databrief
+.I FILE
+.RI [ options ]
+.SH DESCRIPTION
+.PP
+databrief reads one data file with the same code as the DataBrief page (https://github.com/Arfo\-du\-blo/DataBrief) and writes a Markdown prompt that gives an AI assistant the data and its context: the structure, the types, the keys and relationships, the metadata and, for documents, the text around the tables. 29 formats are read: delimited text, spreadsheets, JSON, XML, YAML, HTML, SPSS, Parquet, Avro, Arrow, SQLite, SQL dumps, PostgreSQL archives, DuckDB exports, SQL Server packages, Access, DBF, GeoJSON, GeoPackage, Jupyter notebooks, Word, PowerPoint, OpenDocument and PDF.
+.PP
+Nothing is uploaded: the tool makes no network connection. The prompt is copied to the clipboard; with the options below it is also printed, written to files, or edited in a text editor first.
+.SH OPTIONS
+.SS What happens with the prompt
+.TP
+\fB\-\-no\-copy\fR, \fB\-\-no_clip\fR
+Do not copy the prompt to the clipboard. By default it always is.
+.TP
+\fB\-\-print\fR
+Print the prompt on standard output.
+.TP
+\fB\-\-csv\fR
+Also write the data as CSV files: ./databrief/FILE_DATE_TIME/ gets the CSV files and prompt.md.
+.TP
+\fB\-\-out\fR \fIPATH\fR
+Write prompt.md (and the CSV files with \-\-csv) in a new FILE_DATE_TIME folder inside PATH. An absolute PATH must exist; a relative PATH is placed under ./databrief.
+.TP
+\fB\-\-review\fR\fI[=EDITOR]\fR
+Save initial_prompt.md, open a copy (prompt.md) in a text editor (EDITOR, else vim, nano, then what the system has) and use the edited prompt. Needs an interactive terminal.
+.TP
+\fB\-\-json\fR
+Print one JSON object (the prompt, the files written, warnings) instead of the prompt, for programs. Add \-\-no\-copy to leave the clipboard alone.
+.TP
+\fB\-\-quiet\fR, \fB\-q\fR
+No summary on standard error (errors and a failed copy are still reported).
+.SS What the prompt contains
+.TP
+\fB\-\-no\-share\fR\fI[=LEVEL]\fR
+Do not share data: the prompt describes the file without any record. LEVEL 1 structure only (default), 2 + counts, 3 + summaries. Level 3 summaries can include real values (a minimum, a maximum, category names): read the prompt before sending it.
+.TP
+\fB\-\-allow\fR \fILIST\fR
+With \-\-no\-share: also include these (names, labels, rel, file, text, sql).
+.TP
+\fB\-\-hide\fR \fILIST\fR
+With \-\-no\-share: leave these out (same names). \-\-hide=file also keeps the file name out of everything the tool shows.
+.TP
+\fB\-\-lang\fR \fICODE\fR
+Language of the prompt (en, fr, de, es, it, pt, nl, pl, ru, tr, zh, ja, ko, hi, ar; default en). The tool's own messages are in English.
+.TP
+\fB\-\-mode\fR \fIinline|files\fR
+The data inside the prompt (default), or only a sample in the prompt and the data in CSV files: add \-\-csv to write them.
+.TP
+\fB\-\-limit\fR \fIN|auto\fR
+Rows per table in the prompt (inline mode). auto = the page's suggestion for a large file.
+.TP
+\fB\-\-layout\fR \fIauto|table|csv\fR
+How rows are written (default auto: tables for small sections, CSV for large ones).
+.TP
+\fB\-\-no\-profile\fR
+Leave out the data profile (statistics of every column).
+.SS Other
+.TP
+\fB\-\-help\fR, \fB\-h\fR
+This text.
+.TP
+\fB\-\-version\fR, \fB\-v\fR
+The version.
+.SH OUTPUT FILES
+.PP
+With \-\-csv, \-\-out or \-\-review, everything is written in one new folder named FILE_YYYY\-MM\-DD_HH\-MM\-SS (local time; \-2, \-3 when it exists): prompt.md, the data as CSV files (\-\-csv), and initial_prompt.md (\-\-review). Without \-\-out the folder is made inside ./databrief of the current folder. With \-\-out, an absolute PATH must already exist; a relative PATH is placed under ./databrief and the tool says so; ".." is refused. Files are never overwritten. The data files carry the names the prompt gives them, changed only where a disk refuses a name.
+.SH DO NOT SHARE DATA
+.PP
+\-\-no\-share writes a prompt that describes the file without any record: the structure at level 1, plus counts at level 2, plus summaries at level 3 (a minimum, a maximum and category names are real values: read the prompt before sending it). Free text (comments, notes, the text of documents, SQL definitions) is left out unless \-\-allow=text,sql; names, labels, the file name and relationships are included unless \-\-hide. The title, author and company of a file are never shown, in any mode. With \-\-csv the CSV files still hold the data (they stay on this computer); their names follow the same rules as the prompt. Error messages never quote the file.
+.PP
+This controls what DataBrief outputs. An AI agent that can run this tool can often read the file itself: do not rely on it to keep the data from an agent that has access to your files.
+.SH REVIEW
+.PP
+\-\-review saves the prompt as initial_prompt.md and prompt.md, then opens prompt.md in the editor given (\-\-review=EDITOR), else vim, else nano, else $VISUAL, $EDITOR, or what the system has (notepad on Windows, TextEdit on macOS, editor, vi...). A missing editor is skipped and the next one is tried; the summary says which was used. Editors that return at once (a graphical window) get a "press Enter" wait. The clipboard receives the edited prompt. Vim and Neovim open it with modelines off and Emacs with file\-local variables off. It needs a terminal on standard input and output: from a pipe, a script or an AI agent's shell it refuses and does nothing.
+.SH EXIT STATUS
+.TP
+.B 0
+done
+.TP
+.B 1
+the file could not be read (missing, damaged, not supported, too large, not a regular file)
+.TP
+.B 2
+wrong options (nothing was done)
+.TP
+.B 3
+not delivered as asked: the clipboard, the files or the editor failed (the prompt is still printed or copied when it could be)
+.SH ENVIRONMENT
+.TP
+.B VISUAL, EDITOR
+The editor of --review when none is named and neither vim nor nano is installed.
+.TP
+.B PATH
+Where editors and the clipboard tools are looked for. The current folder is not searched.
+.TP
+.B WAYLAND_DISPLAY
+Linux: when set, wl\-copy is tried before xclip and xsel.
+.SH FILES
+.TP
+.B ./databrief/
+The folder of the files written by --csv and by a relative --out.
+.SH LIMITS
+.PP
+The tool reads files with the same code as the page, with the page's default settings (no team configuration).
+.PP
+An AI agent that can run this tool can often read the file itself: \-\-no\-share controls what DataBrief outputs, not what the agent can open.
+.PP
+Differences from the page: the tool uses the built\-in settings (no team configuration or locked settings); XML files that use parameter entities and HTML nested more than 5000 levels are refused; there is no time limit on reading a file. Files larger than 2 GB are refused. The clipboard needs PowerShell (Windows, WSL), pbcopy (macOS) or wl\e\-copy, xclip or xsel (Linux).
+.SH EXAMPLES
+.TP
+.B databrief sales.xlsx
+Copy the prompt to the clipboard.
+.TP
+.B databrief sales.xlsx \-\-no\-share
+The same, without any data in it.
+.TP
+.B databrief dump.sql \-\-print \-\-no\-copy
+Print it.
+.TP
+.B databrief orders.parquet \-\-csv
+Prompt.md and the data as CSV files in ./databrief/....
+.TP
+.B databrief orders.parquet \-\-mode files \-\-csv
+A short prompt and the data as CSV files, for AIs that run code.
+.TP
+.B databrief report.docx \-\-review=nano
+Edit the prompt before it is copied.
+.SH SEE ALSO
+The guides in docs/cli.md and docs/formats/ of the repository, and https://arfo\-du\-blo.github.io/DataBrief/ for the page.
+.SH LICENSE
+GNU General Public License, version 3 or later.

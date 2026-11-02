@@ -2,13 +2,23 @@
 
 **Give AI the data context it is missing. 100% offline, in your browser.**
 
+> ### 29 formats, in 12 areas, in one page
+> **Spreadsheets** (Excel, ODS) · **delimited text** (CSV, TSV) · **JSON, XML, YAML, HTML** · **databases** (SQLite, SQL
+> dumps of 7 engines, PostgreSQL archives, DuckDB exports, SQL Server packages, Microsoft Access, DBF) · **data
+> engineering** (Parquet, Avro, Arrow, Feather) · **statistics** (SPSS) · **geodata** (GeoJSON, GeoPackage) ·
+> **notebooks** (Jupyter) · **documents** (Word, PowerPoint, OpenDocument) · **PDF**.
+> Not only the values: the structure, the types, the keys and the relationships, the metadata and the text around the
+> tables. **[See every format and what is read from each →](#supported-formats)**
+
 This repository is two things at once:
 
-- 📊 **A tool you can use today.** One private, self-contained page that turns your data into a prompt any AI
+- 📊 **A tool you can use today.** One private, self-contained page that turns your data, in any of those
+  [29 formats](#supported-formats), into a prompt any AI
   assistant understands: not just the values, but the structure, the metadata and the **relationships** that give them
   meaning. It works everywhere, on any computer, with no installation, and is easy to share with your whole team. Your
   files never leave your browser. And when your data **cannot be shared even with an AI**, it can describe it
-  without a single record: [Do not share data](#do-not-share-data).
+  without a single record: [Do not share data](#do-not-share-data). The same readers also run in a
+  [command-line tool](#command-line).
 - 🎓 **A complete deployment tutorial built on that tool.** Because DataBrief is a single file with no backend, it's
   the perfect real-world example for learning how a web app gets from your laptop to the world: GitHub/GitLab Pages,
   local servers, Docker, reverse proxies and HTTPS, a Raspberry Pi, an ESP32, Kubernetes, and Cloudflare Zero Trust.
@@ -28,6 +38,26 @@ paste into, or upload to, any AI assistant (Claude, ChatGPT, Gemini, Mistral, lo
 1. **An introduction prompt** telling the AI that this is a file shared by the user, what it contains (sections,
    columns, metadata), and how to behave.
 2. **All of the data**, formatted for the AI to read reliably (or, if you prefer, a short sample plus separate CSV files).
+
+**It reads 29 formats, in 12 areas**, so that whatever your data lives in, you do not convert it first:
+
+| Area | Formats |
+|---|---|
+| Delimited text | CSV, TSV, TXT |
+| Spreadsheets | Excel (XLSX, XLSM, XLS), OpenDocument (ODS) |
+| Structured text | JSON, NDJSON, XML, YAML |
+| Web | HTML (every table, and the text of the page) |
+| Statistics | SPSS (.sav, .zsav) |
+| Data engineering | Parquet, Avro, Arrow and Feather |
+| Databases | SQLite, SQL dumps, PostgreSQL archives, DuckDB exports, SQL Server packages (.dacpac), Microsoft Access |
+| Legacy databases | DBF (dBase, FoxPro) |
+| Geodata | GeoJSON, GeoPackage |
+| Notebooks | Jupyter |
+| Documents | Word, PowerPoint, OpenDocument text and presentations |
+| PDF | text and tables guessed from the layout (best effort) |
+
+Each one has its own guide (what is extracted, the best file to give, how to export it, its limits):
+**[all the formats and their guides →](#supported-formats)**
 
 **100% offline and private:** everything happens in your browser. Your data never leaves your computer, even when the
 page is hosted on a server, and it works with no internet at all: the page's security policy stops it from loading or
@@ -50,7 +80,9 @@ case: when an assistant already handles your file well, the original file may be
 
 ## Contents
 
+- [**Supported formats**](#supported-formats): 29 formats in 12 areas, one guide per format
 - [Choose how to use DataBrief](#choose-how-to-use-databrief)
+- [Command line](#command-line): the same readers in a terminal, for scripts and AI agents
 - [Learn deployment with DataBrief](#learn-deployment-with-databrief): the tutorial, from a single file to an ESP32
 - [Do not share data](#do-not-share-data): describe your data to an AI **without its records**
 - [Guides](#guides), one per way of using it
@@ -88,6 +120,7 @@ Start at the top: the first rows need nothing at all; the last ones are for IT t
 | 18 | **Kubernetes** | Team | Cluster admins | Kubernetes | [Open](#kubernetes) |
 | 19 | **Raspberry Pi** (Ubuntu Server 26.04 LTS) | Team (local network) | Home, classroom, small teams | A Raspberry Pi 4 or 5 | [Open](#raspberry-pi) |
 | 20 | **ESP32 / Arduino Nano ESP32** (pocket server, own Wi-Fi) | Team (local network) | Makers, offline sites | An ESP32 board (4 MB+) | [Open](#esp32-and-arduino) |
+| 21 | **Command line** (no page: the same readers in a terminal) | Alone | Developers, scripts, AI agents | Node.js 18+ | [Open](#command-line) |
 
 **What is the difference?** The page always does all the work in the user's browser. The methods only change *where the
 page comes from* and *which defaults it has* (language, mode, locked settings, your team's instructions…). See
@@ -492,6 +525,37 @@ cd deploy/esp32 && pio run -e esp32dev -t upload     # PlatformIO; Arduino IDE: 
 
 [↑ Back to the table](#choose-how-to-use-databrief)
 
+### Command line
+
+The same readers and the same [Do not share data](#do-not-share-data) rules, without a browser: for scripts, for a
+terminal, and for AI agents that can run a command. It reads the same 29 formats and gives **the same prompt as the
+page, byte for byte** (a test compares them on every test file; the few exceptions are listed in the guide). Requires
+Node.js 18 or newer; nothing else to install.
+
+```bash
+node databrief-cli.cjs sales.xlsx                      # the prompt is copied to the clipboard
+node databrief-cli.cjs sales.xlsx --no-share           # the same, with no data in it
+node databrief-cli.cjs orders.parquet --csv            # prompt.md and the data as CSV files, in ./databrief/
+node databrief-cli.cjs report.docx --review=nano       # edit the prompt before it is copied
+node databrief-cli.cjs dump.sql --print --no-copy      # print it
+```
+
+- **Get it:** `databrief-cli.cjs` is attached to each [release](https://github.com/Arfo-du-blo/DataBrief/releases/latest),
+  listed in `SHA256SUMS.txt` like the page. It is one file with everything inside (about 5 MB); or build it from the
+  sources: `node tools/build-cli.cjs`.
+- **It never connects to anything** and never runs a shell; a test runs it with every network call blocked.
+- **Why not just MarkItDown, files-to-prompt or data2prompt?** Those tools exist and are good at what they do. As far
+  as we know, this one is the one that also reads Access, DBF, SPSS, Avro, PostgreSQL archives, DuckDB exports, SQL
+  Server packages and GeoPackage, and the one that shares the page's privacy rules: the same *Do not share data*
+  levels, with canary tests on every format.
+- **The catch with agents:** `--no-share` controls what DataBrief outputs, not what an AI agent that can run commands
+  can open: it may be able to read the file itself.
+
+**→ The full guide (every option, the files it writes, `--review`, exit codes, limits): [docs/cli.md](docs/cli.md)**
+· or `databrief-cli.cjs --help`, and the `man` page [`man/databrief.1`](man/databrief.1).
+
+[↑ Back to the table](#choose-how-to-use-databrief)
+
 ---
 
 ## Expose it outside your network (Cloudflare Tunnel)
@@ -614,8 +678,9 @@ For settings that are **not locked**, a link can choose them: `?lang=fr`, `?prom
 
 ## Supported formats
 
-Click a format in the page for a short card, or read its **guide**: what DataBrief extracts, the best file to give,
-how to export it, and its limits.
+**29 formats in 12 areas.** Click a format in the page for a short card, or read its **guide**: what DataBrief
+extracts, the best file to give, how to export it, and its limits. The same readers run in the page and in the
+[command-line tool](#command-line).
 
 | Category | Formats | Guide |
 |---|---|---|
@@ -624,7 +689,7 @@ how to export it, and its limits.
 | Structured | JSON, NDJSON / JSONL | [JSON](docs/formats/json.md) |
 | | XML | [XML](docs/formats/xml.md) |
 | | YAML (several documents = one row each) | [YAML](docs/formats/yaml.md) |
-| Web | HTML (**every** `<table>` on the page) | [HTML tables](docs/formats/html.md) |
+| Web | HTML (**every** `<table>` on the page, and the text of the page around them as context) | [HTML](docs/formats/html.md) |
 | Statistics | SPSS `.sav` and `.zsav` | [SPSS](docs/formats/spss.md) |
 | Data engineering | Parquet | [Parquet](docs/formats/parquet.md) |
 | | **Avro** (`.avro` data files: deflate, snappy or Zstandard) | [Avro](docs/formats/avro.md) |
@@ -657,15 +722,20 @@ When a file holds several sheets or tables, each one becomes its own section, an
 | DBF | field types, decimals, the code page, deleted records (counted, not shown), Visual FoxPro nulls and varchar; memo field names (their text is in another file and not read) |
 | GeoJSON / GeoPackage | every feature or layer row with its attributes; each geometry **summarised** (kind, number of points, extent; the coordinates of a point), the **coordinate system**, the geometry kinds; GeoPackage layers, attribute tables, titles and descriptions |
 | Jupyter notebook | the **data frames** of the stored outputs (named index, MultiIndex, Polars and R column types, the true size of a shortened table), and every cell in order: Markdown, code, printed text, errors, the language |
-| Word / PowerPoint / ODT / ODP | every **table as data** (merged cells repeated, the header row the file marks, a merged header over two rows), and as context the headings, paragraphs and lists in order, or each slide's title, text and speaker notes; title, author and dates of the document |
-| PDF | the text of every page (paragraphs, headings), tables **guessed** from the position of the text (columns that line up, wrapped cells joined), title, author, dates and the program that made it |
-| SQLite | types, primary keys (in order), **foreign keys** (composite, with `ON DELETE`), unique constraints, indexes, `CREATE TABLE`, views with their SQL, **relationships**, generated columns, exact 64-bit integers |
+| Word / PowerPoint / ODT / ODP | every **table as data** (merged cells repeated, the header row the file marks, a merged header over two rows), and as context the headings, paragraphs and lists in order, or each slide's title, text and speaker notes; title and dates of the document |
+| PDF | the text of every page (paragraphs, headings), tables **guessed** from the position of the text (columns that line up, wrapped cells joined), title, dates and the program that made it |
+| SQLite | types, primary keys (in order), **foreign keys** (composite, with `ON DELETE`), unique constraints, indexes, `CREATE TABLE`, views and **triggers** with their SQL, full-text and spatial indexes (named, their internal tables left out), **relationships**, generated columns, exact 64-bit integers |
 | Parquet | the **type of every nested field** (`STRUCT`, `LIST`, `MAP`), required fields, decimals, timestamp units, pandas metadata, row groups, compression |
 | Avro | the **type of every field** from the schema (enums with their symbols, decimals, dates, timestamps, nullable fields, arrays, maps), nested records flattened, the record name and its documentation, the writer's metadata, the compression |
 | Arrow / Feather | the **Arrow type** of every column (decimals, dictionaries, timestamps with their time zone, lists), structs flattened, record batches, the schema metadata (pandas, Polars) |
-| Excel / ODS | sheet names, hidden sheets, cell comments, **merged cells, hidden rows and columns, defined names**, the number of formulas (those without a stored result are counted, not lost) |
+| Excel / ODS | sheet names, hidden sheets, cell comments, **merged cells, hidden rows and columns, defined names**, the number of formulas (those without a stored result are counted, not lost), the workbook's title, subject, keywords and dates |
 | JSON / XML / YAML | the original path of each flattened field; XML attributes; YAML documents |
-| CSV / TSV / HTML | the detected type of each column; table captions and merged cells for HTML |
+| CSV / TSV | the detected type of each column |
+| HTML | every table (captions, merged cells, header rows), and the page as a document: title, description, headings, paragraphs and lists in order, each table where it stands (navigation, forms and scripts left out) |
+
+**Who made a file is never shown:** the author, the last editor and the company of a Word, PowerPoint, OpenDocument,
+Excel or PDF file, the author of a comment or of a web page, and writer metadata that names a person or a team
+(`owner`, `author`, `contact`…) are not read, in any format and in every mode.
 
 ## The generated prompt
 
@@ -757,6 +827,7 @@ src/
   arrow.js                    Arrow IPC and Feather v2 (with the vendored flechette), Feather v1 (original code)
   office.js                   Word, PowerPoint, OpenDocument text and presentations (a small XML reader without a DOM)
   pdf.js                      PDF: the page text, and tables guessed from text positions (with the vendored pdf.js)
+  core.js                     the page's way from a file to a prompt, without the page (DB.prepare): used by the command line
   relationships.js            declared and inferred relationships between sections
   profile.js                  the data profile (statistics of every column; on by default, can be switched off)
   noshare.js                  "Do not share data": the record-free copy of a file
@@ -764,6 +835,11 @@ src/
   spss.js                     SPSS .sav / .zsav reader (original code)
   markdown.js                 builds the prompt (locked parts and editable regions) and the no-share prompt
   app.js                      page logic
+cli/                          the command-line tool: databrief.cjs (entry), main.cjs, args.cjs (options: the one source of
+                              --help and the man page), clipboard.cjs, outfiles.cjs, editor.cjs, realm.cjs (the page's
+                              scripts in a separate Node realm), dom-shim.js (DOMParser for Node: xmldom and parse5)
+man/databrief.1               the manual page (written by tools/build-man.cjs)
+package.json                  the command-line tool's package (version, bin, Node 18+)
 deploy/
   databrief.conf              shared configuration file (every setting commented)
   python/serve.py             Python server (--setup)
@@ -780,7 +856,8 @@ examples/tampered/            the privacy demo: tampered copies + receiver.py (n
 .github/workflows/            pages.yml (GitHub Pages), release.yml (release + Docker images), tests.yml (tests on every push)
 .gitlab-ci.yml                the same for GitLab: Pages, release, Docker images (Container Registry)
 vendor/                       third-party libraries and their licenses
-tools/                        build-mdb-reader.sh, build-flechette.sh, build-pdfjs.sh: rebuild the bundled libraries of vendor/
+tools/                        build-mdb-reader.sh, build-flechette.sh, build-pdfjs.sh, build-xmldom.sh, build-parse5.sh: rebuild the
+                              bundled libraries of vendor/; build-cli.cjs (the one-file command line), build-man.cjs (the man page)
 tests/                        test suites; *-fixtures/ hold real files written by each engine's own tools
 ```
 
@@ -796,11 +873,11 @@ pwsh ./build.ps1                                          # PowerShell 7 (Window
 ### Releasing
 
 ```bash
-git tag v1.4.0 && git push origin v1.4.0
+git tag v1.5.0 && git push origin v1.5.0
 ```
 
-`.github/workflows/release.yml` creates the GitHub release (with both HTML files and `SHA256SUMS.txt`, their
-fingerprints) and publishes the Docker images, for `amd64` and `arm64`, to `ghcr.io/<owner>/databrief`. After the
+`.github/workflows/release.yml` creates the GitHub release (with both HTML files, the command-line tool
+`databrief-cli.cjs`, the man page `databrief.1` and `SHA256SUMS.txt`, their fingerprints) and publishes the Docker images, for `amd64` and `arm64`, to `ghcr.io/<owner>/databrief`. After the
 first release, make the package public: **your GitHub profile → Packages → databrief → Package settings → Change
 visibility → Public**.
 
@@ -832,6 +909,14 @@ powershell -ExecutionPolicy Bypass -File tests\test_powershell.ps1   # PowerShel
   by python-docx, python-pptx and LibreOffice, PDF by LibreOffice and Chrome); hand-written cases, marked *synthetic*, for
   what no engine here could produce; time limits and seeded fuzzing of damaged files on adversarial input. The fixtures
   are regenerated by `make_*_fixtures.*` (Docker).
+- **Command line** (`test_core.cjs`, `test_cli.cjs`, `test_cli_privacy.cjs`, `test_cli_parity.cjs`): the reading core in its
+  separate realm (no `require`, no network, no code from strings), every option, the clipboard commands of each system
+  (with stand-ins), the output folders and names, `--review` with fake editors, the one-file build (reproducible, the same
+  bytes from Windows line endings) run as real processes on every committed test file; `Do not share data` with canary
+  values in every output of the tool under a guard that blocks and logs every network call and every program started;
+  hostile file names, escape sequences, devices and pipes, XML entity bombs, deeply nested HTML; and the tool against the
+  page in Chrome, byte for byte. In CI (`cli` job) on Linux, Windows and macOS with Node 18, 22 and 24. One independent
+  review by three reviewers (privacy, security, integration), every finding with a regression test.
 - **Export commands** (`test_export_commands.sh`, Docker, on demand): runs the commands shown by "How do I export my
   database?" against real PostgreSQL, MySQL, MariaDB, ClickHouse and SQLite servers and reads their files.
 - **Browser** (`run.sh`): every format (three SPSS compression modes, five Parquet codecs), errors, the 15 languages,

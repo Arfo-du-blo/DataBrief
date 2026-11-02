@@ -37,5 +37,5 @@
 ## With "Do not share data"
 
 Records are never included. Column names are names, and so are the field names inside a struct type
-(`struct<string, int8>` when names are not shared). The writer's metadata counts as free text and names (shown only when
+(`struct<string, int8>` when names are not shared). The writer's metadata (keys that name a person or a team, such as `owner` or `author`, are left out) counts as free text and names (shown only when
 both are allowed).

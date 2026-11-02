@@ -8,7 +8,9 @@ Spreadsheets hold more than values: sheets, comments, merged cells, formulas. Da
 
 - **Every sheet as its own section**, including hidden sheets (flagged as hidden).
 - **Dates and times** as ISO text, using each cell's number format (so a cell showing `31/03/2024` becomes `2024-03-31`). Floating-point noise is removed (`0.30000000000000004` → `0.3`).
-- **Cell comments** (the first 200 per sheet are listed, with their cell).
+- **Cell comments** (the first 200 per sheet are listed, with their cell; their text only, never who wrote them).
+- **The workbook's properties:** title, subject, keywords, description, creation and modification dates, and the program
+  that wrote it. **Never the author, the last editor, the manager or the company.**
 - **What the values do not say:**
   - the **number of formula cells** per sheet, with examples (`D2: =B2*C2`), and how many have no stored result;
   - **merged ranges** (`B5:C5`: the value is in the top-left cell only);

@@ -19,8 +19,8 @@ a browser, a reporting tool), and it is labelled as a guess in the prompt.
   column names when it looks like one. Numbers aligned to the right stay in their column. Text that wraps inside a cell is
   joined to its row with a space. Each table becomes a section (`page2_table1`…), and the prompt warns the AI that it was
   reconstructed.
-- **The document properties:** title, subject, author, keywords, creation and modification dates, and the program that
-  made the PDF.
+- **The document properties:** title, subject, keywords, creation and modification dates, and the program that made
+  the PDF. Never the author.
 
 ## The best file to give
 
@@ -45,5 +45,5 @@ a browser, a reporting tool), and it is labelled as a guess in the prompt.
 
 The guessed **tables** are described like any other data: their structure, and the statistics of the level you choose;
 their cells are never included. The **text** of the pages and the document properties written by people (title, subject,
-author, keywords) are free text: included only when you allow *Comments, notes and other free text*. Without it, the
+keywords) are free text: included only when you allow *Comments, notes and other free text*. Without it, the
 prompt keeps only the outline: for each page, how many blocks of text and which tables.

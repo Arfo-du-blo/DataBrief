@@ -12,7 +12,7 @@ Parquet is the standard format of data engineering: typed, compressed, often nes
   - **required** fields (shown as "not null").
 - **Columns follow the schema:** the leaves of structs become columns (`geo.lat`, `geo.meta.src`); a **list or a map is one JSON column**; a null struct adds no stray column.
 - **File layout:** the number of **row groups** and their sizes, and the **compression codecs**.
-- **Metadata:** the producer (`created_by`), your own key/value metadata, and the **pandas metadata** (index, column types) summarised.
+- **Metadata:** the producer (`created_by`), your own key/value metadata (keys that name a person or a team, such as `owner`, `author` or `contact`, are left out: who made a file is never shown), and the **pandas metadata** (index, column types) summarised.
 - **Compression:** uncompressed, Snappy, Gzip, Zstd and LZ4 (raw).
 
 ## The best file to give

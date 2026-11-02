@@ -69,43 +69,92 @@ function parse(argv) {
   return { opts, errors };
 }
 
-const HELP = `DataBrief command line: turns a data file into a prompt for an AI, with the same readers and rules as the page.
 
-Usage:  databrief FILE [options]
+/* ---------- the options, described once: --help, the man page (tools/build-man.cjs) and the tests all read this table ---------- */
+const GROUPS = {
+  prompt: 'What happens with the prompt',
+  content: 'What the prompt contains',
+  other: 'Other',
+};
+// flags: every spelling; arg: the value as written in the help; text: what it does
+const OPTIONS = [
+  { group: 'prompt', flags: ['--no-copy', '--no_clip'], text: 'Do not copy the prompt to the clipboard. By default it always is.' },
+  { group: 'prompt', flags: ['--print'], text: 'Print the prompt on standard output.' },
+  { group: 'prompt', flags: ['--csv'], text: 'Also write the data as CSV files: ./databrief/FILE_DATE_TIME/ gets the CSV files and prompt.md.' },
+  { group: 'prompt', flags: ['--out'], arg: 'PATH', text: 'Write prompt.md (and the CSV files with --csv) in a new FILE_DATE_TIME folder inside PATH. An absolute PATH must exist; a relative PATH is placed under ./databrief.' },
+  { group: 'prompt', flags: ['--review'], arg: '[=EDITOR]', equals: true, text: 'Save initial_prompt.md, open a copy (prompt.md) in a text editor (EDITOR, else vim, nano, then what the system has) and use the edited prompt. Needs an interactive terminal.' },
+  { group: 'prompt', flags: ['--json'], text: 'Print one JSON object (the prompt, the files written, warnings) instead of the prompt, for programs. Add --no-copy to leave the clipboard alone.' },
+  { group: 'prompt', flags: ['--quiet', '-q'], text: 'No summary on standard error (errors and a failed copy are still reported).' },
+  { group: 'content', flags: ['--no-share'], arg: '[=LEVEL]', equals: true, text: 'Do not share data: the prompt describes the file without any record. LEVEL 1 structure only (default), 2 + counts, 3 + summaries. Level 3 summaries can include real values (a minimum, a maximum, category names): read the prompt before sending it.' },
+  { group: 'content', flags: ['--allow'], arg: 'LIST', text: 'With --no-share: also include these (names, labels, rel, file, text, sql).' },
+  { group: 'content', flags: ['--hide'], arg: 'LIST', text: 'With --no-share: leave these out (same names). --hide=file also keeps the file name out of everything the tool shows.' },
+  { group: 'content', flags: ['--lang'], arg: 'CODE', text: 'Language of the prompt (en, fr, de, es, it, pt, nl, pl, ru, tr, zh, ja, ko, hi, ar; default en). The tool\'s own messages are in English.' },
+  { group: 'content', flags: ['--mode'], arg: 'inline|files', text: 'The data inside the prompt (default), or only a sample in the prompt and the data in CSV files: add --csv to write them.' },
+  { group: 'content', flags: ['--limit'], arg: 'N|auto', text: 'Rows per table in the prompt (inline mode). auto = the page\'s suggestion for a large file.' },
+  { group: 'content', flags: ['--layout'], arg: 'auto|table|csv', text: 'How rows are written (default auto: tables for small sections, CSV for large ones).' },
+  { group: 'content', flags: ['--no-profile'], text: 'Leave out the data profile (statistics of every column).' },
+  { group: 'other', flags: ['--help', '-h'], text: 'This text.' },
+  { group: 'other', flags: ['--version', '-v'], text: 'The version.' },
+];
+// accepted, listed nowhere: the default, so that a command can say it
+const HIDDEN_FLAGS = ['--copy', '--profile'];
 
-What happens with the prompt (the prompt is copied to the clipboard unless --no-copy):
-  --no-copy            do not copy to the clipboard (alias --no_clip)
-  --print              print the prompt on standard output
-  --csv                also write the data as CSV files: ./databrief/FILE_DATE_TIME/ gets the CSV files and prompt.md
-  --out PATH           write prompt.md (and the CSV files with --csv) in a new FILE_DATE_TIME folder inside PATH.
-                       An absolute PATH must exist; a relative PATH is placed under ./databrief
-  --review[=EDITOR]    save initial_prompt.md, open a copy (prompt.md) in a text editor (EDITOR, else vim, nano, ...)
-                       and use the edited prompt. Needs an interactive terminal
-  --json               print one JSON object (prompt, files, warnings) instead of the prompt; for programs
-  --quiet, -q          no summary on standard error
+const EXIT_CODES = [
+  [0, 'done'],
+  [1, 'the file could not be read (missing, damaged, not supported, too large, not a regular file)'],
+  [2, 'wrong options (nothing was done)'],
+  [3, 'not delivered as asked: the clipboard, the files or the editor failed (the prompt is still printed or copied when it could be)'],
+];
 
-What the prompt contains (the options of the page):
-  --no-share[=LEVEL]   Do not share data: the prompt describes the file without any record. LEVEL 1 structure only
-                       (default), 2 + counts, 3 + summaries
-  --allow=LIST         with --no-share: also include these (names, labels, rel, file, text, sql)
-  --hide=LIST          with --no-share: leave these out (same names)
-  --lang CODE          language of the prompt (en, fr, de, es, it, pt, nl, ...; default en)
-  --mode inline|files  the data inside the prompt (default) or only a sample, the data in separate CSV files
-  --limit N|auto       rows per table in the prompt (inline mode); auto = the page's suggestion for large files
-  --layout auto|table|csv   how rows are written (default auto)
-  --no-profile         leave out the data profile (statistics of every column)
+const NOTES = [
+  'The tool reads files with the same code as the page, with the page\'s default settings (no team configuration).',
+  'An AI agent that can run this tool can often read the file itself: --no-share controls what DataBrief outputs, not what the agent can open.',
+];
 
-  --help, -h           this text
-  --version, -v        the version
+const EXAMPLES = [
+  ['databrief sales.xlsx', 'copy the prompt to the clipboard'],
+  ['databrief sales.xlsx --no-share', 'the same, without any data in it'],
+  ['databrief dump.sql --print --no-copy', 'print it'],
+  ['databrief orders.parquet --csv', 'prompt.md and the data as CSV files in ./databrief/...'],
+  ['databrief orders.parquet --mode files --csv', 'a short prompt and the data as CSV files, for AIs that run code'],
+  ['databrief report.docx --review=nano', 'edit the prompt before it is copied'],
+];
 
-Exit codes: 0 done, 1 the file could not be read, 2 wrong options, 3 nothing could be delivered.
+const flagText = (o) => o.flags.map((f, i) => (i === 0 && o.arg ? (o.equals ? f + o.arg : f + ' ' + o.arg) : f)).join(', ');
 
-Examples:
-  databrief sales.xlsx                         copy the prompt to the clipboard
-  databrief sales.xlsx --no-share              the same, without any data in it
-  databrief dump.sql --print --no-copy         print it
-  databrief orders.parquet --csv               prompt.md and the data as CSV files in ./databrief/...
-  databrief report.docx --review=nano          edit the prompt before it is copied
-`;
+function wrap(text, width, indent) {
+  const words = String(text).split(/\s+/);
+  const lines = [];
+  let line = '';
+  for (const w of words) {
+    if (line && (line + ' ' + w).length > width) { lines.push(line); line = w; } else line = line ? line + ' ' + w : w;
+  }
+  if (line) lines.push(line);
+  return lines.map((l, i) => (i ? indent : '') + l).join('\n');
+}
 
-module.exports = { parse, HELP, NS_SWITCHES, MODES, LAYOUTS };
+function buildHelp() {
+  const COL = 28, WIDTH = 100;
+  const pad = ' '.repeat(COL);
+  const out = ['DataBrief command line: turns a data file into a prompt for an AI, with the same readers and rules as the page.', '', 'Usage:  databrief FILE [options]', ''];
+  for (const [key, title] of Object.entries(GROUPS)) {
+    out.push(title + (key === 'prompt' ? ' (the prompt is copied to the clipboard unless --no-copy):' : ':'));
+    for (const o of OPTIONS.filter((x) => x.group === key)) {
+      const f = '  ' + flagText(o);
+      const body = wrap(o.text, WIDTH - COL, pad);
+      out.push(f.length < COL - 1 ? f.padEnd(COL) + body : f + '\n' + pad + body);
+    }
+    out.push('');
+  }
+  out.push('Exit codes:');
+  for (const [c, t] of EXIT_CODES) out.push('  ' + c + '  ' + wrap(t, WIDTH - 5, '     '));
+  out.push('', 'Notes:');
+  for (const n of NOTES) out.push('  ' + wrap(n, WIDTH - 4, '    '));
+  out.push('', 'Examples:');
+  for (const [c, t] of EXAMPLES) out.push('  ' + c.padEnd(46) + t);
+  out.push('');
+  return out.join('\n');
+}
+const HELP = buildHelp();
+
+module.exports = { parse, HELP, OPTIONS, GROUPS, EXIT_CODES, NOTES, EXAMPLES, HIDDEN_FLAGS, SPEC, flagText, NS_SWITCHES, MODES, LAYOUTS };

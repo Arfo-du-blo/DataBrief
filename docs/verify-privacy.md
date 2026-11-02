@@ -266,6 +266,9 @@ though the two pages look the same in the browser.
 > Built from the same sources, `databrief.html` always comes out byte-for-byte identical, on Windows or Linux. So the
 > `databrief.html` in the repository matches the release too.
 >
+> The same goes for the [command-line tool](cli.md): `databrief-cli.cjs` is in `SHA256SUMS.txt`, and `node tools/build-cli.cjs`
+> from the sources writes the same bytes on every system. Check it with `sha256sum -c SHA256SUMS.txt`.
+>
 > A team version made with the settings page contains your team's settings, so its fingerprint is different. That's
 > expected. Record its fingerprint when you make it, and compare against that.
 

@@ -94,8 +94,21 @@ async function go(args, over, content) {
   {
     const r = await go(['--help']);
     ok('--help and --version go to standard output, exit 0', r.code === 0 && /Usage:  databrief FILE/.test(r.out) && r.err === '' && (await go(['--version'])).out === 'databrief 9.9.9\n');
-    const h = require(path.join(CLI, 'args.cjs')).HELP;
+    const A = require(path.join(CLI, 'args.cjs'));
+    const h = A.HELP;
     ok('--help names every option', ['--print', '--no-copy', '--no_clip', '--csv', '--out', '--review', '--json', '--quiet', '--no-share', '--allow', '--hide', '--lang', '--mode', '--limit', '--layout', '--no-profile', '--help', '--version'].every((o) => h.includes(o)));
+    // the parser and the help are one list: every flag the parser knows is described (but the two that only restate a default), and the reverse
+    const described = new Set(A.OPTIONS.flatMap((o) => o.flags));
+    const parsed = Object.keys(A.SPEC);
+    ok('--help and the parser know the same flags (' + parsed.length + ')', parsed.every((f) => described.has(f) || A.HIDDEN_FLAGS.includes(f)) && Array.from(described).every((f) => A.SPEC[f]), parsed.filter((f) => !described.has(f) && !A.HIDDEN_FLAGS.includes(f)).concat(Array.from(described).filter((f) => !A.SPEC[f])).join(' '));
+    const flat = h.replace(/\s+/g, ' ');
+    ok('--help: the exit codes, the notes (settings, what an agent can read), level 3 and the examples', /3 not delivered as asked/.test(flat) && /default settings \(no team configuration\)/.test(flat) && /not what the agent can open/.test(flat) && /--mode files --csv/.test(flat) && /summaries can include real values/.test(flat), flat.slice(0, 200));
+    // the man page: written from the same table, and the committed one is what the script writes
+    const man = require(path.join(ROOT, 'tools', 'build-man.cjs')).render();
+    ok('man page: every option of --help is in it, with its text', A.OPTIONS.every((o) => o.flags.every((f) => man.includes(f.replace(/-/g, '\\-'))) && man.includes(o.text.slice(0, 40).replace(/\\/g, '\\e').replace(/-/g, '\\-'))));
+    ok('man page: sections, the exit codes, the editors, no date, no machine detail', ['NAME', 'SYNOPSIS', 'DESCRIPTION', 'OPTIONS', 'OUTPUT FILES', 'DO NOT SHARE DATA', 'REVIEW', 'EXIT STATUS', 'ENVIRONMENT', 'LIMITS', 'EXAMPLES'].every((s) => man.includes('.SH ' + s)) && !/\b20\d\d-\d\d-\d\d\b/.test(man) && !man.includes(os.homedir()) && /\.TH DATABRIEF 1 "" "DataBrief \d+\.\d+\.\d+"/.test(man));
+    const committed = fs.existsSync(path.join(ROOT, 'man', 'databrief.1')) ? fs.readFileSync(path.join(ROOT, 'man', 'databrief.1'), 'utf8').replace(/\r\n/g, '\n') : null;
+    ok('man page: the committed man/databrief.1 is what tools/build-man.cjs writes (run it after changing cli/args.cjs)', committed === man);
   }
 
   /* ---------------------------------------------------------------- 2. what happens with the prompt ---------- */

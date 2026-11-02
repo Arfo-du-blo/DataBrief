@@ -1,6 +1,6 @@
 # On a version tag (git tag v1.1.0 && git push origin v1.1.0):
-#   1. a GitHub release with databrief.html, databrief_set_default.html and SHA256SUMS.txt (their fingerprints,
-#      see docs/verify-privacy.md) attached
+#   1. a GitHub release with databrief.html, databrief_set_default.html, the command-line tool databrief-cli.cjs, its manual
+#      databrief.1 and SHA256SUMS.txt (their fingerprints, see docs/verify-privacy.md) attached
 #   2. Docker images on GitHub Container Registry, for PCs (linux/amd64) and ARM boards such as the Raspberry Pi
 #      (linux/arm64); Docker picks the right one automatically:
 #        ghcr.io/<owner>/databrief:latest, :nginx, :<version>, :<version>-nginx   (nginx variant)
@@ -26,8 +26,20 @@ jobs:
         shell: pwsh
         run: ./build.ps1
 
+      # The command-line tool: one file, built by Node from the sources (the same bytes on every system); its tests run on every
+      # push (tests.yml, job cli). The man page is written from the same options as --help: it must be what is committed.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build the command-line tool and its manual
+        run: |
+          node tools/build-cli.cjs databrief-cli.cjs
+          node tools/build-man.cjs databrief.1
+          cmp databrief.1 man/databrief.1 || { echo "man/databrief.1 is out of date: run node tools/build-man.cjs and commit"; exit 1; }
+          [ "$(node databrief-cli.cjs --version)" = "databrief ${GITHUB_REF_NAME#v}" ] || { echo "package.json says another version than the tag"; exit 1; }
+
       - name: Fingerprints (SHA-256) of the released files
-        run: sha256sum databrief.html databrief_set_default.html | tee SHA256SUMS.txt
+        run: sha256sum databrief.html databrief_set_default.html databrief-cli.cjs databrief.1 | tee SHA256SUMS.txt
 
       - name: Create (or update) the GitHub release
         env:
@@ -35,9 +47,9 @@ jobs:
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             # the tag was pushed again: replace the files of the existing release
-            gh release upload "$GITHUB_REF_NAME" databrief.html databrief_set_default.html SHA256SUMS.txt --clobber
+            gh release upload "$GITHUB_REF_NAME" databrief.html databrief_set_default.html databrief-cli.cjs databrief.1 SHA256SUMS.txt --clobber
           else
-            gh release create "$GITHUB_REF_NAME" databrief.html databrief_set_default.html SHA256SUMS.txt \
+            gh release create "$GITHUB_REF_NAME" databrief.html databrief_set_default.html databrief-cli.cjs databrief.1 SHA256SUMS.txt \
               --title "DataBrief $GITHUB_REF_NAME" --generate-notes
           fi
 
