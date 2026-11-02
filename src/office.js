@@ -227,7 +227,9 @@
     return out;
   }
 
-  /* ---------- document properties ---------- */
+  /* ---------- document properties ----------
+   * The title, subject, keywords, description, dates and the program. NEVER the author, the last editor or the company: who wrote
+   * a file is not something DataBrief ever shows, in any format or mode. */
   const one = (s) => s.replace(/\s+/g, ' ').trim().slice(0, 300);
   function ooxmlProps(files, meta) {
     const core = text(files, 'docProps/core.xml');
@@ -236,8 +238,6 @@
       const get = (n) => { const e = kid(t, n); return e ? one(textOf(e)) : ''; };
       if (get('dc:title')) meta.push(['mDocTitle', get('dc:title')]);
       if (get('dc:subject')) meta.push(['mDocSubject', get('dc:subject')]);
-      if (get('dc:creator')) meta.push(['mDocAuthor', get('dc:creator')]);
-      if (get('cp:lastModifiedBy')) meta.push(['mDocLastAuthor', get('cp:lastModifiedBy')]);
       if (get('cp:keywords')) meta.push(['mDocKeywords', get('cp:keywords')]);
       if (get('dc:description')) meta.push(['mDocDescription', get('dc:description')]);
       const d = (n) => (/^\d{4}-\d\d-\d\d/.test(get(n)) ? get(n).slice(0, 10) : '');
@@ -254,8 +254,6 @@
     const get = (n) => { const e = kid(m, n); return e ? one(textOf(e)) : ''; };
     if (get('dc:title')) meta.push(['mDocTitle', get('dc:title')]);
     if (get('dc:subject')) meta.push(['mDocSubject', get('dc:subject')]);
-    if (get('meta:initial-creator')) meta.push(['mDocAuthor', get('meta:initial-creator')]);
-    if (get('dc:creator') && get('dc:creator') !== get('meta:initial-creator')) meta.push(['mDocLastAuthor', get('dc:creator')]);
     const kw = kids(m, 'meta:keyword').map((e) => one(textOf(e))).filter(Boolean).join(', ');
     if (kw) meta.push(['mDocKeywords', kw]);
     if (get('dc:description')) meta.push(['mDocDescription', get('dc:description')]);
@@ -281,6 +279,7 @@
     c.push = (item) => { if (c.items.length < MAX_ITEMS) c.items.push(item); else c.cut++; };
     return c;
   }
+  DB.docContents = Contents;   // also used by the HTML reader (parsers.js): a web page is read as a document
   function addTable(state, rows, headerRows, name, firm) {
     if (!rows.length || !rows.some((r) => r.length)) return -1;
     state.contents.counts.tables++;

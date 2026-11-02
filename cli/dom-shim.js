@@ -7,7 +7,8 @@
  *     few DOM features the HTML table reader uses: querySelectorAll / querySelector with tag names, rows (of a table and of
  *     thead / tbody / tfoot), tHead,
  *     caption, tr.cells, tagName, rowSpan / colSpan (reflected as browsers do), id, getAttribute, textContent, and
- *     cloneNode / replaceWith / remove. Anything else is not there: a reader that starts using it fails in the tests.
+ *     cloneNode / replaceWith / remove, childNodes / nodeType / nodeValue (the page read as a document). Anything else is not
+ *     there: a reader that starts using it fails in the tests.
  * Loaded by cli/realm.cjs into the tool's realm, after vendor/xmldom.min.js and vendor/parse5.min.js. Not part of the page. */
 'use strict';
 (function () {
@@ -283,6 +284,8 @@
   class Node0 {
     constructor(n) { this._n = n; }
     get textContent() { return textOf(this._n); }
+    // the children in order (the HTML reader walks the page as a document); <template> contents are not children
+    get childNodes() { return kids(this._n).map(wrap); }
     remove() {
       const p = this._n.parentNode;
       if (!p) return;
@@ -302,7 +305,8 @@
     querySelector(sel) { const m = matcher(sel); return wrap(descendants(this._n, m)[0] || null); }
   }
   class Txt extends Node0 {
-    get nodeType() { return this._n.nodeName === '#comment' ? 8 : 3; }
+    get nodeType() { return this._n.nodeName === '#text' ? 3 : this._n.nodeName === '#comment' ? 8 : 10; }
+    get nodeValue() { return this._n.nodeName === '#text' ? this._n.value : this._n.nodeName === '#comment' ? this._n.data : null; }
   }
   class Doc extends Node0 {
     get nodeType() { return 9; }

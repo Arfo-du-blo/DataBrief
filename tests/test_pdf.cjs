@@ -46,7 +46,7 @@ const errKey = async (fn) => { try { await fn(); return 'no error'; } catch (e) 
     ok('Impress PDF: 3 pages, the orders table on page 2 (expected.json)', r.contents.counts.pages === 3 && r.sections.length === 1 && r.sections[0].name === 'page2_table1' &&
       same(cols(r.sections[0]), E.orders.header) && same(r.sections[0].rows, E.orders.rows) && same(r.contents.items[1].tables, [0]), JSON.stringify(r.sections));
     ok('Impress PDF: the slide text in page order, a larger title marked as a heading', same(r.contents.items[0].text, ['Sales review', 'Q1 2025']) && r.contents.items[2].text[0] === '# Summary', JSON.stringify(r.contents.items));
-    ok('Impress PDF: the author', meta(r, 'mDocAuthor') === 'Deck author', JSON.stringify(r.fileMeta));
+    ok('Impress PDF: never the author (Deck author)', !meta(r, 'mDocAuthor') && !JSON.stringify(r).includes('Deck author'), JSON.stringify(r.fileMeta));
   }
   {
     // LibreOffice Writer: the report with its 3 tables. Cells that wrap are joined with a space. (The Chinese name of
@@ -61,13 +61,13 @@ const errKey = async (fn) => { try { await fn(); return 'no error'; } catch (e) 
     ok('Writer PDF: the merged header table, its second header line kept as a row', s[2] && same(cols(s[2]), ['Region', 'Quarter', 'column_3']) && same(s[2].rows, [['', 'Q1', 'Q2'], ['North', '10', '12']]), JSON.stringify(s[2]));
     const page = r.contents.items[0];
     ok('Writer PDF: the paragraphs around the tables, in page order', page.text.includes('Between the tables: some text.') && page.text.includes('Sales by region:') && page.text[page.text.length - 1] === 'Last paragraph, bold part' && same(page.tables, [0, 1, 2]), JSON.stringify(page));
-    ok('Writer PDF: title and author', meta(r, 'mDocTitle') === 'Quarterly report' && meta(r, 'mDocAuthor') === 'Report author', JSON.stringify(r.fileMeta));
+    ok('Writer PDF: the title, never the author', meta(r, 'mDocTitle') === 'Quarterly report' && !meta(r, 'mDocAuthor') && !JSON.stringify(r).includes('Report author'), JSON.stringify(r.fileMeta));
   }
   {
     for (const f of ['CONFIDENTIAL_FILE_pdf.pdf', 'CONFIDENTIAL_FILE_pdfslides.pdf']) {
       const r = await read('canary', f);
-      ok('canary ' + f + ': the table with its records, the text and the author found (for "Do not share data" to filter)', r.sections.some((x) => cols(x).some((c) => /CONFIDENTIAL_COL/.test(c)) && /CONFIDENTIAL_REC/.test(JSON.stringify(x.rows))) &&
-        /CONFIDENTIAL_TEXT/.test(JSON.stringify(r.contents)) && meta(r, 'mDocAuthor') === 'CONFIDENTIAL_TEXT_AUTHOR', JSON.stringify(r).slice(0, 300));
+      ok('canary ' + f + ': the table with its records and the text found (for "Do not share data" to filter); the author nowhere', r.sections.some((x) => cols(x).some((c) => /CONFIDENTIAL_COL/.test(c)) && /CONFIDENTIAL_REC/.test(JSON.stringify(x.rows))) &&
+        /CONFIDENTIAL_TEXT/.test(JSON.stringify(r.contents)) && !/_AUTHOR/.test(JSON.stringify(r)), JSON.stringify(r).slice(0, 300));
     }
   }
 

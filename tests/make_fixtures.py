@@ -312,7 +312,12 @@ csh.title = "CONFIDENTIAL_COL_SHEET"
 csh.append([CA, CB, CC, "calc"])
 for i, (r, n, c) in enumerate(zip(C_REC, C_NUM, C_CAT)):
     csh.append([r, n, c, ('=IF(A%d="CONFIDENTIAL_FORMULA","x","y")' % (i + 2)) if i < 3 else None])
-csh["A2"].comment = Comment("CONFIDENTIAL_TEXT_COMMENT", "tester")
+csh["A2"].comment = Comment("CONFIDENTIAL_TEXT_COMMENT", "CONFIDENTIAL_TEXT_AUTHOR")   # the comment's author: never shown
+# workbook properties: the title and keywords are free text; the author and the last editor are never shown
+cwb.properties.title = "CONFIDENTIAL_TEXT_TITLE"
+cwb.properties.keywords = "CONFIDENTIAL_TEXT_KEYWORDS"
+cwb.properties.creator = "CONFIDENTIAL_TEXT_AUTHOR"
+cwb.properties.lastModifiedBy = "CONFIDENTIAL_TEXT_AUTHOR"
 cwb.defined_names["CONFIDENTIAL_COL_NAME"] = _DefinedName("CONFIDENTIAL_COL_NAME", attr_text="CONFIDENTIAL_COL_SHEET!$B$2:$B$13")
 cwb.defined_names["CONFIDENTIAL_COL_CONST"] = _DefinedName("CONFIDENTIAL_COL_CONST", attr_text='"CONFIDENTIAL_REC_CONSTVAL"')  # a constant is a value
 cwb.save(Q("xlsx", "xlsx"))
@@ -331,10 +336,14 @@ with open(Q("xml", "xml"), "w", encoding="utf-8") as f:
         f.write(f'<row CONFIDENTIAL_COL_ATTR="{r}_ATTR"><{CA}>{r}</{CA}><{CB}>{n}</{CB}><{CC}>{c}</{CC}></row>\n')
     f.write("</CONFIDENTIAL_COL_ROOT>\n")
 with open(Q("html", "html"), "w", encoding="utf-8") as f:
-    f.write(f"<!doctype html><html><body><table><caption>CONFIDENTIAL_COL_CAPTION</caption><thead><tr><th>{CA}</th><th>{CB}</th><th>{CC}</th></tr></thead><tbody>")
+    # the page's title, description, headings and text are free text; meta author is never shown
+    f.write("<!doctype html><html><head><title>CONFIDENTIAL_TEXT_TITLE</title><meta name=\"author\" content=\"CONFIDENTIAL_TEXT_AUTHOR\">"
+            "<meta name=\"description\" content=\"CONFIDENTIAL_TEXT_DESCRIPTION\"></head><body><h1>CONFIDENTIAL_TEXT_HEADING</h1>"
+            "<p>CONFIDENTIAL_TEXT_PARAGRAPH before the table</p>")
+    f.write(f"<table><caption>CONFIDENTIAL_COL_CAPTION</caption><thead><tr><th>{CA}</th><th>{CB}</th><th>{CC}</th></tr></thead><tbody>")
     for r, n, c in zip(C_REC, C_NUM, C_CAT):
         f.write(f"<tr><td>{r}</td><td>{n}</td><td>{c}</td></tr>")
-    f.write("</tbody></table></body></html>")
+    f.write("</tbody></table><ul><li>CONFIDENTIAL_TEXT_LIST item</li></ul></body></html>")
 cdf = pd.DataFrame({CA: C_REC, CB: C_NUM, CC: [1] * 8 + [2] * 3 + [3]})
 cmeta = dict(file_label="CONFIDENTIAL_TEXT_FILELABEL", note="CONFIDENTIAL_TEXT_NOTE",
              column_labels=["CONFIDENTIAL_LABEL_A", "CONFIDENTIAL_LABEL_B", "CONFIDENTIAL_LABEL_C"],
@@ -364,6 +373,27 @@ CREATE VIEW CONFIDENTIAL_COL_VIEW AS SELECT {CA} FROM CONFIDENTIAL_COL_TABLE WHE
 ccon.executemany("INSERT INTO CONFIDENTIAL_COL_TABLE (CONFIDENTIAL_COL_A, CONFIDENTIAL_COL_B, CONFIDENTIAL_COL_C, CONFIDENTIAL_COL_PID) VALUES (?, ?, ?, 1)", list(zip(C_REC, C_NUM, C_CAT)))
 ccon.commit()
 ccon.close()
+# --- SQLite with a trigger (its SQL holds a literal: SQL) and a full-text index (FTS5: its internal tables are machinery) ---
+cdbx = Q("sqlitex", "sqlite")
+if os.path.exists(cdbx):
+    os.remove(cdbx)
+xcon = sqlite3.connect(cdbx)
+xcon.executescript(f"""
+CREATE TABLE CONFIDENTIAL_COL_ORDERS (CONFIDENTIAL_COL_ID INTEGER PRIMARY KEY, {CA} TEXT, status TEXT);
+CREATE TABLE CONFIDENTIAL_COL_LOG (id INTEGER PRIMARY KEY, CONFIDENTIAL_COL_ORDER INTEGER, note TEXT);
+""")
+xcon.executemany("INSERT INTO CONFIDENTIAL_COL_ORDERS ({0}, status) VALUES (?, 'open')".format(CA), [(r,) for r in C_REC])
+xcon.executescript("""
+CREATE TRIGGER CONFIDENTIAL_COL_TRIGGER AFTER UPDATE OF status ON CONFIDENTIAL_COL_ORDERS
+BEGIN INSERT INTO CONFIDENTIAL_COL_LOG (CONFIDENTIAL_COL_ORDER, note) VALUES (NEW.CONFIDENTIAL_COL_ID, 'CONFIDENTIAL_SQL_TRIGGER'); END;
+""")
+try:
+    xcon.execute("CREATE VIRTUAL TABLE CONFIDENTIAL_COL_SEARCH USING fts5(body)")
+    xcon.executemany("INSERT INTO CONFIDENTIAL_COL_SEARCH (body) VALUES (?)", [(r,) for r in C_REC])
+except sqlite3.OperationalError as e:   # an SQLite built without FTS5
+    print("note: no FTS5 in this SQLite:", e)
+xcon.commit()
+xcon.close()
 
 # --- SQL dump and PostgreSQL archive: REAL pg_dump output of a database full of canaries (tests/make_sql_fixtures.sh, src/canary-pg.sql) ---
 _canary = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sql-fixtures", "canary")

@@ -29,7 +29,9 @@ const SPSS = [
   '| 1 | Male | 34 | 2024-01-15 00:00:00 | ok | New York |', '| 4 | Refused | 28 | 2024-03-01 00:00:00 |', '97–99', 'nominal', 'scale', 'x'.repeat(300),
   'Collected by phone.', 'New York', 'Coded values are shown with their labels', 'Dates are in ISO 8601',
 ];
-const PARQUET = ['`geo.lat`', '| 1 | 1.5 | a | true | 2024-01-01 | 2024-01-01 12:00:00 | 10.5 | ["x","y"] | 1 | 2 |', 'INT64', 'data-team', 'DATE'];
+const PARQUET = ['`geo.lat`', '| 1 | 1.5 | a | true | 2024-01-01 | 2024-01-01 12:00:00 | 10.5 | ["x","y"] | 1 | 2 |', 'INT64', 'DATE'];
+// writer metadata: an "owner" key names a person or a team: never shown (who made a file is never shown)
+const PARQUET_NOT = ['data-team', 'owner'];
 const WB = ['| 1 | ACME | 0.3 | 2024-05-01 14:30:00 | 2024-05-03 | true |', '| 2 | Globex | 1234.5 | 2024-05-02 00:00:00 |  | false |', '| 3 | Initech | -7 | 2024-05-02 09:05:07 |', 'Globex', 'separate sheet', '08:30:00'];
 
 const CASES = [
@@ -37,23 +39,23 @@ const CASES = [
   { file: 'latin1.csv', has: ['Besançon', 'Nîmes', 'Windows-1252'] },
   { file: 'data.tsv', has: ['| 1 | Alice | true |', '| `active` | boolean |'] },
   { file: 'nohead.txt', has: ['`column_1`', 'No header row was found in section(s) 1', '| 0 | 0.0 | 2020-06-01 |'] },
-  { file: 'workbook.xlsx', has: WB.concat(['Hidden sheet', '`C2`: Arfo: Includes VAT', 'This section is empty.', 'merged']) },
+  { file: 'workbook.xlsx', has: WB.concat(['Hidden sheet', '`C2`: Includes VAT', 'This section is empty.', 'merged']), not: ['Arfo'] },   // a comment without its author
   { file: 'workbook.xls', has: WB },
   { file: 'workbook.ods', has: WB },
   { file: 'nested.json', has: ['`(root)`', '`customers`', '`orders`', '`address.city`', '["vip","eu"]', 'meta.source', 'Column names like `a.b.c`', '| 11 | 2 |  |'] },
   { file: 'events.ndjson', has: ['`ctx.user`', '2024-01-01T10:00:00Z'] },
   { file: 'catalog.xml', has: ['`books.book`', '`@id`', '`price.@currency`', '`author.name`', 'Herbert', 'XML attributes', '`<catalog>`'] },
   { file: 'team.yaml', has: ['`members`', '2023-04-01', '["sql","python"]', '| data |'] },
-  { file: 'page.html', has: ['Quarterly KPIs', '`Sales / Q1`', '9<br>(est.)', 'a\\|b', 'Merged cells were expanded', '| North | 10 | 12 |', '1 table(s) that contain other tables were skipped'], not: ['alert(1)', 'layout'] },
+  { file: 'page.html', has: ['Quarterly KPIs', '`Sales / Q1`', '9<br>(est.)', 'a\\|b', 'Merged cells were expanded', '| North | 10 | 12 |', '1 table(s) that contain other tables (page layout) were read as text', '> layout'], not: ['alert(1)', '| layout'] },   // a layout table's text is the page's text, never a data table
   { file: 'multi.yaml', has: ['Each document is one row, in the order of the file', '| Service | web | 80 |  |', '| Deployment | web |  | 3 |', '| Service | db | 5432 |  |'] },
   { file: 'survey.sav', has: SPSS },
   { file: 'survey_bytecode.sav', has: SPSS },
   { file: 'survey.zsav', has: SPSS },
-  { file: 'table_snappy.parquet', has: PARQUET },
-  { file: 'table_gzip.parquet', has: PARQUET },
-  { file: 'table_zstd.parquet', has: PARQUET },
-  { file: 'table_lz4.parquet', has: PARQUET },
-  { file: 'table_none.parquet', has: PARQUET },
+  { file: 'table_snappy.parquet', has: PARQUET, not: PARQUET_NOT },
+  { file: 'table_gzip.parquet', has: PARQUET, not: PARQUET_NOT },
+  { file: 'table_zstd.parquet', has: PARQUET, not: PARQUET_NOT },
+  { file: 'table_lz4.parquet', has: PARQUET, not: PARQUET_NOT },
+  { file: 'table_none.parquet', has: PARQUET, not: PARQUET_NOT },
   { file: 'table_brotli.parquet', error: /compression|Parquet/ },
   { file: 'shop.sqlite', has: ['`customers`', '`orders`', 'primary key', '→ `customers.id`', '`big_orders`', '[binary 4 bytes]', '| `name` | text | TEXT |  | yes |', 'separate table'] },
   // Relationships. Declared ones (SQLite): composite, implicit, self-reference, one to one, junction (many to many), no inferred noise.
@@ -475,9 +477,9 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     const FILES = [
       { f: 'csv.csv' }, { f: 'tsv.tsv' }, { f: 'txt.txt' },
       { f: 'xlsx.xlsx', txt: true, frm: true }, { f: 'xls.xls' }, { f: 'ods.ods' },
-      { f: 'json.json' }, { f: 'ndjson.ndjson' }, { f: 'yaml.yaml' }, { f: 'xml.xml' }, { f: 'html.html', cap: true },
+      { f: 'json.json' }, { f: 'ndjson.ndjson' }, { f: 'yaml.yaml' }, { f: 'xml.xml' }, { f: 'html.html', cap: true, txt: true },
       { f: 'sav.sav', txt: true, lab: true }, { f: 'zsav.zsav', txt: true, lab: true },
-      { f: 'parquet.parquet', txt: true }, { f: 'sqlite.sqlite', sql: true },
+      { f: 'parquet.parquet', txt: true }, { f: 'sqlite.sqlite', sql: true }, { f: 'sqlitex.sqlite', sql: true },
       { f: 'sql.sql', txt: true, lab: true, sql: true }, { f: 'pgdump.dump', txt: true, lab: true, sql: true }, { f: 'dbf.dbf', names: 'CONF_COL' }, { f: 'access.accdb' }, { f: 'dacpac.dacpac', noRec: true, txt: true, lab: true, sql: true },
       { f: 'csvgz.csv.gz' },   // the section is named after the file inside the gzip: the file name too
       { f: 'geojson.geojson' }, { f: 'gpkg.gpkg' },   // coordinates are records; layer and column names are names
@@ -498,8 +500,10 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       if (!first.ok) { bad('could not be read: ' + first.err); await page.close(); continue; }
       if (!c.noRec && !first.md.includes('CONFIDENTIAL_REC')) bad('normal mode should contain the records (control)');
       if (c.frm && !first.md.includes('CONFIDENTIAL_FORMULA')) bad('normal mode should show the formula (control)');
+      // who made the file (author, last editor, company) is never shown, not even with the data shared
+      if (/_AUTHOR|Steve Canny/.test(first.md)) bad('the author or the last editor in the shared prompt');
       await page.click('#nsOn'); await wait(300);
-      const never = (s, where) => { for (const k of ['CONFIDENTIAL_REC', 'CONFIDENTIAL_FORMULA']) if (s.includes(k)) bad(k + ' in ' + where); };
+      const never = (s, where) => { for (const k of ['CONFIDENTIAL_REC', 'CONFIDENTIAL_FORMULA', '_AUTHOR', 'Steve Canny']) if (s.includes(k)) bad(k + ' in ' + where); };
       const notByDefault = (s, where) => { for (const k of ['CONFIDENTIAL_TEXT', 'CONFIDENTIAL_SQL']) if (s.includes(k)) bad(k + ' in ' + where); };
       for (const level of [1, 2, 3]) {
         await page.click('#nsLevelGroup button[data-level="' + level + '"]'); await wait();
@@ -974,7 +978,8 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       if (!d || d.key !== key || d.name !== name || d.secs.join(',') !== 'table_1:4:id|name|country|signup|notes,table_2:4:id|customer_id|total|status,table_3:1:Region|Quarter / Q1|Quarter / Q2') { bad(f + ': ' + JSON.stringify(d || r.err)); await p.close(); continue; }
       if (f === 'report.docx') {
         for (const s of ['## Document contents', '2 headings, 4 paragraphs, 3 tables', '> # Quarterly report', '> ## Customers', '> This report lists the customers and their orders.',
-          '**[Table: section 1 `table_1`]**', '**Title (document properties):** Quarterly report', '**Author:** Report author', '| Ana Lima |', '| 42.42 |']) if (!r.md.includes(s)) bad('Word prompt lacks: ' + JSON.stringify(s));
+          '**[Table: section 1 `table_1`]**', '**Title (document properties):** Quarterly report', '| Ana Lima |', '| 42.42 |']) if (!r.md.includes(s)) bad('Word prompt lacks: ' + JSON.stringify(s));
+        if (/Report author|\*\*Author:\*\*/.test(r.md)) bad('Word prompt: the author must never be shown');
         if (r.md.indexOf('## Document contents') > r.md.indexOf('## Sections and columns')) bad('the document contents should come before the sections');
         // "Do not share data": the outline only (headings and paragraphs counted), tables where they are; the text with free text on
         await p.click('#nsOn'); await wait(500);
@@ -983,7 +988,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
         for (const s of ['Quarterly report', 'This report lists', 'Report author', 'Ana Lima', 'Between the tables', 'Microsoft Macintosh Word', '2013-12-23']) if (ns.includes(s)) bad('Word no-share leaks: ' + s);
         await p.evaluate(() => document.querySelector('[data-sw="text"]').click()); await wait();
         ns = await p.evaluate(() => window.DataBrief.getMarkdown());
-        if (!ns.includes('> # Quarterly report') || !ns.includes('Report author') || ns.includes('Ana Lima')) bad('Word no-share with free text: the text and author should appear, never the records');
+        if (!ns.includes('> # Quarterly report') || ns.includes('Report author') || ns.includes('Ana Lima')) bad('Word no-share with free text: the text should appear, never the author nor the records');
         await p.evaluate(() => localStorage.clear());
       }
       await p.close();
@@ -996,6 +1001,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       if (!d || d.key !== key || d.name !== name || d.secs.join(',') !== 'slide2_table1:4:id|customer_id|total|status') { bad(f + ': ' + JSON.stringify(d || r.err)); await p.close(); continue; }
       for (const s of ['## Slides', '3 slides, 1 tables', '**Slide 1 · Sales review**', '> Q1 2025', '**Slide 2 · Orders**', '- Table: section 1 `slide2_table1`', '- Speaker notes:\n> Speaker notes: say hello'])
         if (!r.md.includes(s)) bad(f + ' prompt lacks: ' + JSON.stringify(s));
+      if (/Deck author|Steve Canny/.test(r.md)) bad(f + ' prompt: the author and the last editor must never be shown');
       if (f === 'deck.pptx') {
         await p.click('#nsOn'); await wait(500);
         const ns = await p.evaluate(() => window.DataBrief.getMarkdown());
@@ -1033,8 +1039,9 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       if (!d || d.key !== 'pdf' || d.name !== 'PDF document' || d.secs.join(',') !== secs) { bad(f + ': ' + JSON.stringify(d || r.err)); await p.close(); continue; }
       if (r.csp && r.csp.length) bad(f + ': security policy violations while reading a PDF: ' + r.csp.join('; '));
       if (f === 'deck.pdf') {
-        for (const s of ['## Pages', '3 pages, 1 tables (guessed)', '**Page 1**', '> Sales review', '- Table: section 1 `page2_table1`', '**Tables from a PDF:**', '| 42.42 |', '**Author:** Deck author'])
+        for (const s of ['## Pages', '3 pages, 1 tables (guessed)', '**Page 1**', '> Sales review', '- Table: section 1 `page2_table1`', '**Tables from a PDF:**', '| 42.42 |'])
           if (!r.md.includes(s)) bad('PDF prompt lacks: ' + JSON.stringify(s));
+        if (/Deck author|\*\*Author:\*\*/.test(r.md)) bad('PDF prompt: the author must never be shown');
         await p.click('#nsOn'); await wait(500);
         const ns = await p.evaluate(() => window.DataBrief.getMarkdown());
         for (const s of ['**Page 2**: Text blocks: 1 _(not shared)_', '- Table: section 1 `page2_table1`']) if (!ns.includes(s)) bad('PDF no-share lacks: ' + JSON.stringify(s));

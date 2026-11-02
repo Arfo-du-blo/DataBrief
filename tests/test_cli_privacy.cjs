@@ -73,8 +73,8 @@ async function pool(items, n, fn) { const q = items.slice(); await Promise.all(n
   for (const s of SYN) fs.writeFileSync(path.join(synth, s.f), s.body);
   const FROM_FIX = [
     { f: 'csv.csv' }, { f: 'tsv.tsv' }, { f: 'txt.txt' }, { f: 'xlsx.xlsx', txt: true, frm: true }, { f: 'xls.xls' }, { f: 'ods.ods' },
-    { f: 'json.json' }, { f: 'ndjson.ndjson' }, { f: 'yaml.yaml' }, { f: 'xml.xml' }, { f: 'html.html' },
-    { f: 'sav.sav', txt: true, lab: true }, { f: 'zsav.zsav', txt: true, lab: true }, { f: 'parquet.parquet', txt: true }, { f: 'sqlite.sqlite', sql: true },
+    { f: 'json.json' }, { f: 'ndjson.ndjson' }, { f: 'yaml.yaml' }, { f: 'xml.xml' }, { f: 'html.html', txt: true },
+    { f: 'sav.sav', txt: true, lab: true }, { f: 'zsav.zsav', txt: true, lab: true }, { f: 'parquet.parquet', txt: true }, { f: 'sqlite.sqlite', sql: true }, { f: 'sqlitex.sqlite', sql: true },
     { f: 'sql.sql', txt: true, lab: true, sql: true }, { f: 'pgdump.dump', txt: true, lab: true, sql: true }, { f: 'dbf.dbf', names: 'CONF_COL' }, { f: 'access.accdb' },
     { f: 'dacpac.dacpac', noRec: true, txt: true, lab: true, sql: true }, { f: 'csvgz.csv.gz' }, { f: 'geojson.geojson' }, { f: 'gpkg.gpkg' }, { f: 'ipynb.ipynb', txt: true },
     { f: 'avro.avro', txt: true }, { f: 'arrow.arrow', txt: true }, { f: 'feather.feather', txt: true },
@@ -105,6 +105,7 @@ async function pool(items, n, fn) { const q = items.slice(); await Promise.all(n
     const share = await tool([c.file, '--no-copy', '--print', '--quiet']);
     runs++;
     if (!c.noRec && !share.out.includes('CONFIDENTIAL_REC')) bad.push(label + ': shared, the records should be in the prompt (control)');
+    if (/_AUTHOR|Steve Canny/.test(share.out + share.err)) bad.push(label + ': shared, the author or the last editor appears (never shown)');
     if (share.network.length) bad.push(label + ': network use ' + JSON.stringify(share.network));
     if (share.spawns.length || share.shell.length) bad.push(label + ': --no-copy started a program ' + JSON.stringify(share.spawns.concat(share.shell)));
     for (const v of VARIANTS) {
@@ -114,7 +115,7 @@ async function pool(items, n, fn) { const q = items.slice(); await Promise.all(n
       const w = where(r, outDir);
       const tag = label + ' [' + v.name + ']';
       if (r.code !== 0) { bad.push(tag + ': exit ' + r.code + ' ' + r.err.slice(0, 200)); continue; }
-      for (const k of ['CONFIDENTIAL_REC', 'CONFIDENTIAL_FORMULA']) if (w.all.includes(k)) bad.push(tag + ': ' + k + ' in an output');
+      for (const k of ['CONFIDENTIAL_REC', 'CONFIDENTIAL_FORMULA', '_AUTHOR', 'Steve Canny']) if (w.all.includes(k)) bad.push(tag + ': ' + k + ' in an output');
       if (!v.allowed) for (const k of ['CONFIDENTIAL_TEXT', 'CONFIDENTIAL_SQL']) if (w.all.includes(k)) bad.push(tag + ': ' + k + ' without being allowed');
       if (v.allowed) {
         if (c.txt && !w.md.includes('CONFIDENTIAL_TEXT') && !/\.pdf$/.test(label)) bad.push(tag + ': free text allowed but missing (control)');

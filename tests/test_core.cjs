@@ -115,6 +115,78 @@ const errOf = async (fn) => { try { await fn(); return null; } catch (e) { retur
     ok('a PDF with the PDF reader (pdf.js in Node)', /Pages/.test(r3.md) && /Sales review/.test(r3.md));
   }
 
+  /* ---------------------------------------------------------------- 3b. stage 33b: richer reading ---------- */
+  {
+    // SQLite: a trigger and a full-text index, the file built here with the page's own SQLite (sql.js)
+    const SQL = await ctx.initSqlJs({ wasmBinary: Buffer.from(ctx.DB_SQL_WASM, 'base64') });
+    const db = new SQL.Database();
+    db.run("CREATE TABLE orders (id INTEGER PRIMARY KEY, status TEXT); CREATE TABLE log (id INTEGER PRIMARY KEY, order_id INTEGER, note TEXT);");
+    db.run("INSERT INTO orders (status) VALUES ('open'), ('done');");
+    db.run("CREATE TRIGGER orders_audit AFTER UPDATE OF status ON orders BEGIN INSERT INTO log (order_id, note) VALUES (NEW.id, 'SQL_TRIGGER_LITERAL'); END;");
+    db.run("CREATE TRIGGER \"log guard\" BEFORE DELETE ON log BEGIN SELECT RAISE(ABORT, 'no'); END;");
+    // FTS4 (in the page's SQLite: readable) and FTS5 (not in it: an FTS5 index made by another SQLite is named, not read; it is
+    // declared here directly in the schema, as a full SQLite would have written it)
+    db.run("CREATE VIRTUAL TABLE search USING fts4(body); INSERT INTO search (body) VALUES ('hello world');");
+    db.run("PRAGMA writable_schema=ON; INSERT INTO sqlite_master VALUES('table','docs','docs',0,'CREATE VIRTUAL TABLE docs USING fts5(body)'); PRAGMA writable_schema=OFF;");
+    db.run("CREATE TABLE docs_data(id INTEGER PRIMARY KEY, block BLOB); CREATE TABLE docs_idx(segid, term, pgno, PRIMARY KEY(segid, term)) WITHOUT ROWID; CREATE TABLE docs_config(k PRIMARY KEY, v) WITHOUT ROWID;");
+    const bytes = Buffer.from(db.export());
+    db.close();
+    const r = await realm.prepare(bytes, 'shop.sqlite', {});
+    ok('sqlite: the triggers with when they run, on which table, and their SQL', /## Triggers/.test(r.md) && r.md.includes('### `orders_audit` · AFTER UPDATE ON `orders`') && r.md.includes('### `log guard` · BEFORE DELETE ON `log`') && r.md.includes('SQL_TRIGGER_LITERAL'), r.md.slice(r.md.indexOf('## Triggers'), r.md.indexOf('## Triggers') + 400));
+    ok('sqlite: full-text indexes are named for what they are (FTS4 read, FTS5 named), their internal tables are left out', /Search indexes[^\n]*`search`: FTS4, `docs`: FTS5/.test(r.md) && !/`(search|docs)_(data|idx|content|docsize|config|segments|segdir|stat)`/.test(r.md) && /### \d+\. `search`/.test(r.md) && /hello world/.test(r.md), r.md.slice(0, 1800));
+    const n = await realm.prepare(bytes, 'shop.sqlite', { share: 'no' });
+    ok('sqlite, do not share: the triggers named with when they run, never their SQL', n.md.includes('- `orders_audit` · AFTER UPDATE ON `orders`') && !n.md.includes('SQL_TRIGGER_LITERAL'));
+    const ns = await realm.prepare(bytes, 'shop.sqlite', { share: 'no', sw: { sql: true } });
+    ok('sqlite, do not share with SQL allowed: the trigger\'s SQL', ns.md.includes('SQL_TRIGGER_LITERAL'));
+    const nn = await realm.prepare(bytes, 'shop.sqlite', { share: 'no', sw: { names: false } });
+    ok('sqlite, do not share without names: neutral trigger and table names', nn.md.includes('- `trigger_1` · AFTER UPDATE ON `table_1`') && !/orders_audit|`search`/.test(nn.md), nn.md.slice(nn.md.indexOf('## Triggers'), nn.md.indexOf('## Triggers') + 200));
+  }
+  {
+    // Excel and ODS: the workbook's properties, never the author, the last editor, the manager or the company; comments
+    // without their author. The files are written here with the page's own SheetJS.
+    const X = ctx.XLSX;
+    for (const bookType of ['xlsx', 'ods']) {
+      const wb = X.utils.book_new();
+      const ws = X.utils.aoa_to_sheet([['name', 'amount'], ['Ana', 1], ['Bo', 2]]);
+      ws.A2.c = [{ a: 'SECRET_COMMENT_AUTHOR', t: 'checked twice' }];
+      X.utils.book_append_sheet(wb, ws, 'Sales');
+      wb.Props = { Title: 'Budget 2026', Subject: 'Planning', Keywords: 'budget, plan', Comments: 'Internal draft', Author: 'SECRET_AUTHOR', LastAuthor: 'SECRET_LAST', Manager: 'SECRET_MANAGER', Company: 'SECRET_COMPANY', CreatedDate: new Date(Date.UTC(2026, 0, 5)) };
+      const bytes = Buffer.from(X.write(wb, { type: 'array', bookType }));
+      const r = await realm.prepare(bytes, 'book.' + bookType, {});
+      // (SheetJS writes no properties into an ODS file: for ODS only "never the author" is checked here)
+      if (bookType === 'xlsx') ok('xlsx: the workbook\'s title, subject, keywords, description and date in the prompt', r.md.includes('**Title (document properties):** Budget 2026') && r.md.includes('Planning') && r.md.includes('budget, plan') && r.md.includes('Internal draft') && r.md.includes('2026-01-05'), r.md.slice(0, 900));
+      ok(bookType + ': never the author, the last editor, the manager or the company, nor a comment\'s author', !/SECRET_/.test(r.md), (r.md.match(/SECRET_\w+/g) || []).join());
+      if (bookType === 'xlsx') {
+        ok('xlsx: the comment\'s text is kept', r.md.includes('checked twice'));
+        const n = await realm.prepare(bytes, 'book.' + bookType, { share: 'no' });
+        ok(bookType + ', do not share: the properties are free text (hidden by default)', !n.md.includes('Budget 2026') && (await realm.prepare(bytes, 'book.' + bookType, { share: 'no', sw: { text: true } })).md.includes('Budget 2026'));
+      }
+    }
+  }
+  {
+    // HTML read as a document (the browser and the tool give the same contents: tests/test_cli_parity.cjs)
+    const page = '<html><head><title>Report</title><meta name="author" content="SECRET_AUTHOR"></head><body><nav>menu</nav><h1>Intro</h1><p>First <b>para</b>.</p><table><tr><th>a</th></tr><tr><td>1</td></tr></table><p>After.</p></body></html>';
+    const r = await realm.prepare(Buffer.from(page), 'page.html', {});
+    ok('html: the page as a document, the table in its place, the navigation and the author left out', r.md.includes('**1 headings, 2 paragraphs, 1 tables**') && r.md.includes('> # Intro') && r.md.includes('> First para.') && r.md.includes('**[Table: section 1 `table_1`]**') && r.md.includes('> After.') && !/menu|SECRET_AUTHOR/.test(r.md) && r.md.includes('**Title (document properties):** Report'), r.md.slice(0, 1500));
+    const t = await realm.prepare(Buffer.from('<html><body><h2>Only text</h2><p>No table here.</p></body></html>'), 'text.html', {});
+    ok('html: a page without a table is read as a document (it was refused before)', t.md.includes('> ## Only text') && t.md.includes('> No table here.'));
+    // writer metadata (Parquet, Arrow, Avro): keys that name a person or an organisation are left out, the others kept. An
+    // Arrow file written here with the page's own flechette, its schema carrying such keys.
+    {
+      const F = ctx.flechette;
+      const tbl = F.tableFromArrays({ id: [1, 2], amount: [1.5, 2.5] });
+      tbl.schema.metadata = new Map([['owner', 'SECRET_OWNER_TEAM'], ['contact_email', 'SECRET_MAIL'], ['note', 'kept note']]);
+      const bytes = Buffer.from(F.tableToIPC(tbl, { format: 'file' }));
+      const ar = await realm.prepare(bytes, 'meta.arrow', {}).then((x) => x.md, (e2) => 'error ' + (e2.key || e2.message));
+      ok('writer metadata: "owner" and "contact_email" left out, "note" kept', ar.includes('kept note') && !/SECRET_/.test(ar), (ar.match(/.*(SECRET_|kept note|error).*/) || [ar.slice(0, 200)])[0]);
+    }
+    // a GeoPackage (GDAL): its spatial index, metadata tables and bookkeeping triggers (feature counts) are machinery
+    const gp = await realm.prepare(fs.readFileSync(path.join(__dirname, 'v14-fixtures', 'geo-fixtures', 'city.gpkg')), 'city.gpkg', {});
+    ok('gpkg: no GeoPackage machinery (gpkg_ / rtree_ tables, GDAL\'s feature-count triggers, the spatial index)', !/gpkg_|rtree_|## Triggers|feature_count|Search indexes/.test(gp.md), (gp.md.match(/.*(gpkg_|rtree_|Triggers|feature_count).*/) || [''])[0]);
+    const e = await realm.prepare(Buffer.from('<html><body>   </body></html>'), 'empty.html', {}).then(() => 'read', (x) => x.key);
+    ok('html: a page with nothing to read is still refused', e === 'errNoTable', e);
+  }
+
   /* ---------------------------------------------------------------- 4. the DOM shim: HTML ---------- */
   {
     const html = (s) => new ctx.DOMParser().parseFromString(s, 'text/html');

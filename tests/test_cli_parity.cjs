@@ -192,6 +192,21 @@ function same(name, page, mine) {
     'h-empty.html': H('<table></table><table><tr></tr></table>'),
     'h-notable.html': H('<p>no table here</p>'),
     'h-latin1.html': Buffer.from('<html><head><meta charset="windows-1252"></head><body><table><tr><th>caf\xe9</th></tr><tr><td>\x80 \x93x\x94</td></tr></table></body></html>', 'latin1'),
+    // a page as a document (stage 33b): the browser and parse5 + cli/dom-shim.js must give the same contents
+    'h-doc-full.html': '<!doctype html><html lang="en"><head><title>Quarterly  report</title><meta name="description" content="Sales by region"><meta name="author" content="SECRET AUTHOR"><meta NAME="Generator" content="Hugo 0.120"><meta name="keywords" content="a, b"></head><body>' +
+      '<nav><a href="/">Home</a> <a href="/x">Menu item</a></nav><header><h1>Q1 <em>sales</em></h1></header><p>Sales grew in the north.<br>Second line.</p>' +
+      '<ul><li>North: up</li><li>South: flat<ul><li>nested point</li></ul></li></ul><div>Loose text in a div <span>with span</span></div>' +
+      '<table><caption>KPIs</caption><tr><th>Region</th><th>Sales</th></tr><tr><td>North</td><td>10</td></tr></table><h2>Notes</h2><pre>  preformatted   text\n  kept</pre>' +
+      '<footer>Copyright footer</footer><script>var x = 1</script></body></html>',
+    'h-doc-textonly.html': '<html><head><title>Only text</title></head><body><h1>Hello</h1><p>World &amp; more&nbsp;text</p></body></html>',
+    'h-doc-layout.html': H('<table><tr><td><h2>Left</h2>text in a layout cell<table><tr><th>k</th><th>v</th></tr><tr><td>a</td><td>1</td></tr></table>after the inner table</td><td>right cell<br>two lines</td></tr></table>'),
+    'h-doc-lists.html': H('<ol><li><p>first paragraph</p><p>second paragraph</p></li><li>two<ol><li>two.one</li></ol>tail of two</li></ol><dl><dt>Term</dt><dd>Definition <b>bold</b></dd></dl>'),
+    'h-doc-inline-block.html': H('<span>before<div>inside a block</div>after</span><a href="#">link<p>para in link</p></a><em>emph</em> and text'),
+    'h-doc-skip.html': H('<aside>side</aside><form><label>Name</label><input value="x"><button>Send</button></form><svg><text>svg text</text></svg><template><p>in template</p></template><noscript><p>no js</p></noscript><iframe>frame</iframe><p>kept</p><menu><li>menu item</li></menu><select><option>opt</option></select>'),
+    'h-doc-whitespace.html': H('<p>  lots   of\n\n  space\t\there  </p><p>   </p><p><!-- comment -->after comment</p><h3>   </h3><h4>head<br>with break</h4><blockquote>quoted <cite>source</cite></blockquote><hr><figure><figcaption>Fig 1</figcaption></figure>'),
+    'h-doc-outside.html': '<!doctype html><html><head><title>T</title></head>text after head<body><p>in body</p></body>text after body</html>tail',
+    'h-doc-headings.html': H('<h1>One</h1><h2>Two</h2><h3>Three</h3><h4>Four</h4><h5>Five</h5><h6>Six</h6><h7>not a heading</h7><hgroup><h1>Grouped</h1><p>subtitle</p></hgroup>'),
+    'h-doc-details.html': H('<details><summary>More</summary><p>hidden content</p></details><address>1 Main St</address><center>centered</center><main><article><section><p>deep</p></section></article></main>'),
     'x-ns.xml': '<?xml version="1.0"?><r xmlns="urn:d" xmlns:p="urn:p"><p:item id="1"><p:name>A</p:name></p:item><p:item id="2"><p:name>B</p:name></p:item></r>',
     'x-cdata.xml': '<rows><row><v><![CDATA[a < b & c]]></v><w>x</w></row><row><v>plain</v><w><!-- c -->y</w></row></rows>',
     'x-mixed.xml': '<doc><p>Hello <b>world</b> again</p><p a="1" b="two">text</p><?pi data?></doc>',

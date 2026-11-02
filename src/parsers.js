@@ -129,7 +129,8 @@
           (grid[rc.r] = grid[rc.r] || [])[rc.c] = cellText(cell);
           if (cell && cell.f) formulas.push({ rc, addr, f: String(cell.f), noResult: cell.t === 'z' });
           if (cell && cell.c && cell.c.length) {
-            const text = cell.c.map((c) => (c.a ? c.a + ': ' : '') + String(c.t || '').replace(/\s+/g, ' ').trim()).join(' / ');
+            // the comment's text, never its author (who wrote what is never shown)
+            const text = cell.c.map((c) => String(c.t || '').replace(/\s+/g, ' ').trim()).filter(Boolean).join(' / ');
             comments.push({ rc, addr, text });
           }
         }
@@ -157,7 +158,21 @@
     // Defined names (named ranges and constants), without Excel's own technical names
     const names = ((wb.Workbook && wb.Workbook.Names) || []).filter((n) => n && n.Name && n.Ref && !/^_xlnm\./.test(n.Name));
     const fileMeta = names.length ? [['mNames', names.slice(0, 50).map((n) => '`' + n.Name + '` → `' + n.Ref + '`').join('; ') + (names.length > 50 ? '; …' : '')]] : [];
-    return { sections, fileMeta, notes: { isoDates } };
+    // The workbook's properties, as for a Word document: title, subject, keywords, description, dates, program. NEVER the
+    // author, the last editor, the manager or the company (who made a file is never shown, in any format).
+    const P = wb.Props || {};
+    const one = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, 300);
+    const day = (d) => (d instanceof Date && !isNaN(d) ? d.toISOString().slice(0, 10) : /^\d{4}-\d\d-\d\d/.test(String(d || '')) ? String(d).slice(0, 10) : '');
+    const props = [];
+    if (one(P.Title)) props.push(['mDocTitle', one(P.Title)]);
+    if (one(P.Subject)) props.push(['mDocSubject', one(P.Subject)]);
+    if (one(P.Keywords)) props.push(['mDocKeywords', one(P.Keywords)]);
+    if (one(P.Comments)) props.push(['mDocDescription', one(P.Comments)]);
+    const dates = [day(P.CreatedDate), day(P.ModifiedDate)].filter(Boolean);
+    if (dates.length) props.push(['mDocDates', dates.join(' → ')]);
+    const app = one(P.Application).replace(/[^\w .,/()+-]/g, '').slice(0, 120);
+    if (app) props.push(['mDocApp', app]);
+    return { sections, fileMeta: props.concat(fileMeta), notes: { isoDates } };
   }
 
   /* ---------- JSON / NDJSON / YAML (trees) ---------- */
@@ -240,11 +255,79 @@
     for (const s of Array.from(c.querySelectorAll('script,style,template'))) s.remove();
     return c.textContent.split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n');
   }
+  /* A web page as a document (as a Word file): its title, description and keywords, then its text in order (headings,
+   * paragraphs, list items) with each data table where it stands (doc.contents, the same structure as office.js, shown by
+   * markdown.js docContentsText; in "Do not share data" the text is free text, otherwise only the outline). Left out:
+   * scripts, styles, navigation, side bars, footers, forms, media, embedded objects. Never the author (meta author).
+   * The walk has no recursion (deep pages) and uses only childNodes, nodeType, tagName, nodeValue: the command-line tool
+   * (cli/dom-shim.js over parse5) gives the same contents as the browser. */
+  const HTML_SKIP = new Set(['SCRIPT', 'STYLE', 'TEMPLATE', 'NOSCRIPT', 'NAV', 'ASIDE', 'FOOTER', 'MENU', 'FORM', 'BUTTON', 'SELECT',
+    'TEXTAREA', 'INPUT', 'SVG', 'MATH', 'CANVAS', 'IFRAME', 'OBJECT', 'EMBED', 'AUDIO', 'VIDEO', 'PICTURE', 'IMG', 'MAP', 'HEAD', 'TITLE', 'DIALOG']);
+  const HTML_BLOCK = new Set(['P', 'DIV', 'LI', 'UL', 'OL', 'DL', 'DT', 'DD', 'SECTION', 'ARTICLE', 'MAIN', 'HEADER', 'BLOCKQUOTE', 'PRE',
+    'FIGURE', 'FIGCAPTION', 'ADDRESS', 'DETAILS', 'SUMMARY', 'FIELDSET', 'LEGEND', 'HR', 'CENTER', 'TABLE', 'TBODY', 'THEAD', 'TFOOT',
+    'TR', 'TD', 'TH', 'CAPTION', 'BODY', 'HTML', 'HGROUP', 'SEARCH']);
+  function htmlContents(doc, tableIndex) {
+    const c = DB.docContents('document');
+    const root = doc.querySelector('body') || doc.documentElement;
+    let buf = '';
+    const flush = (list) => {
+      const s = c.take(buf);
+      buf = '';
+      if (s === null) return;
+      c.counts.paragraphs++;
+      c.push({ k: 'p', text: s, list: !!list });
+    };
+    const todo = root ? [{ node: root, ctx: { pre: false, li: false }, top: true }] : [];
+    const kidsOf = (n, ctx) => { const k = Array.from(n.childNodes || []); for (let i = k.length - 1; i >= 0; i--) todo.push({ node: k[i], ctx }); };
+    while (todo.length) {
+      const t = todo.pop();
+      if (t.end) { t.end(); continue; }
+      const n = t.node, ctx = t.ctx;
+      if (t.top) { todo.push({ end: () => flush(false) }); kidsOf(n, ctx); continue; }
+      if (n.nodeType === 3) { const v = String(n.nodeValue || ''); buf += ctx.pre ? v : v.replace(/[ \t\n\r\f]+/g, ' '); continue; }
+      if (n.nodeType !== 1) continue;
+      const tag = String(n.tagName || '').toUpperCase();
+      if (HTML_SKIP.has(tag)) continue;
+      if (tag === 'BR') { buf += '\n'; continue; }
+      if (tableIndex.has(n)) { flush(ctx.li); c.counts.tables++; c.push({ k: 'table', sec: tableIndex.get(n) }); continue; }
+      const h = /^H([1-6])$/.exec(tag);
+      if (h) {
+        flush(ctx.li);
+        todo.push({ end: () => { const s = c.take(buf); buf = ''; if (s !== null) { c.counts.headings++; c.push({ k: 'h', level: Number(h[1]), text: s }); } } });
+        kidsOf(n, ctx);
+        continue;
+      }
+      if (HTML_BLOCK.has(tag)) {
+        flush(ctx.li);
+        const sub = { pre: ctx.pre || tag === 'PRE', li: tag === 'LI' || ctx.li };
+        todo.push({ end: () => flush(sub.li) });
+        kidsOf(n, sub);
+        continue;
+      }
+      kidsOf(n, ctx);   // inline: its text joins the paragraph
+    }
+    return c;
+  }
+  // The page's properties: title, description, keywords, the program that wrote it. Never meta author.
+  function htmlProps(doc) {
+    const one = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, 300);
+    const meta = [];
+    const title = doc.querySelector('title');
+    if (title && one(title.textContent)) meta.push(['mDocTitle', one(title.textContent)]);
+    const named = {};
+    for (const m of Array.from(doc.querySelectorAll('meta'))) {
+      const name = String(m.getAttribute('name') || '').trim().toLowerCase();
+      if (name && !(name in named)) named[name] = one(m.getAttribute('content'));
+    }
+    if (named.description) meta.push(['mDocDescription', named.description]);
+    if (named.keywords) meta.push(['mDocKeywords', named.keywords]);
+    if (named.generator) { const g = named.generator.replace(/[^\w .,/()+-]/g, '').slice(0, 120); if (g) meta.push(['mDocApp', g]); }
+    return meta;
+  }
   function parseHtml(buf) {
     const { text } = DB.decodeText(buf);
     const doc = new DOMParser().parseFromString(text, 'text/html');
     const tables = Array.from(doc.querySelectorAll('table')).filter((t) => !t.querySelector('table'));
-    if (!tables.length) throw new UserError('errNoTable');
     let spans = false;
     const used = new Set();
     const sections = tables.map((t, ti) => {
@@ -297,7 +380,12 @@
     });
     // Tables that contain other tables (page layout) are not read: say how many, so nothing disappears silently.
     const nestedSkipped = doc.querySelectorAll('table').length - tables.length;
-    return { sections, fileMeta: [], notes: { spans, nestedSkipped } };
+    // the text of the page in order, each table where it stands (a page without a table is a document too)
+    const tableIndex = new Map(tables.map((t, i) => [t, i]));
+    const contents = htmlContents(doc, tableIndex);
+    delete contents.take; delete contents.push;
+    if (!tables.length && !contents.items.length) throw new UserError('errNoTable');
+    return { sections, fileMeta: htmlProps(doc), notes: { spans, nestedSkipped }, contents };
   }
 
   /* ---------- SQLite (sql.js, WebAssembly) ---------- */
@@ -347,8 +435,28 @@
     try {
       let master;
       try {
-        master = allRows(db, "SELECT type, name, sql FROM sqlite_master WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%' ORDER BY rowid");
+        master = allRows(db, "SELECT type, name, tbl_name, sql FROM sqlite_master WHERE type IN ('table','view','trigger') AND name NOT LIKE 'sqlite_%' ORDER BY rowid");
       } catch (e) { throw new UserError('errSqlite', {}, String(e.message || e)); }
+      const isGpkgFile = master.some((m) => m.name === 'gpkg_contents');
+      // Triggers: what the database does by itself on a change (when, on which table), and their SQL (never run)
+      const triggers = master.filter((m) => m.type === 'trigger').map((m) => {
+        const w = /\bTRIGGER\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:"[^"]*"|`[^`]*`|\[[^\]]*\]|[^\s(]+)\s+(BEFORE|AFTER|INSTEAD\s+OF)?\s*(DELETE|INSERT|UPDATE(?:\s+OF\s+[^]*?(?=\s+ON\s)))?\s+ON\b/i.exec(String(m.sql || '').slice(0, 2000));
+        const when = w ? [w[1], w[2]].filter(Boolean).map((x) => x.replace(/\s+/g, ' ').toUpperCase().replace(/^UPDATE OF .*/, 'UPDATE')).join(' ') : '';
+        return { name: m.name, table: m.tbl_name || '', when, sql: m.sql || '' };
+      // a GeoPackage's own triggers (its spatial index, its metadata tables) are machinery: left out, as its tables
+      // (GDAL's feature counts: they update gpkg_ogr_contents)
+      }).filter((tr) => !(isGpkgFile && (/^(rtree_|gpkg_)/i.test(tr.name) || /^(rtree_|gpkg_)/i.test(tr.table) || /\b(gpkg_|rtree_)/i.test(tr.sql))));
+      master = master.filter((m) => m.type !== 'trigger');
+      // Virtual tables (CREATE VIRTUAL TABLE ... USING fts5 / fts4 / fts3 / rtree ...): kept, and named for what they are; the
+      // tables their module keeps for itself (x_data, x_idx, x_content, x_docsize, x_config, x_segments, x_segdir, x_stat,
+      // x_node, x_parent, x_rowid) are machinery, not data, and left out
+      const virtual = master.filter((m) => m.type === 'table' && /^\s*CREATE\s+VIRTUAL\s+TABLE/i.test(m.sql || '') && !(isGpkgFile && /^rtree_/i.test(m.name))).map((m) => {
+        const u = /\bUSING\s+([A-Za-z0-9_]+)/i.exec(m.sql || '');
+        return { name: m.name, module: u ? u[1].toLowerCase() : '' };
+      });
+      const SHADOW = /_(data|idx|content|docsize|config|segments|segdir|stat|node|parent|rowid)$/;
+      const shadowOf = (n) => virtual.some((v) => n.length > v.name.length + 1 && n.slice(0, v.name.length + 1) === v.name + '_' && SHADOW.test(n.slice(v.name.length)) && /^(fts\d|rtree|geopoly)/.test(v.module));
+      master = master.filter((m) => !(m.type === 'table' && shadowOf(m.name)));
       const sections = [];
       const skipped = [];
       // A GeoPackage is a SQLite file with registered layers: its gpkg_* and rtree_* tables are machinery, not data, and the
@@ -432,9 +540,13 @@
       const fileMeta = [];
       const views = master.filter((m) => m.type === 'view');
       if (views.length) fileMeta.push(['mViews', views.map((v) => '`' + v.name + '`').join(', ')]);
+      if (virtual.length) {
+        const kind = (m) => (/^fts/.test(m) ? m.toUpperCase() : m || '?');   // the label says what they are (full-text, spatial)
+        fileMeta.push(['mVirtual', virtual.map((v) => '`' + v.name + '`: ' + kind(v.module)).join(', ')]);
+      }
       if (skipped.length) fileMeta.push(['mSkipped', skipped.map((v) => '`' + v + '`').join(', ')]);
       if (gpkg) fileMeta.unshift(['mGpkg', gpkg.summary]);
-      return { gpkg: !!gpkg, sections, fileMeta, notes: {}, views: views.map((v) => ({ name: v.name, sql: v.sql || '' })).filter((v) => v.sql) };
+      return { gpkg: !!gpkg, sections, fileMeta, notes: {}, views: views.map((v) => ({ name: v.name, sql: v.sql || '' })).filter((v) => v.sql), triggers };
     } finally {
       db.close();
     }
@@ -688,6 +800,8 @@
     const kv = [];
     for (const [key, value] of pairs.slice(0, 40)) {
       if (key === 'ARROW:schema') continue; // the Arrow schema is binary: the column types already say it
+      // who made the file is never shown: keys that name a person or an organisation are left out
+      if (/author|creator|owner|company|organi[sz]ation|user|e-?mail|contact|maintainer|publisher|manager/i.test(key)) continue;
       const val = String(value == null ? '' : value);
       if (key === 'pandas') kv.push('`pandas`: ' + pandasSummary(val));
       else kv.push('`' + key + '`: ' + val.replace(/\s+/g, ' ').slice(0, /spark/.test(key) ? 600 : 300));

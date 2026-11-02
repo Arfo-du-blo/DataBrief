@@ -186,7 +186,7 @@
         const info = (m && m.info) || {};
         if (one(info.Title)) fileMeta.push(['mDocTitle', one(info.Title)]);
         if (one(info.Subject)) fileMeta.push(['mDocSubject', one(info.Subject)]);
-        if (one(info.Author)) fileMeta.push(['mDocAuthor', one(info.Author)]);
+        // (never the Author: who wrote a file is never shown, in any format)
         if (one(info.Keywords)) fileMeta.push(['mDocKeywords', one(info.Keywords)]);
         const dates = [pdfDate(info.CreationDate), pdfDate(info.ModDate)].filter(Boolean);
         if (dates.length) fileMeta.push(['mDocDates', dates.join(' → ')]);

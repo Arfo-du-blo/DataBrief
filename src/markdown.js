@@ -492,6 +492,11 @@
       line('## ', 'mViews'); b.lock('\n');
       for (const v of doc.views) b.lock('### ' + code(v.name) + '\n\n' + sqlBlock(v.sql) + '\n\n');
     }
+    // Triggers: what the database does by itself on a change (their SQL, never run)
+    if (doc.triggers && doc.triggers.length) {
+      line('## ', 'mTriggers'); b.lock('\n');
+      for (const tr of doc.triggers) b.lock('### ' + code(tr.name) + (tr.when || tr.table ? ' · ' + [tr.when, tr.table ? 'ON ' + code(tr.table) : ''].filter(Boolean).join(' ') : '') + '\n\n' + (tr.sql ? sqlBlock(tr.sql) + '\n\n' : ''));
+    }
 
     // Relationships between the sections: declared by the source, inferred candidates (marked as such)
     if (doc.relationships && doc.relationships.length) {
@@ -691,6 +696,15 @@
       ns.views.forEach((v, i) => {
         const name = code(sw.names ? v.name : 'view_' + (i + 1));
         b.lock(sw.sql ? '### ' + name + '\n\n' + sqlBlock(v.sql) + '\n\n' : '- ' + name + '\n');
+      });
+      if (!sw.sql) b.lock('\n');
+    }
+    // Triggers: names (or neutral ones), when they run and on which table; their SQL only when allowed
+    if (ns.triggers && ns.triggers.length) {
+      line('## ', 'mTriggers'); b.lock('\n');
+      ns.triggers.forEach((tr, i) => {
+        const head = code(sw.names ? tr.name : 'trigger_' + (i + 1)) + (tr.when || tr.table ? ' · ' + [tr.when, tr.table ? 'ON ' + code(S(tr.table)) : ''].filter(Boolean).join(' ') : '');
+        b.lock(sw.sql && tr.sql ? '### ' + head + '\n\n' + sqlBlock(tr.sql) + '\n\n' : '- ' + head + '\n');
       });
       if (!sw.sql) b.lock('\n');
     }

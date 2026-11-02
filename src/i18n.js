@@ -884,7 +884,7 @@ window.DB_I18N = {
       tText: "text", tEmpty: "empty", tMixed: "mixed",
       mNominal: "nominal", mOrdinal: "ordinal", mScale: "scale", pk: "primary key", yes: "yes",
       mFileLabel: "File label", mCreated: "Created", mProduct: "Created with", mEncoding: "Text encoding",
-      mWeight: "Weight variable", mDocs: "Notes stored in the file", mViews: "Views (saved queries, not included as data)",
+      mWeight: "Weight variable", mDocs: "Notes stored in the file", mViews: "Views (saved queries, not included as data)", mTriggers: "Triggers (what the database does by itself on a change; never run)", mVirtual: "Search indexes (full-text, spatial; their internal tables are left out)",
       mSkipped: "Tables that could not be read (skipped)", mEmbedded: "Embedded metadata", mDelimiter: "Delimiter", mRoot: "Root element",
     },
     fr: {
@@ -931,7 +931,7 @@ window.DB_I18N = {
       tText: "texte", tEmpty: "vide", tMixed: "mixte",
       mNominal: "nominale", mOrdinal: "ordinale", mScale: "échelle", pk: "clé primaire", yes: "oui",
       mFileLabel: "Libellé du fichier", mCreated: "Créé le", mProduct: "Créé avec", mEncoding: "Encodage du texte",
-      mWeight: "Variable de pondération", mDocs: "Notes enregistrées dans le fichier", mViews: "Vues (requêtes enregistrées, non incluses comme données)",
+      mWeight: "Variable de pondération", mDocs: "Notes enregistrées dans le fichier", mViews: "Vues (requêtes enregistrées, non incluses comme données)", mTriggers: "Déclencheurs (ce que la base fait d'elle-même lors d'une modification ; jamais exécutés)", mVirtual: "Index de recherche (plein texte, spatiaux ; leurs tables internes sont omises)",
       mSkipped: "Tables illisibles (ignorées)", mEmbedded: "Métadonnées intégrées", mDelimiter: "Séparateur", mRoot: "Élément racine",
     },
     es: {
@@ -978,7 +978,7 @@ window.DB_I18N = {
       tText: "texto", tEmpty: "vacío", tMixed: "mixto",
       mNominal: "nominal", mOrdinal: "ordinal", mScale: "escala", pk: "clave primaria", yes: "sí",
       mFileLabel: "Etiqueta del archivo", mCreated: "Creado", mProduct: "Creado con", mEncoding: "Codificación del texto",
-      mWeight: "Variable de ponderación", mDocs: "Notas guardadas en el archivo", mViews: "Vistas (consultas guardadas, no incluidas como datos)",
+      mWeight: "Variable de ponderación", mDocs: "Notas guardadas en el archivo", mViews: "Vistas (consultas guardadas, no incluidas como datos)", mTriggers: "Disparadores (lo que la base de datos hace por sí sola ante un cambio; nunca se ejecutan)", mVirtual: "Índices de búsqueda (texto completo, espaciales; sus tablas internas se omiten)",
       mSkipped: "Tablas que no se pudieron leer (omitidas)", mEmbedded: "Metadatos incrustados", mDelimiter: "Delimitador", mRoot: "Elemento raíz",
     },
     de: {
@@ -1025,7 +1025,7 @@ window.DB_I18N = {
       tText: "Text", tEmpty: "leer", tMixed: "gemischt",
       mNominal: "nominal", mOrdinal: "ordinal", mScale: "metrisch", pk: "Primärschlüssel", yes: "ja",
       mFileLabel: "Dateibeschriftung", mCreated: "Erstellt", mProduct: "Erstellt mit", mEncoding: "Textkodierung",
-      mWeight: "Gewichtungsvariable", mDocs: "In der Datei gespeicherte Notizen", mViews: "Sichten (gespeicherte Abfragen, nicht als Daten enthalten)",
+      mWeight: "Gewichtungsvariable", mDocs: "In der Datei gespeicherte Notizen", mViews: "Sichten (gespeicherte Abfragen, nicht als Daten enthalten)", mTriggers: "Trigger (was die Datenbank bei einer Änderung von selbst tut; nie ausgeführt)", mVirtual: "Suchindizes (Volltext, räumlich; ihre internen Tabellen werden ausgelassen)",
       mSkipped: "Nicht lesbare Tabellen (übersprungen)", mEmbedded: "Eingebettete Metadaten", mDelimiter: "Trennzeichen", mRoot: "Wurzelelement",
     },
     it: {
@@ -1072,7 +1072,7 @@ window.DB_I18N = {
       tText: "testo", tEmpty: "vuoto", tMixed: "misto",
       mNominal: "nominale", mOrdinal: "ordinale", mScale: "scala", pk: "chiave primaria", yes: "sì",
       mFileLabel: "Etichetta del file", mCreated: "Creato", mProduct: "Creato con", mEncoding: "Codifica del testo",
-      mWeight: "Variabile di ponderazione", mDocs: "Note salvate nel file", mViews: "Viste (query salvate, non incluse come dati)",
+      mWeight: "Variabile di ponderazione", mDocs: "Note salvate nel file", mViews: "Viste (query salvate, non incluse come dati)", mTriggers: "Trigger (ciò che il database fa da solo a ogni modifica; mai eseguiti)", mVirtual: "Indici di ricerca (full-text, spaziali; le loro tabelle interne sono omesse)",
       mSkipped: "Tabelle non leggibili (saltate)", mEmbedded: "Metadati incorporati", mDelimiter: "Separatore", mRoot: "Elemento radice",
     },
     pt: {
@@ -1119,7 +1119,7 @@ window.DB_I18N = {
       tText: "texto", tEmpty: "vazio", tMixed: "misto",
       mNominal: "nominal", mOrdinal: "ordinal", mScale: "escala", pk: "chave primária", yes: "sim",
       mFileLabel: "Rótulo do arquivo", mCreated: "Criado em", mProduct: "Criado com", mEncoding: "Codificação do texto",
-      mWeight: "Variável de ponderação", mDocs: "Notas salvas no arquivo", mViews: "Visões (consultas salvas, não incluídas como dados)",
+      mWeight: "Variável de ponderação", mDocs: "Notas salvas no arquivo", mViews: "Visões (consultas salvas, não incluídas como dados)", mTriggers: "Gatilhos (o que o banco de dados faz sozinho a cada alteração; nunca executados)", mVirtual: "Índices de busca (texto completo, espaciais; suas tabelas internas são omitidas)",
       mSkipped: "Tabelas que não puderam ser lidas (ignoradas)", mEmbedded: "Metadados incorporados", mDelimiter: "Delimitador", mRoot: "Elemento raiz",
     },
     nl: {
@@ -1166,7 +1166,7 @@ window.DB_I18N = {
       tText: "tekst", tEmpty: "leeg", tMixed: "gemengd",
       mNominal: "nominaal", mOrdinal: "ordinaal", mScale: "schaal", pk: "primaire sleutel", yes: "ja",
       mFileLabel: "Bestandslabel", mCreated: "Gemaakt", mProduct: "Gemaakt met", mEncoding: "Tekstcodering",
-      mWeight: "Weegvariabele", mDocs: "Notities opgeslagen in het bestand", mViews: "Views (opgeslagen query's, niet als gegevens opgenomen)",
+      mWeight: "Weegvariabele", mDocs: "Notities opgeslagen in het bestand", mViews: "Views (opgeslagen query's, niet als gegevens opgenomen)", mTriggers: "Triggers (wat de database bij een wijziging zelf doet; nooit uitgevoerd)", mVirtual: "Zoekindexen (volledige tekst, ruimtelijk; hun interne tabellen worden weggelaten)",
       mSkipped: "Tabellen die niet gelezen konden worden (overgeslagen)", mEmbedded: "Ingesloten metadata", mDelimiter: "Scheidingsteken", mRoot: "Hoofdelement",
     },
     pl: {
@@ -1213,7 +1213,7 @@ window.DB_I18N = {
       tText: "tekst", tEmpty: "pusty", tMixed: "mieszany",
       mNominal: "nominalny", mOrdinal: "porządkowy", mScale: "ilościowy", pk: "klucz główny", yes: "tak",
       mFileLabel: "Etykieta pliku", mCreated: "Utworzono", mProduct: "Utworzono w", mEncoding: "Kodowanie tekstu",
-      mWeight: "Zmienna wagi", mDocs: "Notatki zapisane w pliku", mViews: "Widoki (zapisane zapytania, nieuwzględnione jako dane)",
+      mWeight: "Zmienna wagi", mDocs: "Notatki zapisane w pliku", mViews: "Widoki (zapisane zapytania, nieuwzględnione jako dane)", mTriggers: "Wyzwalacze (co baza danych robi sama przy zmianie; nigdy nie są uruchamiane)", mVirtual: "Indeksy wyszukiwania (pełnotekstowe, przestrzenne; ich wewnętrzne tabele są pominięte)",
       mSkipped: "Tabele, których nie udało się odczytać (pominięte)", mEmbedded: "Osadzone metadane", mDelimiter: "Separator", mRoot: "Element główny",
     },
     ru: {
@@ -1260,7 +1260,7 @@ window.DB_I18N = {
       tText: "текст", tEmpty: "пусто", tMixed: "смешанный",
       mNominal: "номинальная", mOrdinal: "порядковая", mScale: "количественная", pk: "первичный ключ", yes: "да",
       mFileLabel: "Метка файла", mCreated: "Создан", mProduct: "Создан в", mEncoding: "Кодировка текста",
-      mWeight: "Весовая переменная", mDocs: "Заметки, сохранённые в файле", mViews: "Представления (сохранённые запросы, не включены как данные)",
+      mWeight: "Весовая переменная", mDocs: "Заметки, сохранённые в файле", mViews: "Представления (сохранённые запросы, не включены как данные)", mTriggers: "Триггеры (что база данных делает сама при изменении; никогда не выполняются)", mVirtual: "Поисковые индексы (полнотекстовые, пространственные; их внутренние таблицы опущены)",
       mSkipped: "Таблицы, которые не удалось прочитать (пропущены)", mEmbedded: "Встроенные метаданные", mDelimiter: "Разделитель", mRoot: "Корневой элемент",
     },
     tr: {
@@ -1307,7 +1307,7 @@ window.DB_I18N = {
       tText: "metin", tEmpty: "boş", tMixed: "karışık",
       mNominal: "sınıflama", mOrdinal: "sıralama", mScale: "ölçek", pk: "birincil anahtar", yes: "evet",
       mFileLabel: "Dosya etiketi", mCreated: "Oluşturulma", mProduct: "Oluşturan yazılım", mEncoding: "Metin kodlaması",
-      mWeight: "Ağırlık değişkeni", mDocs: "Dosyada saklanan notlar", mViews: "Görünümler (kayıtlı sorgular, veri olarak dahil edilmedi)",
+      mWeight: "Ağırlık değişkeni", mDocs: "Dosyada saklanan notlar", mViews: "Görünümler (kayıtlı sorgular, veri olarak dahil edilmedi)", mTriggers: "Tetikleyiciler (veritabanının bir değişiklikte kendiliğinden yaptıkları; asla çalıştırılmaz)", mVirtual: "Arama dizinleri (tam metin, uzamsal; iç tabloları atlanır)",
       mSkipped: "Okunamayan tablolar (atlandı)", mEmbedded: "Gömülü meta veriler", mDelimiter: "Ayırıcı", mRoot: "Kök öğe",
     },
     zh: {
@@ -1354,7 +1354,7 @@ window.DB_I18N = {
       tText: "文本", tEmpty: "空", tMixed: "混合",
       mNominal: "名义", mOrdinal: "有序", mScale: "尺度", pk: "主键", yes: "是",
       mFileLabel: "文件标签", mCreated: "创建时间", mProduct: "创建工具", mEncoding: "文本编码",
-      mWeight: "加权变量", mDocs: "文件中保存的备注", mViews: "视图（已保存的查询，未作为数据包含）",
+      mWeight: "加权变量", mDocs: "文件中保存的备注", mViews: "视图（已保存的查询，未作为数据包含）", mTriggers: "触发器（数据库在数据变更时自动执行的操作；绝不运行）", mVirtual: "搜索索引（全文、空间；其内部表已省略）",
       mSkipped: "无法读取的表（已跳过）", mEmbedded: "嵌入的元数据", mDelimiter: "分隔符", mRoot: "根元素",
     },
     ja: {
@@ -1401,7 +1401,7 @@ window.DB_I18N = {
       tText: "テキスト", tEmpty: "空", tMixed: "混在",
       mNominal: "名義", mOrdinal: "順序", mScale: "スケール", pk: "主キー", yes: "はい",
       mFileLabel: "ファイルラベル", mCreated: "作成日時", mProduct: "作成ソフト", mEncoding: "文字コード",
-      mWeight: "重み付け変数", mDocs: "ファイル内に保存されたメモ", mViews: "ビュー（保存されたクエリ。データとしては含まれません）",
+      mWeight: "重み付け変数", mDocs: "ファイル内に保存されたメモ", mViews: "ビュー（保存されたクエリ。データとしては含まれません）", mTriggers: "トリガー（変更時にデータベースが自動で行う処理。実行されることはありません）", mVirtual: "検索インデックス（全文・空間。内部テーブルは省略）",
       mSkipped: "読み込めなかったテーブル（スキップ）", mEmbedded: "埋め込みメタデータ", mDelimiter: "区切り文字", mRoot: "ルート要素",
     },
     ko: {
@@ -1448,7 +1448,7 @@ window.DB_I18N = {
       tText: "텍스트", tEmpty: "비어 있음", tMixed: "혼합",
       mNominal: "명목", mOrdinal: "서열", mScale: "척도", pk: "기본 키", yes: "예",
       mFileLabel: "파일 레이블", mCreated: "생성 시각", mProduct: "생성 프로그램", mEncoding: "텍스트 인코딩",
-      mWeight: "가중치 변수", mDocs: "파일에 저장된 메모", mViews: "뷰(저장된 쿼리, 데이터로 포함되지 않음)",
+      mWeight: "가중치 변수", mDocs: "파일에 저장된 메모", mViews: "뷰(저장된 쿼리, 데이터로 포함되지 않음)", mTriggers: "트리거(변경 시 데이터베이스가 스스로 수행하는 작업, 실행되지 않음)", mVirtual: "검색 인덱스(전문, 공간; 내부 표는 생략)",
       mSkipped: "읽을 수 없는 테이블(건너뜀)", mEmbedded: "내장 메타데이터", mDelimiter: "구분 기호", mRoot: "루트 요소",
     },
     hi: {
@@ -1495,7 +1495,7 @@ window.DB_I18N = {
       tText: "टेक्स्ट", tEmpty: "खाली", tMixed: "मिश्रित",
       mNominal: "नाममात्र", mOrdinal: "क्रमसूचक", mScale: "पैमाना", pk: "प्राथमिक कुंजी", yes: "हाँ",
       mFileLabel: "फ़ाइल लेबल", mCreated: "बनाई गई", mProduct: "इससे बनाई गई", mEncoding: "टेक्स्ट एन्कोडिंग",
-      mWeight: "भार चर", mDocs: "फ़ाइल में सहेजे गए नोट", mViews: "व्यू (सहेजी गई क्वेरी, डेटा के रूप में शामिल नहीं)",
+      mWeight: "भार चर", mDocs: "फ़ाइल में सहेजे गए नोट", mViews: "व्यू (सहेजी गई क्वेरी, डेटा के रूप में शामिल नहीं)", mTriggers: "ट्रिगर (बदलाव होने पर डेटाबेस अपने आप क्या करता है; कभी चलाए नहीं जाते)", mVirtual: "खोज अनुक्रमणिकाएँ (पूर्ण-पाठ, स्थानिक; उनकी आंतरिक तालिकाएँ छोड़ी गई हैं)",
       mSkipped: "जो तालिकाएँ पढ़ी नहीं जा सकीं (छोड़ी गईं)", mEmbedded: "अंतर्निहित मेटाडेटा", mDelimiter: "विभाजक", mRoot: "रूट एलिमेंट",
     },
     ar: {
@@ -1542,7 +1542,7 @@ window.DB_I18N = {
       tText: "نص", tEmpty: "فارغ", tMixed: "مختلط",
       mNominal: "اسمي", mOrdinal: "ترتيبي", mScale: "مقياس", pk: "مفتاح أساسي", yes: "نعم",
       mFileLabel: "تسمية الملف", mCreated: "تاريخ الإنشاء", mProduct: "أُنشئ باستخدام", mEncoding: "ترميز النص",
-      mWeight: "متغير الترجيح", mDocs: "ملاحظات محفوظة في الملف", mViews: "طرق العرض (استعلامات محفوظة، غير مضمّنة كبيانات)",
+      mWeight: "متغير الترجيح", mDocs: "ملاحظات محفوظة في الملف", mViews: "طرق العرض (استعلامات محفوظة، غير مضمّنة كبيانات)", mTriggers: "المشغّلات (ما تفعله قاعدة البيانات تلقائيًا عند أي تغيير؛ لا تُشغَّل أبدًا)", mVirtual: "فهارس البحث (النص الكامل، المكانية؛ جداولها الداخلية محذوفة)",
       mSkipped: "جداول تعذّرت قراءتها (تم تخطيها)", mEmbedded: "بيانات وصفية مضمّنة", mDelimiter: "الفاصل", mRoot: "العنصر الجذر",
     },
   },

@@ -48,7 +48,7 @@ const meta = (r, k) => (r.fileMeta.find((m) => m[0] === k) || [])[1];
     const it = r.contents.items;
     ok(f + ': headings in order (expected.json)', same(it.filter((x) => x.k === 'h').map((x) => x.text), E.headings) && same(it.filter((x) => x.k === 'h').map((x) => x.level), [1, 2]), JSON.stringify(it));
     ok(f + ': the paragraphs and tables in document order', same(it.map((x) => x.k), ['h', 'p', 'h', 'table', 'p', 'table', 'p', 'table', 'p']) && it[8].text === 'Last paragraph, bold part', JSON.stringify(it.map((x) => x.k)));
-    ok(f + ': the document properties (expected.json)', meta(r, 'mDocTitle') === E.metadata.title && meta(r, 'mDocAuthor') === E.metadata.author, JSON.stringify(r.fileMeta));
+    ok(f + ': the document properties: the title (expected.json), never the author', meta(r, 'mDocTitle') === E.metadata.title && !JSON.stringify(r).includes(E.metadata.author) && !meta(r, 'mDocAuthor') && !meta(r, 'mDocLastAuthor'), JSON.stringify(r.fileMeta));
     ok(f + ': merged cells noted for the prompt', r.notes.spans === true);
   }
   const app = (f, kind) => meta(read('doc-fixtures', f, kind), 'mDocApp');
@@ -64,7 +64,7 @@ const meta = (r, k) => (r.fileMeta.find((m) => m[0] === k) || [])[1];
       r.sections[0].rows.length === E.tables[0].rows && same(sl[1].tables, [0]), JSON.stringify(r.sections));
     ok(f + ': speaker notes (expected.json)', sl[E.notes.slide - 1].notes === E.notes.text && !sl[0].notes, JSON.stringify(sl.map((s) => s.notes)));
     ok(f + ': slide text, one line per paragraph', same(sl[0].text, ['Q1 2025']) && same(sl[2].text, ['Three points\nwithout a table']), JSON.stringify(sl.map((s) => s.text)));
-    ok(f + ': the author (expected.json)', meta(r, 'mDocAuthor') === E.metadata.author, JSON.stringify(r.fileMeta));
+    ok(f + ': never the author nor the last editor (who wrote a file is never shown)', !JSON.stringify(r).includes(E.metadata.author) && !/Steve Canny/.test(JSON.stringify(r)) && !meta(r, 'mDocAuthor') && !meta(r, 'mDocLastAuthor'), JSON.stringify(r.fileMeta));
   }
 }
 {
@@ -72,8 +72,8 @@ const meta = (r, k) => (r.fileMeta.find((m) => m[0] === k) || [])[1];
   for (const [f, kind] of [['CONFIDENTIAL_FILE_docx.docx', 'docx'], ['CONFIDENTIAL_FILE_odt.odt', 'odt'], ['CONFIDENTIAL_FILE_pptx.pptx', 'pptx'], ['CONFIDENTIAL_FILE_odp.odp', 'odp']]) {
     const r = read('canary', f, kind);
     const all = JSON.stringify(r);
-    ok('canary ' + f + ': the table with its records, the text and the author', r.sections[0] && cols(r.sections[0]).includes('CONFIDENTIAL_COL_A') && /CONFIDENTIAL_REC_01/.test(JSON.stringify(r.sections[0].rows)) &&
-      /CONFIDENTIAL_TEXT_TITLE/.test(JSON.stringify(r.contents)) && meta(r, 'mDocAuthor') === 'CONFIDENTIAL_TEXT_AUTHOR', all.slice(0, 400));
+    ok('canary ' + f + ': the table with its records and the text; the author (CONFIDENTIAL_TEXT_AUTHOR) and the last editor nowhere', r.sections[0] && cols(r.sections[0]).includes('CONFIDENTIAL_COL_A') && /CONFIDENTIAL_REC_01/.test(JSON.stringify(r.sections[0].rows)) &&
+      /CONFIDENTIAL_TEXT_TITLE/.test(JSON.stringify(r.contents)) && !/_AUTHOR|Steve Canny/.test(all), all.slice(0, 400));
   }
 }
 

@@ -18,7 +18,7 @@
   const FILE_META = new Set(['mExternal']);
   // Facts computed from the records (where the data lies, how many features of each kind): never in "Do not share data"
   const DATA_META = new Set(['mExtent', 'mGeomTypes']);   // names of other files (COPY FROM a file, linked tables): hidden with the file name too
-  const NAME_META = new Set(['mViews', 'mSkipped', 'mNames', 'mRoot', 'mWeight', 'mEmbedded', 'mExternal', 'mMemo', 'mAvroRecord']);
+  const NAME_META = new Set(['mViews', 'mVirtual', 'mSkipped', 'mNames', 'mRoot', 'mWeight', 'mEmbedded', 'mExternal', 'mMemo', 'mAvroRecord']);
   const copy = (v) => (v == null ? v : JSON.parse(JSON.stringify(v)));
   const baseOf = (name) => (name || 'data').replace(/\.[^.]+$/, '') || 'data';
   // Excel defined names: keep only references to cells ("Sheet!$A$1:$B$9"), not constants (="Smith" is a value).
@@ -82,6 +82,8 @@
       };
     });
     const views = (doc.views || []).map((v) => ({ name: v.name, sql: v.sql }));
+    // Triggers (SQLite): name, timing, table, SQL; markdown.js shows the SQL only when SQL is allowed, the names by the switch
+    const triggers = (doc.triggers || []).map((t) => ({ name: t.name, when: t.when, table: t.table, sql: t.sql }));
     // A notebook: the kind of each cell and of each output, which section a table became. Code and outputs (printed text,
     // values, error messages) can hold records: never copied. Markdown and raw cells are free text (shown only when allowed).
     // An error keeps its class name only when it is one (ZeroDivisionError), never its message.
@@ -104,10 +106,10 @@
       .filter((m) => m.value !== '');
     return {
       level, fileName: doc.fileName, fileSize: doc.fileSize, formatName: doc.formatName, formatKey: doc.formatKey, sectionKind: doc.sectionKind,
-      sections, views, fileMeta, contents, relationships: relationshipsFor(doc.relationships, level),
+      sections, views, triggers, fileMeta, contents, relationships: relationshipsFor(doc.relationships, level),
       hadInferred: (doc.relationships || []).some((r) => r.source === 'inferred'),
       hasLabels: sections.some((s) => s.caption || s.columns.some((c) => c.meta.label || c.meta.values)),
-      hasSql: views.length > 0 || sections.some((s) => s.constraints && s.constraints.ddl),
+      hasSql: views.length > 0 || triggers.some((t) => t.sql) || sections.some((s) => s.constraints && s.constraints.ddl),
       hasFreeText: sections.some((s) => s.comments.length || s.description) || fileMeta.some((m) => m.freeText) ||
         !!(contents && contents.kind === 'notebook' && contents.cells.some((c) => c.type !== 'code' && c.source)) || docText,
     };
