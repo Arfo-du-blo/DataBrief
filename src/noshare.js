@@ -13,7 +13,7 @@
 (function () {
   const DB = window.DB;
   // File metadata that is free text written by people (it may hold anything): shown only when the user allows it.
-  const FREE_TEXT_META = new Set(['mFileLabel', 'mDocs', 'mEmbedded', 'mDocTitle', 'mDocSubject', 'mDocAuthor', 'mDocLastAuthor', 'mDocKeywords', 'mDocDescription']);
+  const FREE_TEXT_META = new Set(['mFileLabel', 'mDocs', 'mEmbedded', 'mDocTitle', 'mDocSubject', 'mDocAuthor', 'mDocLastAuthor', 'mDocKeywords', 'mDocDescription', 'mDocApp', 'mDocDates']);   // a PDF's Creator / Producer can be anything (a file name, a person)
   // File metadata made of names: hidden when names are replaced. Embedded pandas / Spark metadata lists the columns.
   const FILE_META = new Set(['mExternal']);
   // Facts computed from the records (where the data lies, how many features of each kind): never in "Do not share data"

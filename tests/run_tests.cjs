@@ -791,6 +791,19 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     if (!d || d.key !== 'geojson') bad('GeoJSON in a .json file: ' + JSON.stringify(d || r.err));
     await p.close();
 
+    // "Do not share data": property keys that look like values (an e-mail, a date) are replaced, as in plain JSON (review of v1.4)
+    fs.writeFileSync(path.join(outDir, 'visits.geojson'), JSON.stringify({ type: 'FeatureCollection', features: [{ type: 'Feature', geometry: null,
+      properties: { visits: { 'john.smith@acme.com': 3, '2024-05-01': 7 } } }] }));
+    p = await newPage();
+    r = await load(p, path.join(outDir, 'visits.geojson'));
+    if (r.ok) {
+      await p.click('#nsOn'); await wait(500);
+      const ns = await p.evaluate(() => window.DataBrief.getMarkdown());
+      if (ns.includes('smith@acme') || ns.includes('2024-05-01') || !ns.includes('`visits.key`')) bad('GeoJSON no-share: property keys that look like values must be replaced');
+      await p.evaluate(() => localStorage.clear());
+    } else bad('visits.geojson: ' + r.err);
+    await p.close();
+
     // GeoPackage: 3 layers, never the gpkg_* / rtree_* machinery; each geometry column with its coordinate system
     p = await newPage();
     r = await load(p, F('city.gpkg'));
@@ -967,7 +980,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
         await p.click('#nsOn'); await wait(500);
         let ns = await p.evaluate(() => window.DataBrief.getMarkdown());
         for (const s of ['- Heading (level 1) _(not shared)_', '- Paragraphs: 1 _(not shared)_', '- Table: section 1 `table_1`']) if (!ns.includes(s)) bad('Word no-share lacks: ' + JSON.stringify(s));
-        for (const s of ['Quarterly report', 'This report lists', 'Report author', 'Ana Lima', 'Between the tables']) if (ns.includes(s)) bad('Word no-share leaks: ' + s);
+        for (const s of ['Quarterly report', 'This report lists', 'Report author', 'Ana Lima', 'Between the tables', 'Microsoft Macintosh Word', '2013-12-23']) if (ns.includes(s)) bad('Word no-share leaks: ' + s);
         await p.evaluate(() => document.querySelector('[data-sw="text"]').click()); await wait();
         ns = await p.evaluate(() => window.DataBrief.getMarkdown());
         if (!ns.includes('> # Quarterly report') || !ns.includes('Report author') || ns.includes('Ana Lima')) bad('Word no-share with free text: the text and author should appear, never the records');
@@ -1011,7 +1024,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       const d = window.DataBrief.getState().doc;
       return d && { key: d.formatKey, name: d.formatName, secs: d.sections.map((s) => s.name + ':' + s.rows.length + ':' + s.columns.map((c) => c.name).join('|')) };
     });
-    const PDFS = [['report.pdf', 'page1_table1:4:id|name|country|signup|notes,page1_table2:4:id|customer_id|total|status,page1_table3:1:Region|Quarter Q1|Q2'],
+    const PDFS = [['report.pdf', 'page1_table1:4:id|name|country|signup|notes,page1_table2:4:id|customer_id|total|status,page1_table3:2:Region|Quarter|column_3'],
       ['deck.pdf', 'page2_table1:4:id|customer_id|total|status'], ['orders-chrome.pdf', 'page1_table1:4:id|customer_id|total|status']];
     for (const [f, secs] of PDFS) {
       const p = await newPage();
@@ -1035,7 +1048,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     require('child_process').execFileSync('python3', ['-c', 'import sys; sys.path.insert(0, sys.argv[1]); import make_header as m; ' +
       'open(sys.argv[3], "wb").write(m.embedded_page(open(sys.argv[2], "rb").read(), False))', path.join(__dirname, '..', 'deploy', 'esp32'), htmlPath, esp]);
     const espHtml = fs.readFileSync(esp, 'utf8');
-    if (espHtml.includes('GlobalWorkerOptions') || espHtml.length > fs.statSync(htmlPath).size - 1500000) bad('the ESP32 page still holds pdf.js');
+    if (espHtml.includes('GlobalWorkerOptions') || fs.statSync(esp).size > fs.statSync(htmlPath).size - 1500000) bad('the ESP32 page still holds pdf.js');
     const p = await newPageAt('file://' + esp);
     const chips = await p.evaluate(() => Array.from(document.querySelectorAll('#chips button.chip')).map((b) => b.textContent));
     if (chips.length !== 28 || chips.includes('PDF')) bad('ESP32 page: expected 28 chips without PDF, got ' + chips.length);
@@ -1395,7 +1408,10 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     if (r.ok || !r.err.includes('DuckDB')) bad('a DuckDB file without extension: ' + r.err.slice(0, 80));
     await p.close();
     // no false alarm: text files that merely START with the same letters are read as usual
-    for (const [name, text, key] of [['orchard.csv', 'ORCHARD,kind\n1,apple\n2,pear\n', 'ORCHARD'], ['tape.csv', 'TAPE,length\nA,10\nB,20\n', 'TAPE'], ['obj.csv', 'Obj,x\n1,2\n', 'Obj']]) {
+    // (and since v1.4: a CSV that mentions the PDF signature, a CSV starting with ARROW1, a JSON object with "type": "Point")
+    for (const [name, text, key] of [['orchard.csv', 'ORCHARD,kind\n1,apple\n2,pear\n', 'ORCHARD'], ['tape.csv', 'TAPE,length\nA,10\nB,20\n', 'TAPE'],
+      ['pdfmention.csv', 'note,value\n%PDF-1.4 signature,1\nother,2\n', '%PDF-1.4 signature'], ['arrow1.csv', 'ARROW1,x\n1,2\n3,4\n', 'ARROW1'],
+      ['point.json', '{"type": "Point", "label": "A", "x": 3}', '`label`']]) {
       fs.writeFileSync(path.join(outDir, name), text);
       p = await newPage();
       r = await load(p, path.join(outDir, name));

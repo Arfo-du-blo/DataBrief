@@ -15,9 +15,13 @@
   const UserError = DB.UserError;
   const MAX_PAGES = 500, MAX_TABLES = 500, ITEM_CHARS = 4000, CONTENT_BUDGET = 200000, MAX_ITEMS_PAGE = 100000;
 
-  DB.isPdf = (u8) => {
+  /* The PDF signature: at the start; further in (readers accept up to 1 KB of junk before it) only for a file named .pdf or
+   * when what comes before it is binary: a CSV or a text that merely mentions "%PDF-" stays what it is. */
+  DB.isPdf = (u8, ext) => {
     const head = String.fromCharCode.apply(null, u8.subarray(0, Math.min(u8.length, 1024)));
-    return head.indexOf('%PDF-') >= 0;
+    const at = head.indexOf('%PDF-');
+    if (at <= 0) return at === 0;
+    return ext === 'pdf' || /[\x00-\x08\x0e-\x1f]/.test(head.slice(0, at));
   };
   DB.pdfAvailable = () => !!(window.pdfjsLib && window.pdfjsLib.getDocument);
 
@@ -25,7 +29,8 @@
   function joinPieces(pieces) {                                           // pieces of one cell, left to right
     let s = '', end = null;
     for (const p of pieces) {
-      if (s && end !== null && !/\s$/.test(s) && !/^\s/.test(p.str) && p.x - end > p.h * 0.15) s += ' ';
+      const lastCh = s.charCodeAt(s.length - 1), firstCh = p.str.charCodeAt(0);
+      if (s && end !== null && lastCh !== 32 && lastCh !== 9 && firstCh !== 32 && firstCh !== 9 && p.x - end > p.h * 0.15) s += ' ';
       s += p.str;
       end = p.x + p.w;
     }
@@ -82,6 +87,7 @@
       // columns: the cells of the fullest line. A line of several cells is a row only when its cells line up with them (by
       // their left edge, right edge or centre): the words of a justified paragraph do not
       const widest = block.filter((l) => l.cells.length >= 2).reduce((a, l) => (l.cells.length > a.cells.length ? l : a), block[0]);
+      if (widest.cells.length > 200) continue;                            // not a table anyone reads (and costly to lay out)
       const anchors = widest.cells.map((c) => c.x);
       const tol = Math.max(widest.h * 0.8, 3);
       const lines = (() => {
@@ -107,14 +113,25 @@
         for (let a = 0; a < anchors.length; a++) if (c.x >= anchors[a] - tol) k = a;
         return k;
       };
+      // the usual distance between two rows (from one line of several cells to the next)
+      const gaps = [];
+      for (let g = 1; g < full.length; g++) gaps.push(full[g - 1].y - full[g].y);
+      gaps.sort((a, b) => a - b);
+      const pitch = gaps.length ? gaps[Math.floor(gaps.length / 2)] : 0;
+      const isNumber = (s) => /\d/.test(s) && /^[-+(]?[\d\s.,'%€$£¥)]+$/.test(s);
       const rows = [];
+      let prevY = null;
       for (const l of lines) {
         const row = new Array(anchors.length).fill('');
         let firstCol = Infinity;
         for (const c of l.cells) { const k = colOf(c); firstCol = Math.min(firstCol, k); row[k] = row[k] ? row[k] + ' ' + c.text : c.text; }
-        // a line that leaves the first column empty and has fewer cells than columns: text wrapping inside the row above
-        // (joined with a space: in a PDF a wrapped line and a line break written by people look the same)
-        if (rows.length && firstCol > 0 && l.cells.length < anchors.length) {
+        // a line that leaves the first column empty, has fewer cells than columns, holds no number and sits closer than the
+        // usual row distance: text wrapping inside the row above (joined with a space: in a PDF a wrapped line and a line
+        // break written by people look the same). Otherwise a row of its own: a grouped report ("| Bergen | 20" under
+        // "North | Oslo | 10") keeps its rows.
+        const close = prevY === null || !pitch || prevY - l.y < pitch * 0.9;
+        prevY = l.y;
+        if (rows.length && firstCol > 0 && l.cells.length < anchors.length && close && !l.cells.some((c) => isNumber(c.text))) {
           const last = rows[rows.length - 1];
           for (let k = 0; k < anchors.length; k++) if (row[k]) last[k] = last[k] ? last[k] + ' ' + row[k] : row[k];
         } else rows.push(row);

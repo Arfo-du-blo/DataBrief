@@ -628,7 +628,7 @@ how to export it, and its limits.
 | Statistics | SPSS `.sav` and `.zsav` | [SPSS](docs/formats/spss.md) |
 | Data engineering | Parquet | [Parquet](docs/formats/parquet.md) |
 | | **Avro** (`.avro` data files: deflate, snappy or Zstandard) | [Avro](docs/formats/avro.md) |
-| | **Arrow / Feather** (`.arrow`, `.arrows` stream, `.feather` v1 and v2: LZ4 or Zstandard) | [Arrow and Feather](docs/formats/arrow.md) |
+| | **Arrow / Feather** (`.arrow`, `.ipc`, `.arrows` stream, `.feather` v1 and v2: LZ4 or Zstandard) | [Arrow and Feather](docs/formats/arrow.md) |
 | Databases | SQLite (`.db`, `.sqlite`, `.sqlite3`; **all tables**) | [SQLite](docs/formats/sqlite.md) |
 | | **SQL dumps** (`.sql`: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite, ClickHouse; read as text, never executed) | [SQL dumps](docs/formats/sql.md) |
 | | **PostgreSQL archives** (`pg_dump -Fc` and `-Ft`, gzip, lz4 or zstd) | [PostgreSQL archives](docs/formats/pgdump.md) |
@@ -638,7 +638,7 @@ how to export it, and its limits.
 | Legacy databases | **DBF** (dBase, FoxPro, Visual FoxPro, shapefile attribute tables; any code page) | [DBF](docs/formats/dbf.md) |
 | Geodata | **GeoJSON** (`.geojson`, or a `.json` holding GeoJSON) and **GeoPackage** (`.gpkg`: every layer); geometries summarised, coordinate systems | [Geodata](docs/formats/geodata.md) |
 | Notebooks | **Jupyter** (`.ipynb`, or a `.json` holding a notebook): the tables of the stored outputs (pandas, Polars, R) as data, every cell for context; never run | [Notebooks](docs/formats/notebook.md) |
-| Documents | **Word** (`.docx`), **PowerPoint** (`.pptx`), **OpenDocument** (`.odt`, `.odp`): every table as data, the text, slides and speaker notes for context | [Word and PowerPoint](docs/formats/documents.md) |
+| Documents | **Word** (`.docx`, `.docm`), **PowerPoint** (`.pptx`, `.pptm`), **OpenDocument** (`.odt`, `.odp`): every table as data, the text, slides and speaker notes for context | [Word and PowerPoint](docs/formats/documents.md) |
 | PDF | **PDF**, best effort: the text of every page, and tables **guessed** from the position of the text (labelled as such in the prompt); not in the ESP32 page | [PDF](docs/formats/pdf.md) |
 
 **Not sure how to export your database?** Click *How do I export my database?* under the formats on the page (it works offline and never connects to anything), or read [Export your database for DataBrief](docs/export-your-database.md): ready-to-copy, read-only commands for 13 engines (schema only, schema and data, foreign keys), with the official links; the PostgreSQL, MySQL, MariaDB, SQLite and ClickHouse ones were run against real servers.

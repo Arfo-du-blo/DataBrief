@@ -13,6 +13,27 @@
   const MAX_DEPTH = 32;            // nesting of the schema and of the values
   const MAX_ITEMS = 10000000;      // items of one array or map
   const MAX_BLOCK = 1024 * 1024 * 1024;
+  const FILE_ITEMS = 5000000;      // items of all arrays and maps of a file
+  const FILE_BYTES = 1024 * 1024 * 1024;   // bytes decompressed for a whole file
+
+  /* A streaming decoder (fflate's Inflate, fzstd's Decompress) with a running limit: a small block cannot ask for gigabytes.
+   * budget: { bytes } shared by the blocks of one file. Also used by arrow.js for Zstandard. */
+  DB.decodeLimited = function (Ctor, bytes, budget, limit) {
+    const parts = [];
+    let size = 0;
+    const s = new Ctor((chunk) => {
+      size += chunk.length;
+      if ((budget ? (budget.bytes += chunk.length) : size) > (limit || FILE_BYTES)) throw new UserError('errTooLarge');
+      parts.push(chunk);
+    });
+    for (let i = 0; i < bytes.length; i += 1 << 20) s.push(bytes.subarray(i, Math.min(bytes.length, i + (1 << 20))), false);
+    s.push(new Uint8Array(0), true);
+    if (parts.length === 1) return parts[0];
+    const out = new Uint8Array(size);
+    let at = 0;
+    for (const p of parts) { out.set(p, at); at += p.length; }
+    return out;
+  };
 
   DB.isAvro = (u8) => u8.length >= 4 && u8[0] === 0x4f && u8[1] === 0x62 && u8[2] === 0x6a && u8[3] === 1;   // "Obj" 1
 
@@ -64,6 +85,8 @@
       if (n < 0) { n = -n; const size = this.long(); if (typeof size !== 'number' || size < 0 || this.pos + size > this.u8.length) throw corrupt(); }
       total += n;
       if (total > MAX_ITEMS) throw corrupt();
+      // items of a zero-byte type (null, an empty record) cost no bytes: a budget for the whole file keeps them bounded
+      if (this.budget && (this.budget.items += n) > FILE_ITEMS) throw new UserError('errTooLarge');
       for (let i = 0; i < n; i++) each();
     }
   };
@@ -73,13 +96,16 @@
   const hex = (b) => Array.from(b.subarray(0, 64), (x) => x.toString(16).padStart(2, '0')).join('') + (b.length > 64 ? '…' : '');
   function decimal(bytes, scale) {
     if (!bytes.length) return '0';
-    let v = 0n;
-    for (const x of bytes) v = (v << 8n) | BigInt(x);
+    if (bytes.length > 64) return '0x' + hex(bytes);                  // not a number anyone wrote (a decimal is at most 38 digits)
+    let v = BigInt('0x' + Array.from(bytes, (x) => x.toString(16).padStart(2, '0')).join(''));   // linear, unlike shifting byte by byte
     if (bytes[0] & 0x80) v -= 1n << BigInt(bytes.length * 8);     // two's complement, big-endian
     return scaled(v, scale);
   }
-  /* an integer of the smallest unit, written with its decimal point: 1990n, 2 -> "19.90" */
+  /* an integer of the smallest unit, written with its decimal point: 1990n, 2 -> "19.90"; a negative scale adds zeros */
   function scaled(v, scale) {
+    if (typeof v !== 'bigint') v = BigInt(Math.trunc(Number(v)) || 0);
+    scale = Math.max(-100, Math.min(1000, scale | 0));
+    if (scale < 0) v *= 10n ** BigInt(-scale);
     const neg = v < 0n;
     let s = (neg ? -v : v).toString();
     if (scale > 0) { s = s.padStart(scale + 1, '0'); s = s.slice(0, -scale) + '.' + s.slice(-scale); }
@@ -299,21 +325,23 @@
   }
 
   /* ---------- the container ---------- */
-  function decompress(codec, data) {
+  function decompress(codec, data, budget) {
     switch (codec) {
       case 'null': return data;
-      case 'deflate': return window.fflate.inflateSync(data);
+      case 'deflate': return DB.decodeLimited(window.fflate.Inflate, data, budget);
       case 'snappy': {
         if (data.length < 4) throw corrupt();
         const input = data.subarray(0, data.length - 4);              // 4 bytes of CRC32 at the end
         let len = 0, mul = 1, i = 0, b;
         do { if (i >= input.length || i > 5) throw corrupt(); b = input[i++]; len += (b & 0x7f) * mul; mul *= 128; } while (b & 0x80);
-        if (len > MAX_BLOCK) throw new UserError('errTooLarge');
+        // snappy cannot expand more than about 22 times (a 3-byte copy of 64 bytes): a larger size is a lie
+        if (len > input.length * 22 + 64) throw corrupt();
+        if (len > MAX_BLOCK || (budget.bytes += len) > FILE_BYTES) throw new UserError('errTooLarge');
         const out = new Uint8Array(len);
         window.hyparquet.snappyUncompress(input, out);
         return out;
       }
-      case 'zstandard': return window.fzstd.decompress(data);
+      case 'zstandard': return DB.decodeLimited(window.fzstd.Decompress, data, budget);
       default: throw new UserError('errCodecAvro', {}, 'Avro codec ' + codec);
     }
   }
@@ -337,6 +365,7 @@
     const width = P.cols.length;
     const rows = [];
     let total = 0, blocks = 0, cut = false;
+    const budget = { bytes: 0, items: 0 };          // decompressed bytes and array items for the whole file
     while (r.pos < u8.length) {
       const count = r.long(), size = r.long();
       if (typeof count !== 'number' || typeof size !== 'number' || count < 0 || size < 0 || r.pos + size + 16 > u8.length) { cut = true; break; }
@@ -348,9 +377,10 @@
       blocks++;
       if (rows.length < maxRows) {
         let raw;
-        try { raw = decompress(codec, data); } catch (e) { if (e instanceof UserError && e.key !== 'errCorrupt') throw e; cut = true; break; }
+        try { raw = decompress(codec, data, budget); } catch (e) { if (e instanceof UserError && e.key !== 'errCorrupt') throw e; cut = true; break; }
         const br = new Reader(raw);
         br.depth = 0;
+        br.budget = budget;
         let n = 0;
         try {
           for (; n < count && rows.length < maxRows; n++) {

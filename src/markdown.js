@@ -566,7 +566,8 @@
     // Neutral names when the real ones are not to be shared, and for names that may be data themselves:
     // a guessed header over all-text columns (maybe the first record), keys of JSON / XML / YAML that look like
     // values (an e-mail, a number, an identifier, a date), a section named after the file, a table named by its caption.
-    const TREE = ['json', 'ndjson', 'yaml', 'xml'].includes(ns.formatKey);
+    // (GeoJSON properties are flattened JSON; notebook column names come from pivots and crosstabs, often values)
+    const TREE = ['json', 'ndjson', 'yaml', 'xml', 'geojson', 'ipynb'].includes(ns.formatKey);
     const looksLikeValue = (seg) => /@|^\d+$|^[0-9a-f]{8}-[0-9a-f]{4}-|^\d{4}-\d{2}-\d{2}/i.test(seg) || seg.length > 40;
     let replacedAsData = false;
     const secMap = new Map(), colMap = new Map();

@@ -35,8 +35,11 @@ text, **`.odp`** presentations).
 
 ## Good to know
 
-- **Not read:** images, charts (their numbers are in the spreadsheet that made them), SmartArt, text boxes floating over
-  a page, comments, headers and footers, footnotes. A scanned page is an image: its text is not there to read.
+- **Not read:** images, charts (their numbers are in the spreadsheet that made them), SmartArt, tables inside text boxes
+  or frames, comments, headers and footers, footnotes. A scanned page is an image: its text is not there to read.
+- A table whose first row is only styled as a header (PowerPoint's *Header row*, on by default) or whose header is guessed:
+  in "Do not share data", when every column holds text, its column names are replaced by neutral names (the first row may
+  be a record).
 - **Nothing in the file is run:** macros included (`.docm`, `.pptm`).
 - Up to 500 tables are read per file; the text given as context is cut after about 200,000 characters (the prompt says
   how much was left out).

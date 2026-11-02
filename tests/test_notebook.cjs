@@ -219,5 +219,39 @@ const display = (data) => ({ output_type: 'display_data', metadata: {}, data });
   ok('limits: rows beyond the limit are counted, not kept', capped[0].rows.length === 110 && capped[0].cut === 890, capped[0].rows.length + ' ' + capped[0].cut);
 }
 
+/* ---------------------------------------------------------------- review of v1.4 (stage 23): regression tests ---------- */
+{
+  const time = (fn) => { const t0 = Date.now(); fn(); return Date.now() - t0; };
+  // spans multiply cells: 1000 rows of rowspan=1000 colspan=1000 (40 kB) must not build half a billion cells
+  const bomb = '<table>' + '<tr><td rowspan=1000 colspan=1000>x</td></tr>'.repeat(1000) + '</table>';
+  let r;
+  let ms = time(() => { r = J(DB.notebookDoc(nb([code('t', [result({ 'text/html': bomb })])]), 'x')); });
+  ok('review: a table of huge spans stays within its cell budget (' + ms + ' ms)', ms < 5000 && r.sections.length <= 1, ms);
+  // 2,000 rows of 9,000 merged columns (18 million cells): the rows past the cell budget are left out, and counted
+  const wide = '<table>' + ('<tr>' + '<td colspan=1000>x</td>'.repeat(9) + '</tr>').repeat(2000) + '</table>';
+  ms = time(() => { r = J(DB.notebookDoc(nb([code('t', [result({ 'text/html': wide })])]), 'x')); });
+  ok('review: a table past the cell budget keeps the rows within it and the true count (' + ms + ' ms)', r.sections[0] && r.sections[0].rows.length < 1000 && r.sections[0].rowsTotal >= 1999, r.sections[0] && [r.sections[0].rows.length, r.sections[0].rowsTotal]);
+  // a row of <td> in the head that is not Polars types: a record, kept as data (never a column type)
+  const t = '<table><thead><tr><th>name</th><th>city</th></tr><tr><td>Alice Martin</td><td>Paris</td></tr></thead><tbody><tr><td>Bob</td><td>Rome</td></tr></tbody></table>';
+  r = J(DB.notebookDoc(nb([code('t', [result({ 'text/html': t })])]), 'x'));
+  ok('review: a head row of records is data, not types', same(r.sections[0].rows, [['Alice Martin', 'Paris'], ['Bob', 'Rome']]) && r.sections[0].columns.every((c) => !c.meta.dtype), JSON.stringify(r.sections[0]));
+  // quadratic patterns: a million line breaks, a long run of digits next to a table, many "<" without ">", many <style>
+  ms = time(() => DB.notebookDoc(nb([code('\n'.repeat(1000000) + 'x', [{ output_type: 'stream', name: 'stdout', text: '\n'.repeat(1000000) + 'y' }])]), 'x'));
+  ok('review: a million line breaks in code and output (' + ms + ' ms)', ms < 3000);
+  ms = time(() => DB.notebookDoc(nb([code('t', [result({ 'text/html': '<table><tr><td>1</td></tr><tr><td>2</td></tr></table>' + '1'.repeat(200000) })])]), 'x'));
+  ok('review: a long run of digits after a table (' + ms + ' ms)', ms < 2000);
+  ms = time(() => DB.htmlTables('<a '.repeat(500000)));
+  ok('review: 500,000 "<" without ">" (' + ms + ' ms)', ms < 3000);
+  ms = time(() => DB.htmlTables('<style>x</style>'.repeat(20000) + 'y'.repeat(1000000)));
+  ok('review: 20,000 <style> elements in a long output (' + ms + ' ms)', ms < 3000);
+  // a table of 200,000 rows: no argument-spread limit
+  const rows = '<tr><td>1</td><td>2</td></tr>'.repeat(200000);
+  ms = time(() => { r = J(DB.notebookDoc(nb([code('big', [result({ 'text/html': '<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody>' + rows + '</tbody></table>' })])]), 'x')); });
+  ok('review: a table of 200,000 rows is read (' + ms + ' ms)', r.sections[0] && r.sections[0].rows.length === 200000, r.sections[0] && r.sections[0].rows.length);
+  // nbformat 3 marks stderr with "stream"
+  const v3 = { nbformat: 3, nbformat_minor: 0, metadata: {}, worksheets: [{ cells: [{ cell_type: 'code', input: 'x', prompt_number: 1, outputs: [{ output_type: 'stream', stream: 'stderr', text: 'warn' }] }] }] };
+  ok('review: nbformat 3 stderr', J(DB.notebookDoc(v3, 'x')).contents.cells[0].outputs[0].stderr === true);
+}
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

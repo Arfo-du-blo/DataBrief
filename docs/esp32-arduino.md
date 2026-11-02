@@ -234,7 +234,7 @@ board serves the official page, byte for byte. See [Check it yourself](verify-pr
   for a team, since each person loads the page once, but it isn't for hundreds of simultaneous visitors.
 - **The page grows with DataBrief.** Version 1.2 is about 1 MB compressed; the 3 MB "Huge APP" slot of a 4 MB board holds a page of roughly 2 MB. If a future version outgrows your board, embed the `databrief.html` of an **earlier release** instead (download it from the releases page, then `make_header.ps1 -Html path\to\databrief.html` or `make_header.py path/to/databrief.html`): the ESP32 only needs *a* DataBrief, not the newest. Boards with 8 or 16 MB of flash and a bigger partition table hold much more.
 - **What was tested:** the sketch compiles with PlatformIO and the Arduino-ESP32 core 3.3 for all three boards in
-  `platformio.ini`, and the generated header decompresses to `databrief.html` exactly (automated in
+  `platformio.ini`, and the generated header decompresses to `databrief.html` without its PDF reader, the same page from the PowerShell and the Python script (automated in
   `tests/test_esp32.sh`). Flashing a real board, Wi-Fi and mDNS can't be tested automatically: that part is up to
   you, and feedback is welcome.
 

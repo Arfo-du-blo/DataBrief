@@ -117,6 +117,9 @@ ok('gpkg header (synthetic): the empty flag, a bad magic, an unknown envelope co
   const old = DB.geoJsonDoc({ type: 'FeatureCollection', crs: { type: 'name', properties: { name: 'urn:ogc:def:crs:EPSG::2154' } }, features: [] }, 'o');
   ok('geojson: an old-style crs member is reported', old && Object.fromEntries(old.fileMeta).mCrs === 'EPSG:2154', old && JSON.stringify(old.fileMeta));
   ok('geojson: TopoJSON and ordinary JSON are not GeoJSON', DB.geoJsonDoc({ type: 'Topology', objects: {} }, 't') === null && DB.geoJsonDoc([{ type: 'Point' }], 't') === null && DB.geoJsonDoc({ a: 1 }, 't') === null);
+  // review of v1.4: an object that merely has "type": "Point" (a chart setting) is ordinary JSON; a real bare geometry is GeoJSON
+  ok('geojson: {"type":"Point"} without coordinates is ordinary JSON', DB.geoJsonDoc({ type: 'Point', x: 3, label: 'A' }, 't') === null &&
+    DB.geoJsonDoc({ type: 'Point', coordinates: [1, 2] }, 't') !== null && DB.geoJsonDoc({ type: 'GeometryCollection', geometries: [] }, 't') !== null);
   const bad = DB.geoJsonDoc({ type: 'FeatureCollection', features: [null, 5, { type: 'Feature', properties: null, geometry: { type: 'Point', coordinates: 'x' } }] }, 'z');
   ok('geojson: broken features do not throw', bad && bad.sections[0].rows.length === 1 && bad.sections[0].rows[0][0] === 'POINT EMPTY', bad && JSON.stringify(bad.sections[0]));
 }

@@ -47,7 +47,7 @@ The mode is remembered: DataBrief never silently goes back to sharing your data.
 | **Labels and value labels** | on | variable labels, value labels and HTML captions used as names are left out |
 | **Relationships between tables** | on | the Relationships section is left out |
 | **File name** | on | the file is called `dataset.csv` (also for the download); a table named after the file (also inside a `.gz`) and the names of other files the dump refers to are hidden too |
-| **Comments, notes and other free text** | **off** | (Excel comments, SPSS file label and notes, embedded metadata) left out unless you allow them |
+| **Comments, notes and other free text** | **off** | (Excel comments, SPSS file label and notes, embedded metadata; the text of Word, PowerPoint and PDF documents, Markdown cells of notebooks, the author and properties of documents) left out unless you allow them. Allowing it shares the text of a document as written: a table that DataBrief could not recognise as a table (in a PDF, rows that do not line up) is part of that text |
 | **SQL definitions** of tables and views | **off** | they can contain literal values (`DEFAULT 'Smith'`); only available when names are shared |
 
 Some names are **replaced even when names are on**, because they may be data themselves: the first row of a file **without a header row** (it may be a record), and JSON / XML / YAML **keys that look like values** (an e-mail, a number, an identifier, a date). The prompt says when that happened.

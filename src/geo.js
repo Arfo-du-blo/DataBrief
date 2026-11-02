@@ -147,7 +147,9 @@
   }
 
   DB.isGeoJson = (tree) => !!tree && typeof tree === 'object' && !Array.isArray(tree) &&
-    ((tree.type === 'FeatureCollection' && Array.isArray(tree.features)) || (tree.type === 'Feature' && 'geometry' in tree) || GEO_TYPES.includes(tree.type));
+    ((tree.type === 'FeatureCollection' && Array.isArray(tree.features)) || (tree.type === 'Feature' && 'geometry' in tree) ||
+      // a bare geometry has its coordinates (or geometries): {"type": "Point", "label": "A"} is ordinary JSON
+      (GEO_TYPES.includes(tree.type) && (Array.isArray(tree.coordinates) || (tree.type === 'GeometryCollection' && Array.isArray(tree.geometries)))));
 
   DB.geoJsonDoc = function (tree, baseName) {
     if (!DB.isGeoJson(tree)) return null;

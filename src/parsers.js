@@ -50,12 +50,12 @@
   const extOf = (name) => { const m = /\.([^.]+)$/.exec(name || ''); return m ? m[1].toLowerCase() : ''; };
   const baseOf = (name) => (name || 'data').replace(/\.[^.]+$/, '') || 'data';
 
-  function sniff(u8) {
+  function sniff(u8, ext) {
     const s = (a, b) => String.fromCharCode.apply(null, u8.subarray(a, b));
     if (u8.length >= 16 && s(0, 15) === 'SQLite format 3') return 'sqlite';
     if (u8.length >= 4 && s(0, 4) === 'PAR1') return 'parquet';
     if (DB.isAvro && DB.isAvro(u8)) return 'avro';
-    if (DB.pdfAvailable && DB.pdfAvailable() && u8.length >= 8 && DB.isPdf(u8)) return 'pdf';
+    if (DB.pdfAvailable && DB.pdfAvailable() && u8.length >= 8 && DB.isPdf(u8, ext)) return 'pdf';
     if (DB.arrowKind && ['file', 'feather1'].includes(DB.arrowKind(u8, ''))) return 'arrow';
     if (u8.length >= 4 && (s(0, 4) === '$FL2' || s(0, 4) === '$FL3')) return 'sav';
     if (u8.length >= 8 && u8[0] === 0xd0 && u8[1] === 0xcf && u8[2] === 0x11 && u8[3] === 0xe0) return 'xls';
@@ -770,14 +770,14 @@
   }
 
   /* ---------- files DataBrief recognises but cannot read: a clear message, with what to do instead ---------- */
-  function knownKind(u8) {
+  function knownKind(u8, ext) {
     const s = (a, b) => String.fromCharCode.apply(null, u8.subarray(a, b));
     const binary = u8.subarray(0, 512).includes(0);   // a text file that merely starts with the same letters is not one of these
     if (u8.length >= 12 && s(8, 12) === 'DUCK' && binary) return 'Duckdb';
     if (u8.length >= 8 && u8[0] === 0x89 && s(1, 4) === 'HDF' && u8[4] === 0x0d && u8[5] === 0x0a && u8[6] === 0x1a && u8[7] === 0x0a) return 'Hdf5';
     if (u8.length >= 8 && s(0, 3) === 'ORC' && binary) return 'Orc';
     // a PDF is read when the page has pdf.js; the page built for the ESP32 has none: the message says what to do instead
-    if (u8.length >= 8 && s(0, 5) === '%PDF-' && !(DB.pdfAvailable && DB.pdfAvailable())) return 'Pdf';
+    if (u8.length >= 8 && (DB.isPdf ? DB.isPdf(u8, ext) : s(0, 5) === '%PDF-') && !(DB.pdfAvailable && DB.pdfAvailable())) return 'Pdf';
     if (u8.length >= 64 && s(0, 4) === 'TAPE' && binary) return 'MssqlBak';
     if (u8.length >= 64 && /EXPORT:V\d/.test(s(0, 64)) && binary) return 'OracleDmp';
     return null;
@@ -818,9 +818,9 @@
   DB.parseFile = async function (buf, fileName, depth) {
     const u8 = new Uint8Array(buf);
     let ext = extOf(fileName);
-    const known = knownKind(u8);
+    const known = knownKind(u8, ext);
     if (known) throw new UserError('errKind' + known);
-    const magic = sniff(u8);
+    const magic = sniff(u8, ext);
     if (magic === 'gzip') return parseGzip(u8, fileName, depth || 0);
     let kind;
     if (magic === 'zip') {

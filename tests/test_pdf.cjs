@@ -57,7 +57,8 @@ const errKey = async (fn) => { try { await fn(); return 'no error'; } catch (e) 
     ok('Writer PDF: the customers, wrapped cells joined', s[0] && same(cols(s[0]), ['id', 'name', 'country', 'signup', 'notes']) && s[0].rows.length === 4 &&
       same(s[0].rows.map((x) => x[1]), ['Ana Lima', 'Bo Chen', 'Chloé Martin', "Dmitri O'Brien"]) && s[0].rows[0][4] === 'Prefers email, "never" calls' && /second line$/.test(s[0].rows[1][4]), JSON.stringify(s[0]));
     ok('Writer PDF: the orders (expected.json)', s[1] && same(cols(s[1]), E.orders.header) && same(s[1].rows, E.orders.rows), JSON.stringify(s[1]));
-    ok('Writer PDF: the merged header table, its second header line joined to the first', s[2] && same(cols(s[2]), ['Region', 'Quarter Q1', 'Q2']) && same(s[2].rows, [['North', '10', '12']]), JSON.stringify(s[2]));
+    // its second header line sits at the usual row distance: kept as a row (in a PDF it cannot be told from a record)
+    ok('Writer PDF: the merged header table, its second header line kept as a row', s[2] && same(cols(s[2]), ['Region', 'Quarter', 'column_3']) && same(s[2].rows, [['', 'Q1', 'Q2'], ['North', '10', '12']]), JSON.stringify(s[2]));
     const page = r.contents.items[0];
     ok('Writer PDF: the paragraphs around the tables, in page order', page.text.includes('Between the tables: some text.') && page.text.includes('Sales by region:') && page.text[page.text.length - 1] === 'Last paragraph, bold part' && same(page.tables, [0, 1, 2]), JSON.stringify(page));
     ok('Writer PDF: title and author', meta(r, 'mDocTitle') === 'Quarterly report' && meta(r, 'mDocAuthor') === 'Report author', JSON.stringify(r.fileMeta));
@@ -133,7 +134,19 @@ const errKey = async (fn) => { try { await fn(); return 'no error'; } catch (e) 
       if (Date.now() - t1 > 3000) slow++;
     }
     ok('hostile: 60 damaged copies of a real PDF: read or a coded error, none slow (' + (Date.now() - t0) + ' ms)', raw === 0 && slow === 0, raw + ' raw, ' + slow + ' slow');
-    ok('isPdf: the signature in the first kilobyte', DB.isPdf(new Uint8Array(Buffer.from('\n\n%PDF-1.4'))) && !DB.isPdf(new Uint8Array(Buffer.from('PDF report.csv'))));
+    ok('isPdf: the signature at the start; further in only for a .pdf or after binary bytes; a text mentioning it is not a PDF',
+      DB.isPdf(new Uint8Array(Buffer.from('%PDF-1.4'))) && DB.isPdf(new Uint8Array(Buffer.from('\n\n%PDF-1.4')), 'pdf') && DB.isPdf(new Uint8Array(Buffer.from('\x00\x01junk%PDF-1.4', 'latin1'))) &&
+      !DB.isPdf(new Uint8Array(Buffer.from('note,value\n%PDF-1.4 signature,1\n')), 'csv') && !DB.isPdf(new Uint8Array(Buffer.from('PDF report.csv'))));
+  }
+  {
+    // review of v1.4 (stage 23): a grouped report keeps its rows (a first column left empty under a group, with numbers)
+    const T2 = (str, x, y) => ({ str, x, y, w: str.length * 5, h: 10 });
+    const f = DB.pdfLayout([T2('region', 50, 700), T2('city', 150, 700), T2('sales', 250, 700), T2('North', 50, 686), T2('Oslo', 150, 686), T2('10', 250, 686),
+      T2('Bergen', 150, 672), T2('20', 250, 672), T2('South', 50, 658), T2('Rome', 150, 658), T2('30', 250, 658)]);
+    ok('review: a grouped report keeps its rows', f.length === 1 && same(f[0].rows, [['region', 'city', 'sales'], ['North', 'Oslo', '10'], ['', 'Bergen', '20'], ['South', 'Rome', '30']]), JSON.stringify(f));
+    const wide = [];
+    for (let i = 0; i < 300; i++) { wide.push(T2('c' + i, i * 30, 700)); wide.push(T2('v' + i, i * 30, 686)); }
+    ok('review: a line of 300 cells is not laid out as a table', !DB.pdfLayout(wide).some((x) => x.k === 'table'));
   }
 
   console.log('\n' + pass + ' passed, ' + fail + ' failed');

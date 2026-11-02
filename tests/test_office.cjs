@@ -170,5 +170,45 @@ const parse = (u8, kind) => J(DB.parseOffice(u8, kind || 'docx'));
     DB.officeKind(['xl/workbook.xml'], '') === '' && DB.officeKind([], 'application/vnd.oasis.opendocument.spreadsheet') === '');
 }
 
+/* ---------------------------------------------------------------- review of v1.4 (stage 23): regression tests ---------- */
+{
+  // a 1 MB attribute name without "=": linear (the old regex backtracked)
+  let ms = time(() => DB.xmlTree('<a ' + 'x'.repeat(1000000) + '>t</a>'));
+  ok('review: a 1 MB token without "=" in a tag (' + ms + ' ms)', ms < 2000);
+  ok('review: attributes still read: quotes, spaces around "=", an attribute without value', same(J(DB.xmlTree('<a k = "v w" flag j=\'x\'>t</a>')).a, { k: 'v w', j: 'x' }));
+  // ODF repeats multiply cells: 15 rows repeated 1000 times, each of 10,000 repeated cells (a few kB of XML)
+  const T = 'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0"';
+  const row = '<table:table-row table:number-rows-repeated="1000"><table:table-cell table:number-columns-repeated="1000"><text:p>x</text:p></table:table-cell>'.repeat(1) +
+    '<table:table-cell table:number-columns-repeated="1000"><text:p>y</text:p></table:table-cell>'.repeat(9) + '</table:table-row>';
+  const odt = (body) => fflate.zipSync({ mimetype: fflate.strToU8('application/vnd.oasis.opendocument.text'), 'content.xml': fflate.strToU8('<office:document-content ' + T + '><office:body><office:text>' + body + '</office:text></office:body></office:document-content>') });
+  let r;
+  ms = time(() => { r = parse(odt('<table:table>' + row.repeat(15) + '</table:table>'), 'odt'); });
+  ok('review: repeated ODF rows and cells stay within the table budget (' + ms + ' ms)', ms < 15000 && r.sections.length === 1 && r.sections[0].rows.length < 1000, ms + ' ms, ' + (r.sections[0] && r.sections[0].rows.length) + ' rows');
+  // a PowerPoint "Header row" only styles the row: the header is a guess (records may be its names)
+  const A = 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+  const tc = (t) => '<a:tc><a:txBody><a:p><a:r><a:t>' + t + '</a:t></a:r></a:p></a:txBody></a:tc>';
+  const deck = (tbl) => fflate.zipSync({
+    'ppt/presentation.xml': fflate.strToU8('<p:presentation ' + A + '><p:sldIdLst><p:sldId id="256" r:id="rId2"/></p:sldIdLst></p:presentation>'),
+    'ppt/_rels/presentation.xml.rels': fflate.strToU8('<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId2" Type="http://x/slide" Target="slides/slide1.xml"/></Relationships>'),
+    'ppt/slides/slide1.xml': fflate.strToU8('<p:sld ' + A + '><p:cSld><p:spTree><p:graphicFrame><a:graphic><a:graphicData>' + tbl + '</a:graphicData></a:graphic></p:graphicFrame></p:spTree></p:cSld></p:sld>') });
+  r = parse(deck('<a:tbl><a:tblPr firstRow="1"/><a:tr>' + tc('Alice Martin') + tc('alice@corp.com') + '</a:tr><a:tr>' + tc('Bob Stone') + tc('bob@corp.com') + '</a:tr><a:tr>' + tc('Carol Diaz') + tc('carol@corp.com') + '</a:tr></a:tbl>'), 'pptx');
+  ok('review: a PowerPoint header row is a guessed header (for "Do not share data")', r.sections[0].headerGuessed === true, JSON.stringify(r.sections[0]));
+  // the two-row header rule is a guess too
+  const tbl2 = '<w:tbl><w:tr>' + TC('Q3 customers', '<w:gridSpan w:val="2"/>') + '</w:tr><w:tr>' + TC('Alice Martin') + TC('alice@corp.com') + '</w:tr><w:tr>' + TC('Bob Stone') + TC('bob@corp.com') + '</w:tr></w:tbl>';
+  r = parse(docx(tbl2));
+  ok('review: a merged first row over a second row: a guessed two-row header', r.sections[0].headerGuessed === true, JSON.stringify(r.sections[0]));
+  // a table in a text box (inside a paragraph) is not paragraph text; an indented row keeps its columns; rows in a content control
+  const box = '<w:p><w:r><w:t>Intro </w:t></w:r><w:r><w:pict><w:txbxContent><w:tbl><w:tr>' + TC('secret 1') + TC('secret 2') + '</w:tr></w:tbl></w:txbxContent></w:pict></w:r></w:p>';
+  r = parse(docx(box));
+  ok('review: a table inside a text box is left out of the paragraph text', r.contents.items[0].text === 'Intro' && !JSON.stringify(r.contents).includes('secret'), JSON.stringify(r.contents.items));
+  const indented = '<w:tbl><w:tr>' + TC('a') + TC('b') + TC('c') + '</w:tr><w:tr><w:trPr><w:gridBefore w:val="1"/></w:trPr>' + TC('2') + TC('3') + '</w:tr>' +
+    '<w:sdt><w:sdtContent><w:tr>' + TC('4') + TC('5') + TC('6') + '</w:tr></w:sdtContent></w:sdt></w:tbl>';
+  r = parse(docx(indented));
+  ok('review: an indented row (gridBefore) keeps its columns; rows inside a content control are read', same(r.sections[0].rows, [['', '2', '3'], ['4', '5', '6']]), JSON.stringify(r.sections[0]));
+  // a style named like an Object property is not a heading
+  r = parse(docx(P('text', 'toString')));
+  ok('review: a paragraph style called "toString" is not a heading', r.contents.items[0].k === 'p', JSON.stringify(r.contents.items));
+}
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

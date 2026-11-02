@@ -17,7 +17,7 @@
 
   const s4 = (u8, a) => String.fromCharCode(u8[a], u8[a + 1], u8[a + 2], u8[a + 3]);
   DB.arrowKind = function (u8, ext) {
-    if (u8.length >= 12 && s4(u8, 0) === 'ARRO' && u8[4] === 0x57 && u8[5] === 0x31) return 'file';            // ARROW1
+    if (u8.length >= 12 && s4(u8, 0) === 'ARRO' && u8[4] === 0x57 && u8[5] === 0x31 && u8[6] === 0 && u8[7] === 0) return 'file';   // ARROW1, padded to 8
     if (u8.length >= 12 && s4(u8, 0) === 'FEA1' && s4(u8, u8.length - 4) === 'FEA1') return 'feather1';
     // a stream starts with a message: the continuation marker 0xFFFFFFFF, or (before Arrow 0.15) its length directly
     if (u8.length >= 8 && ['arrows', 'arrow', 'ipc', 'feather', 'stream'].includes(ext) &&
@@ -90,7 +90,7 @@
     const id = t.typeId === T.Dictionary ? t.dictionary.typeId : t.typeId;
     const tt = t.typeId === T.Dictionary ? t.dictionary : t;
     switch (id) {
-      case T.Decimal: return typeof v === 'bigint' ? F.scaled(v, tt.scale) : DB.str(v);
+      case T.Decimal: return F.scaled(v, tt.scale);   // an integer of the smallest unit (a Number for decimal32)
       case T.Date: return tt.unit === 0 ? F.dateOf(Number(v)) : F.stampOf(v, 1).slice(0, 10);
       case T.Timestamp: return tt.unit === 0 ? F.stampOf(BigInt(v) * 1000n, 1) : F.stampOf(v, PER_MS[tt.unit]);
       case T.Time: return tt.unit === 0 ? F.timeOf(BigInt(v) * 1000n, 1) : F.timeOf(v, PER_MS[tt.unit]);
@@ -105,22 +105,27 @@
 
   /* ---------- Arrow IPC (file or stream) with flechette ---------- */
   let codecs = false;
+  let budget = { bytes: 0 };            // bytes decompressed for the file being read (1 GB at most, all buffers together)
+  const FILE_BYTES = 1024 * 1024 * 1024, OUT_CHARS = 256 * 1024 * 1024;
   function registerCodecs() {
     if (codecs) return;
     const F = window.flechette;
     // flechette views 64-bit columns in place: the decompressed bytes must start on a multiple of 8 (a fresh buffer)
     const own = (out) => (out.byteOffset % 8 ? out.slice() : out);
-    F.setCompressionCodec(F.CompressionType.LZ4_FRAME, { decode: (b) => own(DB.lz4Frames(b)) });
-    F.setCompressionCodec(F.CompressionType.ZSTD, { decode: (b) => own(window.fzstd.decompress(b)) });
+    const count = (out) => { if ((budget.bytes += out.length) > FILE_BYTES) throw new UserError('errTooLarge'); return out; };
+    F.setCompressionCodec(F.CompressionType.LZ4_FRAME, { decode: (b) => own(count(DB.lz4Frames(b))) });
+    F.setCompressionCodec(F.CompressionType.ZSTD, { decode: (b) => own(DB.decodeLimited(window.fzstd.Decompress, b, budget, FILE_BYTES)) });
     codecs = true;
   }
   function parseIpc(u8, maxRows) {
     const F = window.flechette;
     registerCodecs();
+    budget = { bytes: 0 };
     let table;
     try {
       table = F.tableFromIPC(u8, { useBigInt: true, useDecimalInt: true, useDate: false, useMap: true });
     } catch (e) {
+      if (e instanceof UserError) throw e;
       if (e && e.tooLarge) throw new UserError('errTooLarge');
       if (/codec/i.test(String(e && e.message))) throw new UserError('errCodecArrow', {}, String(e.message));
       throw new UserError('errCorrupt', { ext: EXT }, String(e && e.message || e).slice(0, 200));
@@ -165,8 +170,16 @@
     const n = table.numRows;
     const take = Math.min(n, maxRows);
     const rows = new Array(take);
+    // the text produced has a budget too: views (string, binary or list views) may all point at the same large region
+    let chars = 0, got = take;
     try {
-      for (let r = 0; r < take; r++) rows[r] = cols.map((c) => cell(c.get(r), c.field.type));
+      for (let r = 0; r < take; r++) {
+        const row = cols.map((c) => cell(c.get(r), c.field.type));
+        for (const v of row) chars += v.length;
+        rows[r] = row;
+        if (chars > OUT_CHARS) { got = r + 1; break; }
+      }
+      rows.length = got;
     } catch (e) {
       if (e instanceof UserError) throw e;
       if (e && e.tooLarge) throw new UserError('errTooLarge');
@@ -252,10 +265,11 @@
         get = (i) => { const k = values.get(i); if (k === null) return null; const kk = Number(k); if (kk < 0 || kk >= levels.len) throw bad(); return levels.get(kk); };
       } else if (mt === 2 && md) {                  // a timestamp: its unit and time zone
         const unit = md.u8(0, 0), tz = md.str(1);
+        if (unit > 3) throw bad();
         type = 'timestamp[' + UNIT[unit] + (tz ? ', ' + tz : '') + ']' + (tz ? ' (values in UTC)' : '');
         fmt = (v) => (v === null ? '' : unit === 0 ? DB.cellFmt.stampOf(BigInt(v) * 1000n, 1) : DB.cellFmt.stampOf(v, PER_MS[unit]));
       } else if (mt === 3) { type = 'date'; fmt = (v) => (v === null ? '' : DB.cellFmt.dateOf(Number(v))); }
-      else if (mt === 4 && md) { const unit = md.u8(0, 0); type = 'time[' + UNIT[unit] + ']'; fmt = (v) => (v === null ? '' : unit === 0 ? DB.cellFmt.timeOf(BigInt(v) * 1000n, 1) : DB.cellFmt.timeOf(v, PER_MS[unit])); }
+      else if (mt === 4 && md) { const unit = md.u8(0, 0); if (unit > 3) throw bad(); type = 'time[' + UNIT[unit] + ']'; fmt = (v) => (v === null ? '' : unit === 0 ? DB.cellFmt.timeOf(BigInt(v) * 1000n, 1) : DB.cellFmt.timeOf(v, PER_MS[unit])); }
       if (values.len !== nrows) throw bad();
       columns.push({ name, meta: { arrowType: type, arrowTypeAnon: type } });
       getters.push((i) => fmt(get(i)));

@@ -45,22 +45,23 @@
     const closeCell = () => { if (cell) { cell.v = cleanCell(decodeEnt(cell.raw)); delete cell.raw; cell = null; } };
     const closeRow = () => { closeCell(); row = null; };
     const text = (s) => { if (cell) cell.raw += s; else if (caption !== null) caption += s; };
-    let i = 0;
+    let i = 0, gt = -1, lower = null;
     while (i < n) {
       const lt = html.indexOf('<', i);
       if (lt < 0) { text(html.slice(i)); break; }
       if (lt > i) text(html.slice(i, lt));
       if (html.startsWith('<!--', lt)) { const e = html.indexOf('-->', lt + 4); i = e < 0 ? n : e + 3; continue; }
-      // the end of the tag, outside quotes, within MAX_TAG characters
-      let j = lt + 1, q = '';
-      const lim = Math.min(n, lt + MAX_TAG);
-      for (; j < lim; j++) { const ch = html[j]; if (q) { if (ch === q) q = ''; } else if (ch === '"' || ch === "'") q = ch; else if (ch === '>') break; }
-      const m = j < lim && /^<(\/?)([a-zA-Z][\w:-]*)/.exec(html.slice(lt, Math.min(j, lt + 64)));
+      // the end of the tag: the next ">" (found once and remembered, so that many "<" without ">" stay linear)
+      if (gt <= lt) gt = html.indexOf('>', lt + 1);
+      if (gt < 0) { text(html.slice(lt)); break; }
+      const m = gt - lt <= MAX_TAG && /^<(\/?)([a-zA-Z][\w:-]*)/.exec(html.slice(lt, Math.min(gt, lt + 64)));
       if (!m) { text('<'); i = lt + 1; continue; }
+      const j = gt;
       i = j + 1;
       const close = m[1] === '/', tag = m[2].toLowerCase(), attrs = html.slice(lt + m[0].length, j);
       if (!close && (tag === 'style' || tag === 'script' || tag === 'template')) {   // raw text: skipped
-        const e = html.toLowerCase().indexOf('</' + tag, i); i = e < 0 ? n : e; continue;
+        if (lower === null) lower = html.toLowerCase();
+        const e = lower.indexOf('</' + tag, i); i = e < 0 ? n : e; continue;
       }
       if (tag === 'table') {
         if (!close) {
@@ -109,24 +110,40 @@
     return out;
   };
 
-  /* A table of cells (with spans) into a grid of { v, th } */
+  /* A table of cells (with spans) into a grid of { v, th }. Spans multiply cells: the grid has a budget of cells and of
+   * columns (a few kB of HTML could otherwise ask for hundreds of millions); rows past the budget are left out. */
+  const GRID_CELLS = 2000000, GRID_COLS = 10000;
+  const EMPTY = { v: '', th: false };
   function toGrid(rows) {
     const grid = [];
-    rows.forEach((tr, r) => {
+    let cells = 0, last = rows.length;
+    for (let r = 0; r < rows.length && r < last; r++) {
       grid[r] = grid[r] || [];
       let c = 0;
-      for (const cell of tr) {
+      for (const cell of rows[r]) {
         while (grid[r][c] !== undefined) c++;
-        for (let a = 0; a < cell.rs && r + a < rows.length; a++) {
+        if (c >= GRID_COLS) break;
+        const slot = { v: cell.v, th: cell.th };                          // one object for every slot the span covers
+        const cs = Math.min(cell.cs, GRID_COLS - c);
+        for (let a = 0; a < cell.rs && r + a < last; a++) {
           grid[r + a] = grid[r + a] || [];
-          for (let b = 0; b < cell.cs; b++) grid[r + a][c + b] = { v: cell.v, th: cell.th };
+          for (let b = 0; b < cs; b++) grid[r + a][c + b] = slot;
+          cells += cs;
         }
-        c += cell.cs;
+        c += cs;
+        if (cells > GRID_CELLS) { last = r + 1; break; }
       }
-    });
-    for (let r = 0; r < rows.length; r++) { grid[r] = grid[r] || []; for (let c = 0; c < grid[r].length; c++) if (!grid[r][c]) grid[r][c] = { v: '', th: false }; }
+    }
+    grid.length = Math.min(grid.length, last);
+    for (let r = 0; r < grid.length; r++) { grid[r] = grid[r] || []; for (let c = 0; c < grid[r].length; c++) if (!grid[r][c]) grid[r][c] = EMPTY; }
+    grid.cut = rows.length - grid.length;
     return grid;
   }
+  const maxLen = (arrs) => { let m = 0; for (const a of arrs) if (a.length > m) m = a.length; return m; };
+  /* the text without its trailing line breaks (a loop: /\n+$/ is quadratic on long runs of line breaks) */
+  const trimEnd = (s) => { let e = s.length; while (e > 0 && s.charCodeAt(e - 1) === 10) e--; return s.slice(0, e); };
+  // the column types Polars writes in a row of its table head (anything else in that row is data, not types)
+  const POLARS_TYPE = /^(i8|i16|i32|i64|i128|u8|u16|u32|u64|f16|f32|f64|str|bool|date|time|null|object|binary|cat|enum|decimal\[[\d, ]+\]|datetime\[[\w, :/+-]+\]|duration\[\w+\]|list\[.{1,30}\]|array\[.{1,30}\]|struct\[\d+\])$/;
 
   const DOTS = /^(\.\.\.|…)$/;
   const MISSING = new Set(['NaN', 'NaT', '<NA>', 'None']);   // how pandas shows a missing value
@@ -142,19 +159,25 @@
     // Polars writes the column types as a row of <td> in the head; R writes them as <dbl>, <chr> under the names
     let types = null, polars = false;
     const typesOf = (r) => r.map((c) => c.v.replace(/^<(.*)>$/, '$1'));
+    const dataInHead = [];
     headRows = headRows.filter((r, idx) => {
       if (idx === 0) return true;
-      if (r.every((c) => !c.th)) { types = typesOf(r); polars = true; return false; }
+      if (r.every((c) => !c.th)) {
+        // a row of <td> in the head: Polars types only when every cell is one; otherwise it is a record, kept as data
+        if (r.every((c) => !c.v || POLARS_TYPE.test(c.v))) { types = typesOf(r); polars = true; } else dataInHead.push(r);
+        return false;
+      }
       if (isTypeRow(r.slice(1)) || isTypeRow(r)) { types = typesOf(r); return false; }
       return true;
     });
+    if (dataInHead.length) body = dataInHead.concat(body);
     if (body.length && isTypeRow(body[0])) { types = typesOf(body[0]); body = body.slice(1); }
     if (!headRows.length && !body.length) return null;
     // index columns: the <th> cells that start every row of the body
     let k = body.length ? Infinity : 0;
     for (const r of body) { let x = 0; while (x < r.length && r[x].th) x++; k = Math.min(k, x); if (!k) break; }
     if (!isFinite(k)) k = 0;
-    const width = Math.max(0, ...headRows.map((r) => r.length), ...body.map((r) => r.length));
+    const width = Math.max(maxLen(headRows), maxLen(body));
     if (k >= width) k = 0;
     // pandas: a last head row with the index names only (the other cells empty)
     let indexNames = new Array(k).fill('');
@@ -199,12 +222,15 @@
     // the true size, from what the library writes next to the table (only when the output holds this one table)
     let rowsTotal = null;
     const num = (s) => parseInt(s.replace(/[,_\s]/g, ''), 10);
-    const foot = single && (/(\d[\d,]*) rows × (\d[\d,]*) columns/.exec(outputHtml) || /shape:\s*\((\d[\d_]*),\s*(\d[\d_]*)\)/.exec(outputHtml));
+    // pandas writes its footer after the table, Polars its shape before: only the start and the end of the output are searched
+    const around = outputHtml.length > 4000 ? outputHtml.slice(0, 2000) + '\n' + outputHtml.slice(-2000) : outputHtml;
+    const foot = single && (/(\d[\d,]{0,20}) rows × (\d[\d,]{0,20}) columns/.exec(around) || /shape:\s*\((\d[\d_]{0,20}),\s*(\d[\d_]{0,20})\)/.exec(around));
     const capm = /(?:data\.frame|tibble|data\.table|DataFrame)[^:]*:\s*(\d[\d,]*)\s*[×x]\s*(\d[\d,]*)/i.exec(t.caption || '');
     if (foot) rowsTotal = num(foot[1]); else if (capm) rowsTotal = num(capm[1]);
     if (rowsTotal !== null && rowsTotal > rows.length) shortened = true;
     else rowsTotal = null;
-    if (t.cut) { shortened = true; rowsTotal = Math.max(rowsTotal || 0, rows.length + t.cut); }
+    const cutRows = (t.cut || 0) + (grid.cut || 0);
+    if (cutRows) { shortened = true; rowsTotal = Math.max(rowsTotal || 0, rows.length + cutRows); }
     const captionIsName = !!t.caption && !capm;
     // columns: the library counts the data columns (not the index); a wide frame keeps only the first and last ones
     const dataCols = cols.filter((c) => c >= k).length;
@@ -236,7 +262,7 @@
   const ANSI = /\u001b\[[0-9;?]*[ -\/]*[@-~]/g;
   /* At most maxLines lines and maxChars characters; "more": the lines not shown (in whole or in part) */
   function cut(text, maxLines, maxChars) {
-    const s = text.replace(/\r\n?/g, '\n').replace(/\n+$/, '');
+    const s = trimEnd(text.replace(/\r\n?/g, '\n'));
     if (!s) return { text: '', more: 0 };
     const lines = s.split('\n');
     let kept = lines.length > maxLines ? lines.slice(0, maxLines).join('\n') : s;
@@ -280,7 +306,7 @@
     const cells = [];
     let cellsCut = 0;
     const take = (text, ml, mc) => {
-      if (budget <= 0) return { text: '', more: text ? text.replace(/\n+$/, '').split('\n').length : 0 };
+      if (budget <= 0) return { text: '', more: text ? trimEnd(text).split('\n').length : 0 };
       const c = cut(text, ml, Math.min(mc, budget));
       budget -= c.text.length;
       return c;
@@ -310,7 +336,7 @@
           const ot = o.output_type;
           if (ot === 'stream') {
             const c = listed ? take(joinSrc(o.text).replace(ANSI, ''), OUT_LINES, OUT_CHARS) : { text: '', more: 0 };
-            cell.outputs.push({ kind: 'stream', stderr: o.name === 'stderr', text: c.text, more: c.more });
+            cell.outputs.push({ kind: 'stream', stderr: o.name === 'stderr' || o.stream === 'stderr', text: c.text, more: c.more });   // nbformat 3: "stream"
             continue;
           }
           if (ot === 'error' || ot === 'pyerr') {

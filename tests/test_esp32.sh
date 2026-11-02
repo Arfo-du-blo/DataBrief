@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Tests the ESP32 / Arduino files (deploy/esp32):
-#   - make_header.py and make_header.ps1 (via build.ps1) produce a header that decompresses to databrief.html exactly
+#   - make_header.py and make_header.ps1 (via build.ps1, and directly when pwsh is installed) produce a header that decompresses to
+#     databrief.html without its PDF reader (the ESP32 page), the same page byte for byte; with --with-pdf, databrief.html exactly
 #   - the sketch compiles with PlatformIO for the three boards of platformio.ini, if PlatformIO is installed in
 #     $DATABRIEF_ESP_TESTENV (default ~/databrief-esp-testenv: python3 -m venv venv && venv/bin/pip install platformio)
 # A real board cannot be tested here: flashing and Wi-Fi are checked by hand (docs/esp32-arduino.md).
@@ -39,6 +40,12 @@ else bad "make_header.py" "$(cat "$T/py.txt") $r"; fi
 if ! grep -q 'GlobalWorkerOptions' "$T/page.html" && grep -q 'GlobalWorkerOptions' "$ROOT/databrief.html" && [ "$(stat -c %s "$T/page.html")" -lt "$(( $(stat -c %s "$ROOT/databrief.html") - 1500000 ))" ]; then
   ok "the ESP32 page has no PDF reader (databrief.html has one): $(stat -c %s "$T/page.html") bytes instead of $(stat -c %s "$ROOT/databrief.html")"
 else bad "PDF reader left out" "the ESP32 page still holds pdf.js, or databrief.html has none"; fi
+# the PowerShell twin must give the same page byte for byte (run here when PowerShell 7 is installed, as on CI runners)
+if command -v pwsh > /dev/null 2>&1; then
+  if pwsh -NoProfile -File "$T/esp32/make_header.ps1" -Html "$ROOT/databrief.html" -Out "$T/ps.h" -PageOut "$T/ps.html" > "$T/ps.txt" 2>&1 && cmp -s "$T/ps.html" "$T/page.html"; then
+    ok "make_header.ps1 and make_header.py give the same ESP32 page"
+  else bad "make_header.ps1 vs make_header.py" "$(cat "$T/ps.txt" | tail -3) (pages differ or PowerShell failed)"; fi
+else echo "SKIP make_header.ps1 vs .py: no pwsh"; fi
 python3 "$T/esp32/make_header.py" "$ROOT/databrief.html" --with-pdf > /dev/null 2>&1
 if r="$(decodes_to_page "$T/esp32/DataBrief/databrief_html.h" "$ROOT/databrief.html" 2>&1)"; then ok "make_header.py --with-pdf: header decompresses to databrief.html exactly ($r)"
 else bad "make_header.py --with-pdf" "$r"; fi

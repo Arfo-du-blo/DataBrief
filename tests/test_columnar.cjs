@@ -222,5 +222,30 @@ function avroFile(schema, blocks, opt) {
   ok('Arrow: not recognised by its extension alone (a CSV named .arrow)', DB.arrowKind(new Uint8Array(Buffer.from('id,x\n1,2\n')), 'arrow') === '');
 }
 
+/* ---------------------------------------------------------------- review of v1.4 (stage 23): regression tests ---------- */
+{
+  const schema = { type: 'record', name: 'R', fields: [{ name: 'a', type: { type: 'array', items: 'null' } }] };
+  // 10 million null items per row cost 5 bytes each: a budget for the whole file stops them
+  const rowBytes = [].concat(zz(10000000), zz(0));
+  let r, ms = time(() => { r = J(DB.parseAvro(avroFile(schema, [{ count: 200, data: [].concat(...Array.from({ length: 200 }, () => rowBytes)) }]))); });
+  ok('review Avro: arrays of zero-byte items stay within the file budget (' + ms + ' ms)', ms < 5000 && r.sections[0].rows.length < 200 && r.fileMeta.some((m) => m[0] === 'mAvroCut'), ms + ' ms, rows ' + r.sections[0].rows.length);
+  // a 1 MB decimal: linear, shown in hexadecimal
+  const dec = { type: 'record', name: 'D', fields: [{ name: 'd', type: { type: 'bytes', logicalType: 'decimal', precision: 9, scale: 2 } }] };
+  ms = time(() => { r = J(DB.parseAvro(avroFile(dec, [{ count: 1, data: enc.bytes(new Array(1000000).fill(7)) }]))); });
+  ok('review Avro: a 1 MB decimal is not converted digit by digit (' + ms + ' ms)', ms < 3000 && r.sections[0].rows[0][0].startsWith('0x'), ms);
+  // a negative scale multiplies; decimal32 of Arrow (a Number) keeps its scale
+  ok('review: negative and Number scales', DB.cellFmt.scaled(15n, -2) === '1500' && DB.cellFmt.scaled(1990, 2) === '19.90');
+  // a deflate block that inflates beyond the limit (a zip bomb) is refused while it inflates
+  const zlib = require('zlib');
+  const sch = { type: 'record', name: 'S', fields: [{ name: 's', type: 'string' }] };
+  const bombBlock = [...zlib.deflateRawSync(Buffer.alloc(1100 * 1024 * 1024))];
+  ms = time(() => { ok('review Avro: a deflate block of 1.1 GB once inflated is refused', errKey(() => DB.parseAvro(avroFile(sch, [{ count: 1, data: bombBlock }], { codec: 'deflate' }))) === 'errTooLarge'); });
+  ok('review Avro: ... while inflating (' + ms + ' ms)', ms < 20000);
+  // a snappy block that claims more than snappy can produce
+  ok('review Avro: a snappy size larger than possible is refused', ['errCorrupt', 'no error'].includes(errKey(() => DB.parseAvro(avroFile(sch, [{ count: 1, data: [0xff, 0xff, 0xff, 0xff, 0x0f, 0, 0, 0, 0, 0] }], { codec: 'snappy' })))));
+  // Arrow: the magic must be padded (a CSV starting with "ARROW1" is not an Arrow file); Feather v1 with an unknown unit
+  ok('review Arrow: "ARROW1" text is not an Arrow file', DB.arrowKind(new Uint8Array(Buffer.from('ARROW1,x\n1,2\n3,4\n')), 'csv') === '');
+}
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

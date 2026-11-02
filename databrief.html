@@ -5479,7 +5479,7 @@ window.DB_I18N = {
 (function () {
   const DB = window.DB;
   // File metadata that is free text written by people (it may hold anything): shown only when the user allows it.
-  const FREE_TEXT_META = new Set(['mFileLabel', 'mDocs', 'mEmbedded', 'mDocTitle', 'mDocSubject', 'mDocAuthor', 'mDocLastAuthor', 'mDocKeywords', 'mDocDescription']);
+  const FREE_TEXT_META = new Set(['mFileLabel', 'mDocs', 'mEmbedded', 'mDocTitle', 'mDocSubject', 'mDocAuthor', 'mDocLastAuthor', 'mDocKeywords', 'mDocDescription', 'mDocApp', 'mDocDates']);   // a PDF's Creator / Producer can be anything (a file name, a person)
   // File metadata made of names: hidden when names are replaced. Embedded pandas / Spark metadata lists the columns.
   const FILE_META = new Set(['mExternal']);
   // Facts computed from the records (where the data lies, how many features of each kind): never in "Do not share data"
@@ -6729,7 +6729,9 @@ window.DB.DBF_CODEPAGES = {
   }
 
   DB.isGeoJson = (tree) => !!tree && typeof tree === 'object' && !Array.isArray(tree) &&
-    ((tree.type === 'FeatureCollection' && Array.isArray(tree.features)) || (tree.type === 'Feature' && 'geometry' in tree) || GEO_TYPES.includes(tree.type));
+    ((tree.type === 'FeatureCollection' && Array.isArray(tree.features)) || (tree.type === 'Feature' && 'geometry' in tree) ||
+      // a bare geometry has its coordinates (or geometries): {"type": "Point", "label": "A"} is ordinary JSON
+      (GEO_TYPES.includes(tree.type) && (Array.isArray(tree.coordinates) || (tree.type === 'GeometryCollection' && Array.isArray(tree.geometries)))));
 
   DB.geoJsonDoc = function (tree, baseName) {
     if (!DB.isGeoJson(tree)) return null;
@@ -6818,22 +6820,23 @@ window.DB.DBF_CODEPAGES = {
     const closeCell = () => { if (cell) { cell.v = cleanCell(decodeEnt(cell.raw)); delete cell.raw; cell = null; } };
     const closeRow = () => { closeCell(); row = null; };
     const text = (s) => { if (cell) cell.raw += s; else if (caption !== null) caption += s; };
-    let i = 0;
+    let i = 0, gt = -1, lower = null;
     while (i < n) {
       const lt = html.indexOf('<', i);
       if (lt < 0) { text(html.slice(i)); break; }
       if (lt > i) text(html.slice(i, lt));
       if (html.startsWith('<\!--', lt)) { const e = html.indexOf('-->', lt + 4); i = e < 0 ? n : e + 3; continue; }
-      // the end of the tag, outside quotes, within MAX_TAG characters
-      let j = lt + 1, q = '';
-      const lim = Math.min(n, lt + MAX_TAG);
-      for (; j < lim; j++) { const ch = html[j]; if (q) { if (ch === q) q = ''; } else if (ch === '"' || ch === "'") q = ch; else if (ch === '>') break; }
-      const m = j < lim && /^<(\/?)([a-zA-Z][\w:-]*)/.exec(html.slice(lt, Math.min(j, lt + 64)));
+      // the end of the tag: the next ">" (found once and remembered, so that many "<" without ">" stay linear)
+      if (gt <= lt) gt = html.indexOf('>', lt + 1);
+      if (gt < 0) { text(html.slice(lt)); break; }
+      const m = gt - lt <= MAX_TAG && /^<(\/?)([a-zA-Z][\w:-]*)/.exec(html.slice(lt, Math.min(gt, lt + 64)));
       if (!m) { text('<'); i = lt + 1; continue; }
+      const j = gt;
       i = j + 1;
       const close = m[1] === '/', tag = m[2].toLowerCase(), attrs = html.slice(lt + m[0].length, j);
       if (!close && (tag === 'style' || tag === 'script' || tag === 'template')) {   // raw text: skipped
-        const e = html.toLowerCase().indexOf('</' + tag, i); i = e < 0 ? n : e; continue;
+        if (lower === null) lower = html.toLowerCase();
+        const e = lower.indexOf('</' + tag, i); i = e < 0 ? n : e; continue;
       }
       if (tag === 'table') {
         if (!close) {
@@ -6882,24 +6885,40 @@ window.DB.DBF_CODEPAGES = {
     return out;
   };
 
-  /* A table of cells (with spans) into a grid of { v, th } */
+  /* A table of cells (with spans) into a grid of { v, th }. Spans multiply cells: the grid has a budget of cells and of
+   * columns (a few kB of HTML could otherwise ask for hundreds of millions); rows past the budget are left out. */
+  const GRID_CELLS = 2000000, GRID_COLS = 10000;
+  const EMPTY = { v: '', th: false };
   function toGrid(rows) {
     const grid = [];
-    rows.forEach((tr, r) => {
+    let cells = 0, last = rows.length;
+    for (let r = 0; r < rows.length && r < last; r++) {
       grid[r] = grid[r] || [];
       let c = 0;
-      for (const cell of tr) {
+      for (const cell of rows[r]) {
         while (grid[r][c] !== undefined) c++;
-        for (let a = 0; a < cell.rs && r + a < rows.length; a++) {
+        if (c >= GRID_COLS) break;
+        const slot = { v: cell.v, th: cell.th };                          // one object for every slot the span covers
+        const cs = Math.min(cell.cs, GRID_COLS - c);
+        for (let a = 0; a < cell.rs && r + a < last; a++) {
           grid[r + a] = grid[r + a] || [];
-          for (let b = 0; b < cell.cs; b++) grid[r + a][c + b] = { v: cell.v, th: cell.th };
+          for (let b = 0; b < cs; b++) grid[r + a][c + b] = slot;
+          cells += cs;
         }
-        c += cell.cs;
+        c += cs;
+        if (cells > GRID_CELLS) { last = r + 1; break; }
       }
-    });
-    for (let r = 0; r < rows.length; r++) { grid[r] = grid[r] || []; for (let c = 0; c < grid[r].length; c++) if (!grid[r][c]) grid[r][c] = { v: '', th: false }; }
+    }
+    grid.length = Math.min(grid.length, last);
+    for (let r = 0; r < grid.length; r++) { grid[r] = grid[r] || []; for (let c = 0; c < grid[r].length; c++) if (!grid[r][c]) grid[r][c] = EMPTY; }
+    grid.cut = rows.length - grid.length;
     return grid;
   }
+  const maxLen = (arrs) => { let m = 0; for (const a of arrs) if (a.length > m) m = a.length; return m; };
+  /* the text without its trailing line breaks (a loop: /\n+$/ is quadratic on long runs of line breaks) */
+  const trimEnd = (s) => { let e = s.length; while (e > 0 && s.charCodeAt(e - 1) === 10) e--; return s.slice(0, e); };
+  // the column types Polars writes in a row of its table head (anything else in that row is data, not types)
+  const POLARS_TYPE = /^(i8|i16|i32|i64|i128|u8|u16|u32|u64|f16|f32|f64|str|bool|date|time|null|object|binary|cat|enum|decimal\[[\d, ]+\]|datetime\[[\w, :/+-]+\]|duration\[\w+\]|list\[.{1,30}\]|array\[.{1,30}\]|struct\[\d+\])$/;
 
   const DOTS = /^(\.\.\.|…)$/;
   const MISSING = new Set(['NaN', 'NaT', '<NA>', 'None']);   // how pandas shows a missing value
@@ -6915,19 +6934,25 @@ window.DB.DBF_CODEPAGES = {
     // Polars writes the column types as a row of <td> in the head; R writes them as <dbl>, <chr> under the names
     let types = null, polars = false;
     const typesOf = (r) => r.map((c) => c.v.replace(/^<(.*)>$/, '$1'));
+    const dataInHead = [];
     headRows = headRows.filter((r, idx) => {
       if (idx === 0) return true;
-      if (r.every((c) => !c.th)) { types = typesOf(r); polars = true; return false; }
+      if (r.every((c) => !c.th)) {
+        // a row of <td> in the head: Polars types only when every cell is one; otherwise it is a record, kept as data
+        if (r.every((c) => !c.v || POLARS_TYPE.test(c.v))) { types = typesOf(r); polars = true; } else dataInHead.push(r);
+        return false;
+      }
       if (isTypeRow(r.slice(1)) || isTypeRow(r)) { types = typesOf(r); return false; }
       return true;
     });
+    if (dataInHead.length) body = dataInHead.concat(body);
     if (body.length && isTypeRow(body[0])) { types = typesOf(body[0]); body = body.slice(1); }
     if (!headRows.length && !body.length) return null;
     // index columns: the <th> cells that start every row of the body
     let k = body.length ? Infinity : 0;
     for (const r of body) { let x = 0; while (x < r.length && r[x].th) x++; k = Math.min(k, x); if (!k) break; }
     if (!isFinite(k)) k = 0;
-    const width = Math.max(0, ...headRows.map((r) => r.length), ...body.map((r) => r.length));
+    const width = Math.max(maxLen(headRows), maxLen(body));
     if (k >= width) k = 0;
     // pandas: a last head row with the index names only (the other cells empty)
     let indexNames = new Array(k).fill('');
@@ -6972,12 +6997,15 @@ window.DB.DBF_CODEPAGES = {
     // the true size, from what the library writes next to the table (only when the output holds this one table)
     let rowsTotal = null;
     const num = (s) => parseInt(s.replace(/[,_\s]/g, ''), 10);
-    const foot = single && (/(\d[\d,]*) rows × (\d[\d,]*) columns/.exec(outputHtml) || /shape:\s*\((\d[\d_]*),\s*(\d[\d_]*)\)/.exec(outputHtml));
+    // pandas writes its footer after the table, Polars its shape before: only the start and the end of the output are searched
+    const around = outputHtml.length > 4000 ? outputHtml.slice(0, 2000) + '\n' + outputHtml.slice(-2000) : outputHtml;
+    const foot = single && (/(\d[\d,]{0,20}) rows × (\d[\d,]{0,20}) columns/.exec(around) || /shape:\s*\((\d[\d_]{0,20}),\s*(\d[\d_]{0,20})\)/.exec(around));
     const capm = /(?:data\.frame|tibble|data\.table|DataFrame)[^:]*:\s*(\d[\d,]*)\s*[×x]\s*(\d[\d,]*)/i.exec(t.caption || '');
     if (foot) rowsTotal = num(foot[1]); else if (capm) rowsTotal = num(capm[1]);
     if (rowsTotal !== null && rowsTotal > rows.length) shortened = true;
     else rowsTotal = null;
-    if (t.cut) { shortened = true; rowsTotal = Math.max(rowsTotal || 0, rows.length + t.cut); }
+    const cutRows = (t.cut || 0) + (grid.cut || 0);
+    if (cutRows) { shortened = true; rowsTotal = Math.max(rowsTotal || 0, rows.length + cutRows); }
     const captionIsName = !!t.caption && !capm;
     // columns: the library counts the data columns (not the index); a wide frame keeps only the first and last ones
     const dataCols = cols.filter((c) => c >= k).length;
@@ -7009,7 +7037,7 @@ window.DB.DBF_CODEPAGES = {
   const ANSI = /\u001b\[[0-9;?]*[ -\/]*[@-~]/g;
   /* At most maxLines lines and maxChars characters; "more": the lines not shown (in whole or in part) */
   function cut(text, maxLines, maxChars) {
-    const s = text.replace(/\r\n?/g, '\n').replace(/\n+$/, '');
+    const s = trimEnd(text.replace(/\r\n?/g, '\n'));
     if (!s) return { text: '', more: 0 };
     const lines = s.split('\n');
     let kept = lines.length > maxLines ? lines.slice(0, maxLines).join('\n') : s;
@@ -7053,7 +7081,7 @@ window.DB.DBF_CODEPAGES = {
     const cells = [];
     let cellsCut = 0;
     const take = (text, ml, mc) => {
-      if (budget <= 0) return { text: '', more: text ? text.replace(/\n+$/, '').split('\n').length : 0 };
+      if (budget <= 0) return { text: '', more: text ? trimEnd(text).split('\n').length : 0 };
       const c = cut(text, ml, Math.min(mc, budget));
       budget -= c.text.length;
       return c;
@@ -7083,7 +7111,7 @@ window.DB.DBF_CODEPAGES = {
           const ot = o.output_type;
           if (ot === 'stream') {
             const c = listed ? take(joinSrc(o.text).replace(ANSI, ''), OUT_LINES, OUT_CHARS) : { text: '', more: 0 };
-            cell.outputs.push({ kind: 'stream', stderr: o.name === 'stderr', text: c.text, more: c.more });
+            cell.outputs.push({ kind: 'stream', stderr: o.name === 'stderr' || o.stream === 'stderr', text: c.text, more: c.more });   // nbformat 3: "stream"
             continue;
           }
           if (ot === 'error' || ot === 'pyerr') {
@@ -7170,6 +7198,27 @@ window.DB.DBF_CODEPAGES = {
   const MAX_DEPTH = 32;            // nesting of the schema and of the values
   const MAX_ITEMS = 10000000;      // items of one array or map
   const MAX_BLOCK = 1024 * 1024 * 1024;
+  const FILE_ITEMS = 5000000;      // items of all arrays and maps of a file
+  const FILE_BYTES = 1024 * 1024 * 1024;   // bytes decompressed for a whole file
+
+  /* A streaming decoder (fflate's Inflate, fzstd's Decompress) with a running limit: a small block cannot ask for gigabytes.
+   * budget: { bytes } shared by the blocks of one file. Also used by arrow.js for Zstandard. */
+  DB.decodeLimited = function (Ctor, bytes, budget, limit) {
+    const parts = [];
+    let size = 0;
+    const s = new Ctor((chunk) => {
+      size += chunk.length;
+      if ((budget ? (budget.bytes += chunk.length) : size) > (limit || FILE_BYTES)) throw new UserError('errTooLarge');
+      parts.push(chunk);
+    });
+    for (let i = 0; i < bytes.length; i += 1 << 20) s.push(bytes.subarray(i, Math.min(bytes.length, i + (1 << 20))), false);
+    s.push(new Uint8Array(0), true);
+    if (parts.length === 1) return parts[0];
+    const out = new Uint8Array(size);
+    let at = 0;
+    for (const p of parts) { out.set(p, at); at += p.length; }
+    return out;
+  };
 
   DB.isAvro = (u8) => u8.length >= 4 && u8[0] === 0x4f && u8[1] === 0x62 && u8[2] === 0x6a && u8[3] === 1;   // "Obj" 1
 
@@ -7221,6 +7270,8 @@ window.DB.DBF_CODEPAGES = {
       if (n < 0) { n = -n; const size = this.long(); if (typeof size !== 'number' || size < 0 || this.pos + size > this.u8.length) throw corrupt(); }
       total += n;
       if (total > MAX_ITEMS) throw corrupt();
+      // items of a zero-byte type (null, an empty record) cost no bytes: a budget for the whole file keeps them bounded
+      if (this.budget && (this.budget.items += n) > FILE_ITEMS) throw new UserError('errTooLarge');
       for (let i = 0; i < n; i++) each();
     }
   };
@@ -7230,13 +7281,16 @@ window.DB.DBF_CODEPAGES = {
   const hex = (b) => Array.from(b.subarray(0, 64), (x) => x.toString(16).padStart(2, '0')).join('') + (b.length > 64 ? '…' : '');
   function decimal(bytes, scale) {
     if (!bytes.length) return '0';
-    let v = 0n;
-    for (const x of bytes) v = (v << 8n) | BigInt(x);
+    if (bytes.length > 64) return '0x' + hex(bytes);                  // not a number anyone wrote (a decimal is at most 38 digits)
+    let v = BigInt('0x' + Array.from(bytes, (x) => x.toString(16).padStart(2, '0')).join(''));   // linear, unlike shifting byte by byte
     if (bytes[0] & 0x80) v -= 1n << BigInt(bytes.length * 8);     // two's complement, big-endian
     return scaled(v, scale);
   }
-  /* an integer of the smallest unit, written with its decimal point: 1990n, 2 -> "19.90" */
+  /* an integer of the smallest unit, written with its decimal point: 1990n, 2 -> "19.90"; a negative scale adds zeros */
   function scaled(v, scale) {
+    if (typeof v !== 'bigint') v = BigInt(Math.trunc(Number(v)) || 0);
+    scale = Math.max(-100, Math.min(1000, scale | 0));
+    if (scale < 0) v *= 10n ** BigInt(-scale);
     const neg = v < 0n;
     let s = (neg ? -v : v).toString();
     if (scale > 0) { s = s.padStart(scale + 1, '0'); s = s.slice(0, -scale) + '.' + s.slice(-scale); }
@@ -7456,21 +7510,23 @@ window.DB.DBF_CODEPAGES = {
   }
 
   /* ---------- the container ---------- */
-  function decompress(codec, data) {
+  function decompress(codec, data, budget) {
     switch (codec) {
       case 'null': return data;
-      case 'deflate': return window.fflate.inflateSync(data);
+      case 'deflate': return DB.decodeLimited(window.fflate.Inflate, data, budget);
       case 'snappy': {
         if (data.length < 4) throw corrupt();
         const input = data.subarray(0, data.length - 4);              // 4 bytes of CRC32 at the end
         let len = 0, mul = 1, i = 0, b;
         do { if (i >= input.length || i > 5) throw corrupt(); b = input[i++]; len += (b & 0x7f) * mul; mul *= 128; } while (b & 0x80);
-        if (len > MAX_BLOCK) throw new UserError('errTooLarge');
+        // snappy cannot expand more than about 22 times (a 3-byte copy of 64 bytes): a larger size is a lie
+        if (len > input.length * 22 + 64) throw corrupt();
+        if (len > MAX_BLOCK || (budget.bytes += len) > FILE_BYTES) throw new UserError('errTooLarge');
         const out = new Uint8Array(len);
         window.hyparquet.snappyUncompress(input, out);
         return out;
       }
-      case 'zstandard': return window.fzstd.decompress(data);
+      case 'zstandard': return DB.decodeLimited(window.fzstd.Decompress, data, budget);
       default: throw new UserError('errCodecAvro', {}, 'Avro codec ' + codec);
     }
   }
@@ -7494,6 +7550,7 @@ window.DB.DBF_CODEPAGES = {
     const width = P.cols.length;
     const rows = [];
     let total = 0, blocks = 0, cut = false;
+    const budget = { bytes: 0, items: 0 };          // decompressed bytes and array items for the whole file
     while (r.pos < u8.length) {
       const count = r.long(), size = r.long();
       if (typeof count !== 'number' || typeof size !== 'number' || count < 0 || size < 0 || r.pos + size + 16 > u8.length) { cut = true; break; }
@@ -7505,9 +7562,10 @@ window.DB.DBF_CODEPAGES = {
       blocks++;
       if (rows.length < maxRows) {
         let raw;
-        try { raw = decompress(codec, data); } catch (e) { if (e instanceof UserError && e.key !== 'errCorrupt') throw e; cut = true; break; }
+        try { raw = decompress(codec, data, budget); } catch (e) { if (e instanceof UserError && e.key !== 'errCorrupt') throw e; cut = true; break; }
         const br = new Reader(raw);
         br.depth = 0;
+        br.budget = budget;
         let n = 0;
         try {
           for (; n < count && rows.length < maxRows; n++) {
@@ -7563,7 +7621,7 @@ window.DB.DBF_CODEPAGES = {
 
   const s4 = (u8, a) => String.fromCharCode(u8[a], u8[a + 1], u8[a + 2], u8[a + 3]);
   DB.arrowKind = function (u8, ext) {
-    if (u8.length >= 12 && s4(u8, 0) === 'ARRO' && u8[4] === 0x57 && u8[5] === 0x31) return 'file';            // ARROW1
+    if (u8.length >= 12 && s4(u8, 0) === 'ARRO' && u8[4] === 0x57 && u8[5] === 0x31 && u8[6] === 0 && u8[7] === 0) return 'file';   // ARROW1, padded to 8
     if (u8.length >= 12 && s4(u8, 0) === 'FEA1' && s4(u8, u8.length - 4) === 'FEA1') return 'feather1';
     // a stream starts with a message: the continuation marker 0xFFFFFFFF, or (before Arrow 0.15) its length directly
     if (u8.length >= 8 && ['arrows', 'arrow', 'ipc', 'feather', 'stream'].includes(ext) &&
@@ -7636,7 +7694,7 @@ window.DB.DBF_CODEPAGES = {
     const id = t.typeId === T.Dictionary ? t.dictionary.typeId : t.typeId;
     const tt = t.typeId === T.Dictionary ? t.dictionary : t;
     switch (id) {
-      case T.Decimal: return typeof v === 'bigint' ? F.scaled(v, tt.scale) : DB.str(v);
+      case T.Decimal: return F.scaled(v, tt.scale);   // an integer of the smallest unit (a Number for decimal32)
       case T.Date: return tt.unit === 0 ? F.dateOf(Number(v)) : F.stampOf(v, 1).slice(0, 10);
       case T.Timestamp: return tt.unit === 0 ? F.stampOf(BigInt(v) * 1000n, 1) : F.stampOf(v, PER_MS[tt.unit]);
       case T.Time: return tt.unit === 0 ? F.timeOf(BigInt(v) * 1000n, 1) : F.timeOf(v, PER_MS[tt.unit]);
@@ -7651,22 +7709,27 @@ window.DB.DBF_CODEPAGES = {
 
   /* ---------- Arrow IPC (file or stream) with flechette ---------- */
   let codecs = false;
+  let budget = { bytes: 0 };            // bytes decompressed for the file being read (1 GB at most, all buffers together)
+  const FILE_BYTES = 1024 * 1024 * 1024, OUT_CHARS = 256 * 1024 * 1024;
   function registerCodecs() {
     if (codecs) return;
     const F = window.flechette;
     // flechette views 64-bit columns in place: the decompressed bytes must start on a multiple of 8 (a fresh buffer)
     const own = (out) => (out.byteOffset % 8 ? out.slice() : out);
-    F.setCompressionCodec(F.CompressionType.LZ4_FRAME, { decode: (b) => own(DB.lz4Frames(b)) });
-    F.setCompressionCodec(F.CompressionType.ZSTD, { decode: (b) => own(window.fzstd.decompress(b)) });
+    const count = (out) => { if ((budget.bytes += out.length) > FILE_BYTES) throw new UserError('errTooLarge'); return out; };
+    F.setCompressionCodec(F.CompressionType.LZ4_FRAME, { decode: (b) => own(count(DB.lz4Frames(b))) });
+    F.setCompressionCodec(F.CompressionType.ZSTD, { decode: (b) => own(DB.decodeLimited(window.fzstd.Decompress, b, budget, FILE_BYTES)) });
     codecs = true;
   }
   function parseIpc(u8, maxRows) {
     const F = window.flechette;
     registerCodecs();
+    budget = { bytes: 0 };
     let table;
     try {
       table = F.tableFromIPC(u8, { useBigInt: true, useDecimalInt: true, useDate: false, useMap: true });
     } catch (e) {
+      if (e instanceof UserError) throw e;
       if (e && e.tooLarge) throw new UserError('errTooLarge');
       if (/codec/i.test(String(e && e.message))) throw new UserError('errCodecArrow', {}, String(e.message));
       throw new UserError('errCorrupt', { ext: EXT }, String(e && e.message || e).slice(0, 200));
@@ -7711,8 +7774,16 @@ window.DB.DBF_CODEPAGES = {
     const n = table.numRows;
     const take = Math.min(n, maxRows);
     const rows = new Array(take);
+    // the text produced has a budget too: views (string, binary or list views) may all point at the same large region
+    let chars = 0, got = take;
     try {
-      for (let r = 0; r < take; r++) rows[r] = cols.map((c) => cell(c.get(r), c.field.type));
+      for (let r = 0; r < take; r++) {
+        const row = cols.map((c) => cell(c.get(r), c.field.type));
+        for (const v of row) chars += v.length;
+        rows[r] = row;
+        if (chars > OUT_CHARS) { got = r + 1; break; }
+      }
+      rows.length = got;
     } catch (e) {
       if (e instanceof UserError) throw e;
       if (e && e.tooLarge) throw new UserError('errTooLarge');
@@ -7798,10 +7869,11 @@ window.DB.DBF_CODEPAGES = {
         get = (i) => { const k = values.get(i); if (k === null) return null; const kk = Number(k); if (kk < 0 || kk >= levels.len) throw bad(); return levels.get(kk); };
       } else if (mt === 2 && md) {                  // a timestamp: its unit and time zone
         const unit = md.u8(0, 0), tz = md.str(1);
+        if (unit > 3) throw bad();
         type = 'timestamp[' + UNIT[unit] + (tz ? ', ' + tz : '') + ']' + (tz ? ' (values in UTC)' : '');
         fmt = (v) => (v === null ? '' : unit === 0 ? DB.cellFmt.stampOf(BigInt(v) * 1000n, 1) : DB.cellFmt.stampOf(v, PER_MS[unit]));
       } else if (mt === 3) { type = 'date'; fmt = (v) => (v === null ? '' : DB.cellFmt.dateOf(Number(v))); }
-      else if (mt === 4 && md) { const unit = md.u8(0, 0); type = 'time[' + UNIT[unit] + ']'; fmt = (v) => (v === null ? '' : unit === 0 ? DB.cellFmt.timeOf(BigInt(v) * 1000n, 1) : DB.cellFmt.timeOf(v, PER_MS[unit])); }
+      else if (mt === 4 && md) { const unit = md.u8(0, 0); if (unit > 3) throw bad(); type = 'time[' + UNIT[unit] + ']'; fmt = (v) => (v === null ? '' : unit === 0 ? DB.cellFmt.timeOf(BigInt(v) * 1000n, 1) : DB.cellFmt.timeOf(v, PER_MS[unit])); }
       if (values.len !== nrows) throw bad();
       columns.push({ name, meta: { arrowType: type, arrowTypeAnon: type } });
       getters.push((i) => fmt(get(i)));
@@ -7909,12 +7981,27 @@ window.DB.DBF_CODEPAGES = {
       if (++nodes > MAX_NODES) throw new UserError('errTooLarge');
       // attributes and namespace declarations
       const raw = [];
-      const re = /([^\s=/]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
-      re.lastIndex = m[0].length;
-      let am;
       let ns = top.ns;
-      while ((am = re.exec(body))) {
-        const name = am[1], val = unescape(am[2] !== undefined ? am[2] : am[3]);
+      // name="value" pairs, scanned by hand (a regex backtracks quadratically on a long token without "=")
+      const L = body.length;
+      const space = (ch) => ch === ' ' || ch === '\n' || ch === '\t' || ch === '\r';
+      let p = m[0].length;
+      while (p < L) {
+        while (p < L && space(body[p])) p++;
+        const s0 = p;
+        while (p < L && body[p] !== '=' && !space(body[p])) p++;
+        const name = body.slice(s0, p);
+        while (p < L && space(body[p])) p++;
+        if (body[p] !== '=') { if (p === s0) p++; continue; }
+        p++;
+        while (p < L && space(body[p])) p++;
+        const quote = body[p];
+        if (quote !== '"' && quote !== "'") { while (p < L && !space(body[p])) p++; continue; }
+        const e = body.indexOf(quote, p + 1);
+        if (e < 0) break;
+        const val = unescape(body.slice(p + 1, e));
+        p = e + 1;
+        if (!name || name.includes('/')) continue;
         if (name === 'xmlns' || name.startsWith('xmlns:')) {
           if (ns === top.ns) ns = Object.assign({}, top.ns);
           ns[name === 'xmlns' ? '' : name.slice(6)] = NS[val] || (name === 'xmlns' ? '' : name.slice(6));
@@ -7941,48 +8028,58 @@ window.DB.DBF_CODEPAGES = {
   }
   function textOf(el) {                                                  // all the text under el
     let s = '';
-    const walk = (e, d) => { if (d > MAX_DEPTH) return; for (const x of e.c) s += typeof x === 'string' ? x : walk(x, d + 1) || ''; };
+    const walk = (e, d) => { if (d > MAX_DEPTH) return; for (const x of e.c) { if (typeof x === 'string') s += x; else walk(x, d + 1); } };
     walk(el, 0);
     return s;
   }
   const clean = (s) => s.split('\n').map((l) => l.replace(/[ \t ]+/g, ' ').trim()).join('\n').replace(/\n{3,}/g, '\n\n').trim();
 
   /* ---------- tables: rows of cells { text, cs, rs, cont } -> a section ---------- */
-  function tableSection(rows, name, headerRows) {
+  /* headerRows: header rows the file marks; firm: false when the mark only styles the row (PowerPoint's "firstRow"), so the
+   * header is a guess (a guessed header over text columns may be a record: "Do not share data" then uses neutral names).
+   * Spans and repeats multiply cells: a table has a budget of cells and columns; rows past it are left out and counted. */
+  const TABLE_CELLS = 2000000, TABLE_COLS = 10000;
+  function tableSection(rows, name, headerRows, firm) {
     // the grid: spans repeated in every cell they cover; a "continue" cell (Word's vMerge) repeats the cell above
     const grid = [];
-    let spans = false;
-    rows.forEach((row, r) => {
+    let spans = false, cells = 0, last = rows.length;
+    for (let r = 0; r < rows.length && r < last; r++) {
       grid[r] = grid[r] || [];
       let c = 0;
-      for (const cell of row) {
+      for (const cell of rows[r]) {
         while (grid[r][c] !== undefined) c++;
-        const cs = Math.min(Math.max(cell.cs || 1, 1), 1000), rs = Math.min(Math.max(cell.rs || 1, 1), 1000);
+        if (c >= TABLE_COLS) break;
+        const cs = Math.min(Math.max(cell.cs || 1, 1), 1000, TABLE_COLS - c), rs = Math.min(Math.max(cell.rs || 1, 1), 1000);
         if (cs > 1 || rs > 1 || cell.cont) spans = true;
         const v = cell.cont && r > 0 && grid[r - 1][c] !== undefined ? grid[r - 1][c] : cell.text;
-        for (let a = 0; a < rs && r + a < rows.length; a++) { grid[r + a] = grid[r + a] || []; for (let b = 0; b < cs && c + b < 10000; b++) grid[r + a][c + b] = v; }
+        for (let a = 0; a < rs && r + a < last; a++) { grid[r + a] = grid[r + a] || []; for (let b = 0; b < cs; b++) grid[r + a][c + b] = v; cells += cs; }
         c += cs;
+        if (cells > TABLE_CELLS) { last = r + 1; break; }
       }
-    });
-    for (const g of grid) for (let k = 0; k < g.length; k++) if (g[k] === undefined) g[k] = '';
+    }
+    grid.length = Math.min(grid.length, last);
+    for (let r = 0; r < grid.length; r++) { const g = grid[r] = grid[r] || []; for (let k = 0; k < g.length; k++) if (g[k] === undefined) g[k] = ''; }
     // the header: rows the file marks as header; else a first row that spans columns above a second row that names them
-    let h = headerRows || 0;
-    if (h <= 1 && rows.length > 2 && rows[0].some((c) => (c.cs || 1) > 1) && !rows[1].some((c) => (c.cs || 1) > 1)) {
+    let h = headerRows || 0, guessed = !!h && !firm;
+    if (h <= 1 && grid.length > 2 && rows[0].some((c) => (c.cs || 1) > 1) && !rows[1].some((c) => (c.cs || 1) > 1)) {
       const first = grid[0], second = grid[1];
       let named = true;
       for (let k = 0; k < first.length; k++) if (k > 0 && first[k] === first[k - 1] && first[k] && !second[k]) named = false;
-      if (named) h = 2;
+      if (named) { h = 2; guessed = true; }
     }
     let sec;
     if (h > 0 && grid.length > h) {
-      const width = Math.max(...grid.map((g) => g.length));
+      let width = 0;
+      for (const g of grid) if (g.length > width) width = g.length;
       const header = new Array(width).fill(0).map((_, k) => {
         const parts = [];
         for (let r = 0; r < h; r++) { const v = (grid[r] && grid[r][k]) || ''; if (v && parts[parts.length - 1] !== v) parts.push(v); }
         return parts.join(' / ').replace(/\s*\n\s*/g, ' ');
       });
       sec = DB.gridToSection(grid.slice(h), name, { headerRow: header });
+      if (guessed) sec.headerGuessed = true;
     } else sec = DB.gridToSection(grid, name);
+    if (rows.length > grid.length) sec.rowsTotal = sec.rows.length + (rows.length - grid.length);
     return { sec, spans };
   }
 
@@ -8088,11 +8185,11 @@ window.DB.DBF_CODEPAGES = {
     c.push = (item) => { if (c.items.length < MAX_ITEMS) c.items.push(item); else c.cut++; };
     return c;
   }
-  function addTable(state, rows, headerRows, name) {
+  function addTable(state, rows, headerRows, name, firm) {
     if (!rows.length || !rows.some((r) => r.length)) return -1;
     state.contents.counts.tables++;
     if (state.sections.length >= MAX_TABLES) return -2;
-    const t = tableSection(rows, name || 'table_' + (state.sections.length + 1), headerRows);
+    const t = tableSection(rows, name || 'table_' + (state.sections.length + 1), headerRows, firm);
     if (t.spans) state.notes.spans = true;
     if (!t.sec.columns.length) return -1;
     let nm = t.sec.name, k = 2;
@@ -8103,7 +8200,9 @@ window.DB.DBF_CODEPAGES = {
   }
 
   /* ---------- Word ---------- */
-  function docxText(el, d) {                                              // the text of a paragraph or cell, runs and breaks
+  /* The text of a paragraph or a cell: runs and breaks. A table met inside a paragraph (in a text box) holds records, not
+   * free text: it is left out of the paragraph (inside a cell, a nested table stays part of that cell's value). */
+  function docxText(el, d, inCell) {
     let s = '';
     if (d > MAX_DEPTH) return s;
     for (const x of el.c) {
@@ -8114,19 +8213,28 @@ window.DB.DBF_CODEPAGES = {
         case 'w:br': case 'w:cr': s += '\n'; break;
         case 'w:noBreakHyphen': s += '-'; break;
         case 'w:del': case 'w:delText': case 'w:instrText': case 'w:rPr': case 'w:pPr': case 'w:tcPr': case 'mc:Fallback': case 'w:footnoteReference': case 'w:commentReference': break;
-        case 'w:p': s += (s && !s.endsWith('\n') ? '\n' : '') + docxText(x, d + 1); break;
-        case 'w:tbl': s += (s ? '\n' : '') + kids(x, 'w:tr').map((tr) => kids(tr, 'w:tc').map((tc) => clean(docxText(tc, d + 1))).join(' | ')).join('\n'); break;
-        default: s += docxText(x, d + 1);
+        case 'w:p': s += (s && !s.endsWith('\n') ? '\n' : '') + docxText(x, d + 1, inCell); break;
+        case 'w:tbl':
+          if (inCell) s += (s ? '\n' : '') + kids(x, 'w:tr').map((tr) => kids(tr, 'w:tc').map((tc) => clean(docxText(tc, d + 1, true))).join(' | ')).join('\n');
+          break;
+        default: s += docxText(x, d + 1, inCell);
       }
     }
     return s;
+  }
+  /* the rows of a Word table, also those inside content controls (a repeating section) */
+  function docxRows(tbl) {
+    const out = [];
+    const collect = (p, d) => { for (const x of kids(p)) { if (x.n === 'w:tr') out.push(x); else if (d < 8 && ['w:sdt', 'w:sdtContent', 'w:customXml'].includes(x.n)) collect(x, d + 1); } };
+    collect(tbl, 0);
+    return out;
   }
   function parseDocx(files, state) {
     const doc = DB.xmlTree(text(files, 'word/document.xml'), '.docx');
     const body = find(doc, 'w:body');
     if (!body) throw corrupt('.docx');
     // heading levels from the styles (ids are translated in localised Word: "Titre1"), or the outline level
-    const levels = {};
+    const levels = new Map();
     const st = text(files, 'word/styles.xml');
     if (st) {
       for (const s of kids(DB.xmlTree(st), 'w:style')) {
@@ -8136,7 +8244,7 @@ window.DB.DBF_CODEPAGES = {
         let lv = 0;
         const m = /^heading (\d)$/i.exec(nm);
         if (m) lv = +m[1]; else if (/^title$/i.test(nm)) lv = 1; else if (ol && /^\d$/.test(ol.a['w:val'])) lv = +ol.a['w:val'] + 1;
-        if (id && lv) levels[id] = Math.min(lv, 9);
+        if (id && lv) levels.set(id, Math.min(lv, 9));
       }
     }
     const c = state.contents;
@@ -8147,7 +8255,8 @@ window.DB.DBF_CODEPAGES = {
           const ppr = kid(el, 'w:pPr');
           const style = ppr && kid(ppr, 'w:pStyle') ? ppr ? kid(ppr, 'w:pStyle').a['w:val'] : '' : '';
           const ol = ppr && kid(ppr, 'w:outlineLvl');
-          const level = levels[style] || (/^Heading(\d)$/.test(style) ? +RegExp.$1 : style === 'Title' ? 1 : 0) || (ol && /^\d$/.test(ol.a['w:val']) ? +ol.a['w:val'] + 1 : 0);
+          const hm = /^Heading(\d)$/.exec(style || '');
+          const level = levels.get(style) || (hm ? +hm[1] : style === 'Title' ? 1 : 0) || (ol && /^\d$/.test(ol.a['w:val']) ? +ol.a['w:val'] + 1 : 0);
           const s = c.take(docxText(el, 0));
           if (s === null) continue;
           if (level) { c.counts.headings++; c.push({ k: 'h', level, text: s }); }
@@ -8155,19 +8264,25 @@ window.DB.DBF_CODEPAGES = {
         } else if (el.n === 'w:tbl') {
           const rows = [];
           let headerRows = 0, inHeader = true;
-          for (const tr of kids(el, 'w:tr')) {
+          for (const tr of docxRows(el)) {
             const trPr = kid(tr, 'w:trPr');
             if (inHeader && trPr && kid(trPr, 'w:tblHeader') && (kid(trPr, 'w:tblHeader').a['w:val'] || 'true') !== 'false' && kid(trPr, 'w:tblHeader').a['w:val'] !== '0') headerRows++;
             else inHeader = false;
-            rows.push(kids(tr).filter((x) => x.n === 'w:tc' || x.n === 'w:sdt').map((tc) => {
+            const cells = kids(tr).filter((x) => x.n === 'w:tc' || x.n === 'w:sdt').map((tc) => {
               const cell = tc.n === 'w:sdt' ? find(tc, 'w:tc') || tc : tc;
               const pr = kid(cell, 'w:tcPr');
               const span = pr && kid(pr, 'w:gridSpan') ? parseInt(kid(pr, 'w:gridSpan').a['w:val'], 10) || 1 : 1;
               const vm = pr && kid(pr, 'w:vMerge');
-              return { text: clean(docxText(cell, 0)), cs: span, cont: !!vm && (vm.a['w:val'] || 'continue') === 'continue' };
-            }));
+              return { text: clean(docxText(cell, 0, true)), cs: span, cont: !!vm && (vm.a['w:val'] || 'continue') === 'continue' };
+            });
+            // a row that starts or ends later in the grid (an indented row): its empty grid columns keep the cells in place
+            const gb = trPr && kid(trPr, 'w:gridBefore'), ga = trPr && kid(trPr, 'w:gridAfter');
+            const nb = gb ? Math.min(parseInt(gb.a['w:val'], 10) || 0, 1000) : 0, na = ga ? Math.min(parseInt(ga.a['w:val'], 10) || 0, 1000) : 0;
+            if (nb > 0) cells.unshift({ text: '', cs: nb });
+            if (na > 0) cells.push({ text: '', cs: na });
+            rows.push(cells);
           }
-          const sec = addTable(state, rows, headerRows);
+          const sec = addTable(state, rows, headerRows, '', true);
           if (sec !== -1) c.push({ k: 'table', sec });
         } else if (el.n === 'w:sdt') walk(kid(el, 'w:sdtContent') || el, d + 1);
         else if (el.n === 'mc:AlternateContent') walk(kid(el, 'mc:Choice') || el, d + 1);
@@ -8262,7 +8377,9 @@ window.DB.DBF_CODEPAGES = {
   }
 
   /* ---------- OpenDocument ---------- */
-  function odfText(el, d) {
+  /* The text of a paragraph or a cell. A table in a frame anchored in a paragraph holds records, not free text: left out of
+   * the paragraph (inside a cell it stays part of the cell's value). */
+  function odfText(el, d, inCell) {
     let s = '';
     if (d > MAX_DEPTH) return s;
     for (const x of el.c) {
@@ -8272,29 +8389,33 @@ window.DB.DBF_CODEPAGES = {
         case 'text:tab': s += '\t'; break;
         case 'text:line-break': s += '\n'; break;
         case 'text:note': case 'office:annotation': case 'text:bookmark-ref': break;
-        case 'text:p': case 'text:h': case 'text:list-item': s += (s && !s.endsWith('\n') ? '\n' : '') + odfText(x, d + 1); break;
-        default: s += odfText(x, d + 1);
+        case 'table:table': if (inCell) s += (s ? '\n' : '') + odfText(x, d + 1, true); break;
+        case 'text:p': case 'text:h': case 'text:list-item': s += (s && !s.endsWith('\n') ? '\n' : '') + odfText(x, d + 1, inCell); break;
+        default: s += odfText(x, d + 1, inCell);
       }
     }
     return s;
   }
+  const ODF_ROWS = 1000000;            // rows of one table, repeats included
   function odfTable(tbl) {
     const rows = [];
     let headerRows = 0;
     const addRow = (tr, header) => {
+      if (rows.length >= ODF_ROWS) return;
       const reps = Math.min(parseInt(tr.a['table:number-rows-repeated'], 10) || 1, 1000);
       const cells = [];
       for (const tc of kids(tr)) {
         if (tc.n !== 'table:table-cell' && tc.n !== 'table:covered-table-cell') continue;
         const crep = Math.min(parseInt(tc.a['table:number-columns-repeated'], 10) || 1, 1000);
-        for (let k = 0; k < crep && cells.length < 10000; k++) {
-          if (tc.n === 'table:covered-table-cell') cells.push({ covered: true });
-          else cells.push({ text: clean(odfText(tc, 0)), cs: parseInt(tc.a['table:number-columns-spanned'], 10) || 1, rs: parseInt(tc.a['table:number-rows-spanned'], 10) || 1 });
-        }
+        const cell = tc.n === 'table:covered-table-cell' ? { covered: true }
+          : { text: clean(odfText(tc, 0, true)), cs: parseInt(tc.a['table:number-columns-spanned'], 10) || 1, rs: parseInt(tc.a['table:number-rows-spanned'], 10) || 1 };
+        for (let k = 0; k < crep && cells.length < 10000; k++) cells.push(cell);   // one object for every repeat
       }
-      // repeated empty rows at the end are layout, not data
-      const empty = cells.every((x) => x.covered || !x.text);
-      for (let k = 0; k < (empty ? Math.min(reps, 1) : reps); k++) { rows.push(cells.filter((x) => !x.covered)); if (header) headerRows++; }
+      // empty cells at the end of a row, and repeated empty rows, are layout, not data
+      while (cells.length && (cells[cells.length - 1].covered || !cells[cells.length - 1].text) && (cells[cells.length - 1].cs || 1) === 1) cells.pop();
+      const kept = cells.filter((x) => !x.covered);
+      const n = !kept.some((x) => x.text) ? Math.min(reps, 1) : Math.min(reps, ODF_ROWS - rows.length);
+      for (let k = 0; k < n; k++) { rows.push(kept); if (header) headerRows++; }
     };
     const walk = (el, header, d) => {
       if (d > 8) return;
@@ -8322,7 +8443,7 @@ window.DB.DBF_CODEPAGES = {
           else { c.counts.paragraphs++; c.push({ k: 'p', text: s, list }); }
         } else if (el.n === 'table:table') {
           const t = odfTable(el);
-          const sec = addTable(state, t.rows, t.header, el.a['table:name'] && !/^Table\d+$/.test(el.a['table:name']) ? one(el.a['table:name']).slice(0, 80) : '');
+          const sec = addTable(state, t.rows, t.header, el.a['table:name'] && !/^Table\d+$/.test(el.a['table:name']) ? one(el.a['table:name']).slice(0, 80) : '', true);
           if (sec !== -1) c.push({ k: 'table', sec });
         } else if (el.n === 'text:list' || el.n === 'text:list-item' || el.n === 'text:list-header') walk(el, d + 1, true);
         else if (['text:section', 'text:soft-page-break', 'text:index-body', 'text:table-of-content'].includes(el.n)) walk(el, d + 1, list);
@@ -8350,7 +8471,7 @@ window.DB.DBF_CODEPAGES = {
           if (tbl) {
             const t = odfTable(tbl);
             ti++;
-            const sec = addTable(state, t.rows, t.header, 'slide' + n + '_table' + ti);
+            const sec = addTable(state, t.rows, t.header, 'slide' + n + '_table' + ti, true);
             if (sec !== -1) slide.tables.push(sec);
             continue;
           }
@@ -8409,9 +8530,13 @@ window.DB.DBF_CODEPAGES = {
   const UserError = DB.UserError;
   const MAX_PAGES = 500, MAX_TABLES = 500, ITEM_CHARS = 4000, CONTENT_BUDGET = 200000, MAX_ITEMS_PAGE = 100000;
 
-  DB.isPdf = (u8) => {
+  /* The PDF signature: at the start; further in (readers accept up to 1 KB of junk before it) only for a file named .pdf or
+   * when what comes before it is binary: a CSV or a text that merely mentions "%PDF-" stays what it is. */
+  DB.isPdf = (u8, ext) => {
     const head = String.fromCharCode.apply(null, u8.subarray(0, Math.min(u8.length, 1024)));
-    return head.indexOf('%PDF-') >= 0;
+    const at = head.indexOf('%PDF-');
+    if (at <= 0) return at === 0;
+    return ext === 'pdf' || /[\x00-\x08\x0e-\x1f]/.test(head.slice(0, at));
   };
   DB.pdfAvailable = () => !!(window.pdfjsLib && window.pdfjsLib.getDocument);
 
@@ -8419,7 +8544,8 @@ window.DB.DBF_CODEPAGES = {
   function joinPieces(pieces) {                                           // pieces of one cell, left to right
     let s = '', end = null;
     for (const p of pieces) {
-      if (s && end !== null && !/\s$/.test(s) && !/^\s/.test(p.str) && p.x - end > p.h * 0.15) s += ' ';
+      const lastCh = s.charCodeAt(s.length - 1), firstCh = p.str.charCodeAt(0);
+      if (s && end !== null && lastCh !== 32 && lastCh !== 9 && firstCh !== 32 && firstCh !== 9 && p.x - end > p.h * 0.15) s += ' ';
       s += p.str;
       end = p.x + p.w;
     }
@@ -8476,6 +8602,7 @@ window.DB.DBF_CODEPAGES = {
       // columns: the cells of the fullest line. A line of several cells is a row only when its cells line up with them (by
       // their left edge, right edge or centre): the words of a justified paragraph do not
       const widest = block.filter((l) => l.cells.length >= 2).reduce((a, l) => (l.cells.length > a.cells.length ? l : a), block[0]);
+      if (widest.cells.length > 200) continue;                            // not a table anyone reads (and costly to lay out)
       const anchors = widest.cells.map((c) => c.x);
       const tol = Math.max(widest.h * 0.8, 3);
       const lines = (() => {
@@ -8501,14 +8628,25 @@ window.DB.DBF_CODEPAGES = {
         for (let a = 0; a < anchors.length; a++) if (c.x >= anchors[a] - tol) k = a;
         return k;
       };
+      // the usual distance between two rows (from one line of several cells to the next)
+      const gaps = [];
+      for (let g = 1; g < full.length; g++) gaps.push(full[g - 1].y - full[g].y);
+      gaps.sort((a, b) => a - b);
+      const pitch = gaps.length ? gaps[Math.floor(gaps.length / 2)] : 0;
+      const isNumber = (s) => /\d/.test(s) && /^[-+(]?[\d\s.,'%€$£¥)]+$/.test(s);
       const rows = [];
+      let prevY = null;
       for (const l of lines) {
         const row = new Array(anchors.length).fill('');
         let firstCol = Infinity;
         for (const c of l.cells) { const k = colOf(c); firstCol = Math.min(firstCol, k); row[k] = row[k] ? row[k] + ' ' + c.text : c.text; }
-        // a line that leaves the first column empty and has fewer cells than columns: text wrapping inside the row above
-        // (joined with a space: in a PDF a wrapped line and a line break written by people look the same)
-        if (rows.length && firstCol > 0 && l.cells.length < anchors.length) {
+        // a line that leaves the first column empty, has fewer cells than columns, holds no number and sits closer than the
+        // usual row distance: text wrapping inside the row above (joined with a space: in a PDF a wrapped line and a line
+        // break written by people look the same). Otherwise a row of its own: a grouped report ("| Bergen | 20" under
+        // "North | Oslo | 10") keeps its rows.
+        const close = prevY === null || !pitch || prevY - l.y < pitch * 0.9;
+        prevY = l.y;
+        if (rows.length && firstCol > 0 && l.cells.length < anchors.length && close && !l.cells.some((c) => isNumber(c.text))) {
           const last = rows[rows.length - 1];
           for (let k = 0; k < anchors.length; k++) if (row[k]) last[k] = last[k] ? last[k] + ' ' + row[k] : row[k];
         } else rows.push(row);
@@ -10245,12 +10383,12 @@ window.DB.DBF_CODEPAGES = {
   const extOf = (name) => { const m = /\.([^.]+)$/.exec(name || ''); return m ? m[1].toLowerCase() : ''; };
   const baseOf = (name) => (name || 'data').replace(/\.[^.]+$/, '') || 'data';
 
-  function sniff(u8) {
+  function sniff(u8, ext) {
     const s = (a, b) => String.fromCharCode.apply(null, u8.subarray(a, b));
     if (u8.length >= 16 && s(0, 15) === 'SQLite format 3') return 'sqlite';
     if (u8.length >= 4 && s(0, 4) === 'PAR1') return 'parquet';
     if (DB.isAvro && DB.isAvro(u8)) return 'avro';
-    if (DB.pdfAvailable && DB.pdfAvailable() && u8.length >= 8 && DB.isPdf(u8)) return 'pdf';
+    if (DB.pdfAvailable && DB.pdfAvailable() && u8.length >= 8 && DB.isPdf(u8, ext)) return 'pdf';
     if (DB.arrowKind && ['file', 'feather1'].includes(DB.arrowKind(u8, ''))) return 'arrow';
     if (u8.length >= 4 && (s(0, 4) === '$FL2' || s(0, 4) === '$FL3')) return 'sav';
     if (u8.length >= 8 && u8[0] === 0xd0 && u8[1] === 0xcf && u8[2] === 0x11 && u8[3] === 0xe0) return 'xls';
@@ -10965,14 +11103,14 @@ window.DB.DBF_CODEPAGES = {
   }
 
   /* ---------- files DataBrief recognises but cannot read: a clear message, with what to do instead ---------- */
-  function knownKind(u8) {
+  function knownKind(u8, ext) {
     const s = (a, b) => String.fromCharCode.apply(null, u8.subarray(a, b));
     const binary = u8.subarray(0, 512).includes(0);   // a text file that merely starts with the same letters is not one of these
     if (u8.length >= 12 && s(8, 12) === 'DUCK' && binary) return 'Duckdb';
     if (u8.length >= 8 && u8[0] === 0x89 && s(1, 4) === 'HDF' && u8[4] === 0x0d && u8[5] === 0x0a && u8[6] === 0x1a && u8[7] === 0x0a) return 'Hdf5';
     if (u8.length >= 8 && s(0, 3) === 'ORC' && binary) return 'Orc';
     // a PDF is read when the page has pdf.js; the page built for the ESP32 has none: the message says what to do instead
-    if (u8.length >= 8 && s(0, 5) === '%PDF-' && !(DB.pdfAvailable && DB.pdfAvailable())) return 'Pdf';
+    if (u8.length >= 8 && (DB.isPdf ? DB.isPdf(u8, ext) : s(0, 5) === '%PDF-') && !(DB.pdfAvailable && DB.pdfAvailable())) return 'Pdf';
     if (u8.length >= 64 && s(0, 4) === 'TAPE' && binary) return 'MssqlBak';
     if (u8.length >= 64 && /EXPORT:V\d/.test(s(0, 64)) && binary) return 'OracleDmp';
     return null;
@@ -11013,9 +11151,9 @@ window.DB.DBF_CODEPAGES = {
   DB.parseFile = async function (buf, fileName, depth) {
     const u8 = new Uint8Array(buf);
     let ext = extOf(fileName);
-    const known = knownKind(u8);
+    const known = knownKind(u8, ext);
     if (known) throw new UserError('errKind' + known);
-    const magic = sniff(u8);
+    const magic = sniff(u8, ext);
     if (magic === 'gzip') return parseGzip(u8, fileName, depth || 0);
     let kind;
     if (magic === 'zip') {
@@ -11672,7 +11810,8 @@ window.DB.DBF_CODEPAGES = {
     // Neutral names when the real ones are not to be shared, and for names that may be data themselves:
     // a guessed header over all-text columns (maybe the first record), keys of JSON / XML / YAML that look like
     // values (an e-mail, a number, an identifier, a date), a section named after the file, a table named by its caption.
-    const TREE = ['json', 'ndjson', 'yaml', 'xml'].includes(ns.formatKey);
+    // (GeoJSON properties are flattened JSON; notebook column names come from pivots and crosstabs, often values)
+    const TREE = ['json', 'ndjson', 'yaml', 'xml', 'geojson', 'ipynb'].includes(ns.formatKey);
     const looksLikeValue = (seg) => /@|^\d+$|^[0-9a-f]{8}-[0-9a-f]{4}-|^\d{4}-\d{2}-\d{2}/i.test(seg) || seg.length > 40;
     let replacedAsData = false;
     const secMap = new Map(), colMap = new Map();
