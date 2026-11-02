@@ -1,0 +1,92 @@
+{
+  "_about": "What a reader must find in the v1.4 fixtures. Written BY HAND from tests/v14-fixtures/make_sources.py and tests/make_v14_fixtures.sh (the data given to the real tools), and checked against the files with independent tools (Python sqlite3, zipfile, pdf.js text positions) on 2026-11-02. NOT produced by any DataBrief reader: it is the oracle of the v1.4 tests.",
+  "avro": {
+    "files": ["customers-null.avro", "customers-deflate.avro", "customers-snappy.avro", "customers-zstandard.avro"],
+    "record": "shop.Customer",
+    "rows": 4,
+    "columns": ["id", "name", "country", "signup", "notes", "balance", "tags", "address", "prefs", "last_login"],
+    "types": { "id": "long", "country": "enum(PT, CN, FR, IE)", "signup": "date", "notes": "nullable string", "balance": "decimal(9,2)", "tags": "array<string>", "address": "record{city, zip}", "prefs": "map<boolean>", "last_login": "nullable timestamp-millis" },
+    "values": {
+      "row1": { "id": "1", "name": "Ana Lima", "country": "PT", "signup": "2023-01-05", "notes": "Prefers email, \"never\" calls", "balance": "10.50" },
+      "row2": { "name": "Bo Chen", "notes": "陈博\nsecond line", "balance": "21.00", "address.zip": null },
+      "row4": { "name": "Dmitri O'Brien", "notes": null, "balance": "42.00", "last_login": null }
+    },
+    "note": "the same records in every codec: a reader must give identical rows for the 4 files"
+  },
+  "arrow": {
+    "files": ["orders.arrow", "orders.arrows", "orders-v2-lz4.feather", "orders-v2-zstd.feather", "orders-v2-uncompressed.feather"],
+    "rows": 4,
+    "columns": ["id", "customer_id", "total", "status", "ordered_at", "items", "shipping", "note"],
+    "types": { "id": "int64", "customer_id": "int32", "total": "decimal128(9,2)", "status": "dictionary<string>", "ordered_at": "timestamp[ms, Europe/Paris]", "items": "list<string>", "shipping": "struct{carrier: string, days: int8}", "note": "large_string" },
+    "values": { "total": ["19.90", "5.00", "120.00", "42.42"], "status": ["paid", "refunded", "paid", "pending"], "note": ["ok", null, "陈", "x\ny"] },
+    "recordBatches": { "orders.arrow": 2 },
+    "schemaMetadata": { "source": "shop" },
+    "feather_v1": { "file": "orders-v1.feather", "rows": 4, "columns": ["id", "customer_id", "note"] }
+  },
+  "docx": {
+    "files": { "report.docx": "python-docx", "report-libreoffice.docx": "LibreOffice (from report.odt)" },
+    "headings": ["Quarterly report", "Customers"],
+    "tables": [
+      { "header": ["id", "name", "country", "signup", "notes"], "rows": 4, "cell": { "row": 2, "col": "notes", "value": "陈博\nsecond line" } },
+      { "header": ["id", "customer_id", "total", "status"], "rows": 4 },
+      { "note": "merged header: 'Quarter' spans the last two columns; first row Region | Quarter (merged), second row '' | Q1 | Q2, third North | 10 | 12" }
+    ],
+    "metadata": { "author": "Report author", "title": "Quarterly report" },
+    "informational": "headings and paragraphs are text, the 3 tables are the data"
+  },
+  "odt": { "files": ["report.odt"], "same": "docx", "writer": "LibreOffice" },
+  "pptx": {
+    "files": { "deck.pptx": "python-pptx", "deck-libreoffice.pptx": "LibreOffice (from deck.odp)" },
+    "slides": 3,
+    "slideTitles": ["Sales review", "Orders", "Summary"],
+    "tables": [ { "slide": 2, "header": ["id", "customer_id", "total", "status"], "rows": 4 } ],
+    "notes": { "slide": 2, "text": "Speaker notes: say hello" },
+    "metadata": { "author": "Deck author" }
+  },
+  "odp": { "files": ["deck.odp"], "same": "pptx", "writer": "LibreOffice" },
+  "pdf": {
+    "files": {
+      "report.pdf": "LibreOffice Writer: 1 page, the 3 tables of report.docx (cells that wrap become several text lines)",
+      "deck.pdf": "LibreOffice Impress: 3 pages, the orders table on page 2",
+      "orders-chrome.pdf": "Chrome (Skia/PDF): 1 page, one table of 4 rows"
+    },
+    "orders": { "header": ["id", "customer_id", "total", "status"], "rows": [["10", "1", "19.90", "paid"], ["11", "1", "5.00", "refunded"], ["12", "2", "120.00", "paid"], ["13", "4", "42.42", "pending"]] },
+    "note": "tables in a PDF are GUESSED from text positions: a reader must label them as such"
+  },
+  "ipynb": {
+    "file": "analysis.ipynb",
+    "kernelLanguage": "python 3.12",
+    "cells": 7,
+    "codeCells": 5,
+    "markdownCells": 2,
+    "dataFrames": [
+      { "cell": 1, "name": "customers", "columns": ["id", "name", "country", "signup", "notes"], "rows": 4 },
+      { "cell": 2, "name": "orders.head(2)", "columns": ["id", "customer_id", "total"], "rows": 2, "alsoPrinted": "4" },
+      { "cell": 4, "name": "big", "columns": ["n", "sq"], "shownRows": "pandas shortens the HTML", "trueRows": 300, "footer": "300 rows × 2 columns" }
+    ],
+    "plainTextOnly": { "cell": 3, "note": "a pandas Series (groupby sum): text/plain only, no HTML table" },
+    "errors": [ { "cell": 5, "name": "ZeroDivisionError" } ],
+    "neverRun": "a reader must never execute anything: only the stored outputs are read"
+  },
+  "geojson": {
+    "file": "places.geojson",
+    "features": 5,
+    "properties": ["id", "name", "category"],
+    "geometryTypes": ["Point", "LineString", "Polygon", "MultiPolygon", null],
+    "crs": "CRS84 (WGS 84 longitude/latitude)"
+  },
+  "gpkg": {
+    "file": "city.gpkg",
+    "layers": {
+      "places": { "kind": "features", "srs": "EPSG:4326", "rows": 5, "columns": ["fid", "geom", "id", "name", "category"] },
+      "places_lambert93": { "kind": "features", "srs": "EPSG:2154", "rows": 5, "columns": ["fid", "geom", "id", "name", "category"] },
+      "attributes_only": { "kind": "attributes (no geometry)", "rows": 5, "columns": ["fid", "id", "name", "category"] }
+    },
+    "note": "a GeoPackage is a SQLite file: the gpkg_* and rtree_* tables are its own machinery, not user data"
+  },
+  "canary": {
+    "files": ["CONFIDENTIAL_FILE_avro.avro", "CONFIDENTIAL_FILE_arrow.arrow", "CONFIDENTIAL_FILE_feather.feather", "CONFIDENTIAL_FILE_docx.docx", "CONFIDENTIAL_FILE_odt.odt", "CONFIDENTIAL_FILE_pptx.pptx", "CONFIDENTIAL_FILE_odp.odp", "CONFIDENTIAL_FILE_pdf.pdf", "CONFIDENTIAL_FILE_pdfslides.pdf", "CONFIDENTIAL_FILE_ipynb.ipynb", "CONFIDENTIAL_FILE_geojson.geojson", "CONFIDENTIAL_FILE_gpkg.gpkg"],
+    "markers": "CONFIDENTIAL_REC (records: never), CONFIDENTIAL_TEXT (titles, paragraphs, headings, notes, metadata, code, markdown: only when free text is allowed), CONFIDENTIAL_COL (names: only when names are shared), CONFIDENTIAL_FILE (the file name)",
+    "pdfFragments": "in PDFs a long marker can be cut where the cell wraps (CONFIDENTIAL_REC_ + 01, CONFIDENTIAL_TEXT_TITL + E): the no-share tests must look for the fragments CONFIDENTIAL_REC, CONFIDENTIAL_TEXT and CONFIDENTIAL_COL, not only whole markers"
+  }
+}
