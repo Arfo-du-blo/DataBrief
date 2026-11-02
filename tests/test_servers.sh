@@ -35,7 +35,7 @@ EOF
   check "$name: \"<\" escaped in the config block" 'grep -q "Line 2 \\\\u003cb>" page.html'
   check "$name: page is the full tool" '[ "$(stat -c %s page.html)" -gt 2000000 ]'
   local gz; gz="$(curl -s -H 'Accept-Encoding: gzip' -D - -o gz.bin "localhost:$port/db/")"
-  check "$name: gzip" 'echo "$gz" | grep -qi "content-encoding: gzip" && [ "$(stat -c %s gz.bin)" -lt 1500000 ] && gunzip -c gz.bin | cmp -s - page.html' "$gz"
+  check "$name: gzip" 'echo "$gz" | grep -qi "content-encoding: gzip" && [ "$(stat -c %s gz.bin)" -lt 2500000 ] && gunzip -c gz.bin | cmp -s - page.html' "$gz"
   check "$name: security headers" 'echo "$gz" | grep -qi "content-security-policy: frame-ancestors '"'"'self'"'"' https://example.sharepoint.com" && echo "$gz" | grep -qi "x-content-type-options: nosniff"' "$gz"
   check "$name: base path redirect" '[ "$(curl -s -o /dev/null -w "%{http_code} %{redirect_url}" "localhost:'"$port"'/db?lang=fr")" = "301 http://localhost:'"$port"'/db/?lang=fr" ]'
   check "$name: 404 elsewhere" '[ "$(curl -s -o /dev/null -w "%{http_code}" localhost:'"$port"'/etc/passwd)" = "404" ]'

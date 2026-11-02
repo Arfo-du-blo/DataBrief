@@ -43,7 +43,7 @@ try {
   Check 'powershell: "<" escaped in the config block' ($raw.Contains('Line 2 ' + [char]92 + 'u003cb') -and $raw.IndexOf([char]60) -lt 0) $raw
   Check 'powershell: page is the full tool' ($r.body.Length -gt 2000000)
   $g = Get-Raw 'http://127.0.0.1:18082/db/' @{ 'Accept-Encoding' = 'gzip' }
-  Check 'powershell: gzip' ($g.headers['Content-Encoding'] -eq 'gzip' -and $g.body.Length -lt 1500000)
+  Check 'powershell: gzip' ($g.headers['Content-Encoding'] -eq 'gzip' -and $g.body.Length -lt 2500000)
   Check 'powershell: security headers' ($g.headers['Content-Security-Policy'] -eq "frame-ancestors 'self'" -and $g.headers['X-Content-Type-Options'] -eq 'nosniff')
   $red = Get-Raw 'http://127.0.0.1:18082/db?lang=fr'
   Check 'powershell: base path redirect' ($red.code -eq 301 -and $red.headers['Location'] -eq '/db/?lang=fr') "$($red.code) $($red.headers['Location'])"
