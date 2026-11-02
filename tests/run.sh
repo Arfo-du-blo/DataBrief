@@ -29,8 +29,14 @@ echo
 echo "=== DBF reader (Node, real files of tests/dbf-fixtures)"
 node "$HERE/test_dbf.cjs" | grep -v '^PASS'
 echo
+echo "=== Command-line tool core (Node: the page's reading code in a realm, src/core.js, cli/dom-shim.js)"
+node "$HERE/test_core.cjs" | grep -v '^PASS'
+echo
 "$E/venv/bin/python" "$HERE/make_fixtures.py" "$E/fixtures"
 node "$HERE/run_tests.cjs" "$HERE/../databrief.html" "$E/fixtures" "$E/out"
+echo
+echo "=== Command-line tool against the page (Chrome): the same prompt for every file and setting"
+node "$HERE/test_cli_parity.cjs" "$HERE/../databrief.html" "$E/fixtures" | grep -v '^PASS'
 echo
 echo "=== Privacy demo (tampered copies)"
 node "$HERE/test_privacy_demo.cjs" "$HERE/.." "$E/venv/bin/python" "$E/fixtures/ventes.csv"
