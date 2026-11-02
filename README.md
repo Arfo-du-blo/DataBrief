@@ -638,6 +638,7 @@ how to export it, and its limits.
 | Legacy databases | **DBF** (dBase, FoxPro, Visual FoxPro, shapefile attribute tables; any code page) | [DBF](docs/formats/dbf.md) |
 | Geodata | **GeoJSON** (`.geojson`, or a `.json` holding GeoJSON) and **GeoPackage** (`.gpkg`: every layer); geometries summarised, coordinate systems | [Geodata](docs/formats/geodata.md) |
 | Notebooks | **Jupyter** (`.ipynb`, or a `.json` holding a notebook): the tables of the stored outputs (pandas, Polars, R) as data, every cell for context; never run | [Notebooks](docs/formats/notebook.md) |
+| Documents | **Word** (`.docx`), **PowerPoint** (`.pptx`), **OpenDocument** (`.odt`, `.odp`): every table as data, the text, slides and speaker notes for context | [Word and PowerPoint](docs/formats/documents.md) |
 
 **Not sure how to export your database?** Click *How do I export my database?* under the formats on the page (it works offline and never connects to anything), or read [Export your database for DataBrief](docs/export-your-database.md): ready-to-copy, read-only commands for 13 engines (schema only, schema and data, foreign keys), with the official links; the PostgreSQL, MySQL, MariaDB, SQLite and ClickHouse ones were run against real servers.
 
@@ -655,6 +656,7 @@ When a file holds several sheets or tables, each one becomes its own section, an
 | DBF | field types, decimals, the code page, deleted records (counted, not shown), Visual FoxPro nulls and varchar; memo field names (their text is in another file and not read) |
 | GeoJSON / GeoPackage | every feature or layer row with its attributes; each geometry **summarised** (kind, number of points, extent; the coordinates of a point), the **coordinate system**, the geometry kinds; GeoPackage layers, attribute tables, titles and descriptions |
 | Jupyter notebook | the **data frames** of the stored outputs (named index, MultiIndex, Polars and R column types, the true size of a shortened table), and every cell in order: Markdown, code, printed text, errors, the language |
+| Word / PowerPoint / ODT / ODP | every **table as data** (merged cells repeated, the header row the file marks, a merged header over two rows), and as context the headings, paragraphs and lists in order, or each slide's title, text and speaker notes; title, author and dates of the document |
 | SQLite | types, primary keys (in order), **foreign keys** (composite, with `ON DELETE`), unique constraints, indexes, `CREATE TABLE`, views with their SQL, **relationships**, generated columns, exact 64-bit integers |
 | Parquet | the **type of every nested field** (`STRUCT`, `LIST`, `MAP`), required fields, decimals, timestamp units, pandas metadata, row groups, compression |
 | Avro | the **type of every field** from the schema (enums with their symbols, decimals, dates, timestamps, nullable fields, arrays, maps), nested records flattened, the record name and its documentation, the writer's metadata, the compression |
@@ -747,6 +749,7 @@ src/
   notebook.js                 Jupyter notebooks: the tables of the stored outputs (a small HTML table reader), the cells as context
   avro.js                     the Avro reader (original code: container, schema, codecs, logical types)
   arrow.js                    Arrow IPC and Feather v2 (with the vendored flechette), Feather v1 (original code)
+  office.js                   Word, PowerPoint, OpenDocument text and presentations (a small XML reader without a DOM)
   relationships.js            declared and inferred relationships between sections
   profile.js                  the data profile (statistics of every column; on by default, can be switched off)
   noshare.js                  "Do not share data": the record-free copy of a file

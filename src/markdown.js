@@ -279,6 +279,61 @@
     return out.join('\n') + '\n';
   }
 
+  /* A document (headings, paragraphs, lists, tables in order) or a presentation (slides) as context (office.js).
+   * ns: the "Do not share data" copy; text: the user allows free text. Without it, only the outline (kinds and tables). */
+  function docContentsText(cont, t, N, secName, ns, text) {
+    const c = cont.counts;
+    const showText = !ns || text;
+    const withheld = '_(' + t('nbWithheld') + ')_';
+    const quote = (s) => s.split('\n').map((l) => '> ' + l).join('\n');
+    const tableLine = (k) => (k >= 0 ? t('docTable', { n: k + 1 }) + ' ' + code(secName(k)) : t('docTableCut', { n: N(500) }));
+    const out = [];
+    if (cont.kind === 'slides') {
+      out.push('**' + t('slideCounts', { n: N(c.slides), t: N(c.tables) }) + '**', '');
+      for (const s of cont.items) {
+        const head = '**' + t('slideN', { n: s.n }) + (s.title && showText ? ' · ' + s.title.replace(/\s*\n\s*/g, ' ') : '') + '**';
+        const lines = [];
+        if (showText) {
+          lines.push(head);
+          if (s.text.length) lines.push(quote(s.text.join('\n')));
+        } else {
+          const parts = [];
+          if (s.title || s.text.length) parts.push(t('slideTextNs', { n: N(s.text.length + (s.title ? 1 : 0)) }) + ' ' + withheld);
+          lines.push(head + (parts.length ? ': ' + parts.join(' · ') : ''));
+        }
+        for (const k of s.tables) lines.push('- ' + tableLine(k));
+        if (s.notes) lines.push(showText ? '- ' + t('slideNotes') + ':\n' + quote(s.notes) : '- ' + t('slideNotes') + ': ' + withheld);
+        out.push(lines.join('\n'), '');
+      }
+    } else {
+      out.push('**' + t('docCounts', { h: N(c.headings), p: N(c.paragraphs), t: N(c.tables) }) + '**', '');
+      if (showText) {
+        const lines = [];
+        for (const it of cont.items) {
+          if (it.k === 'h') lines.push('> ' + '#'.repeat(Math.min(it.level, 6)) + ' ' + (it.text || '…').replace(/\s*\n\s*/g, ' '));
+          else if (it.k === 'p') lines.push(quote((it.list ? '- ' : '') + (it.text || '…')));
+          else lines.push('>', '> **[' + tableLine(it.sec) + ']**', '>');
+        }
+        out.push(lines.join('\n'), '');
+      } else {
+        // the outline: headings with their level, runs of paragraphs counted, tables where they are
+        const lines = [];
+        let paras = 0;
+        const flush = () => { if (paras) lines.push('- ' + t('docParasNs', { n: N(paras) }) + ' ' + withheld); paras = 0; };
+        for (const it of cont.items) {
+          if (it.k === 'p') { paras++; continue; }
+          flush();
+          if (it.k === 'h') lines.push('- ' + t('docHeadingNs', { n: it.level }) + ' ' + withheld);
+          else lines.push('- ' + tableLine(it.sec));
+        }
+        flush();
+        out.push(lines.join('\n'), '');
+      }
+    }
+    if (cont.cut) out.push('_' + t('docMoreItems', { n: N(cont.cut) }) + '_', '');
+    return out.join('\n') + '\n';
+  }
+
   function Builder(lang, overrides) {
     const parts = [];
     const ov = overrides || {};
@@ -399,8 +454,10 @@
 
     // Locked: the cells of a notebook (its tables are the sections below)
     if (doc.contents) {
-      line('## ', 'nbTitle'); b.lock('\n'); say('nbIntro'); b.lock('\n\n');
-      b.lock(contentsText(doc.contents, t, N, (k) => (doc.sections[k] ? doc.sections[k].name : '?'), false, true));
+      const nb = doc.contents.kind === 'notebook', sl = doc.contents.kind === 'slides';
+      const name = (k) => (doc.sections[k] ? doc.sections[k].name : '?');
+      line('## ', nb ? 'nbTitle' : sl ? 'slidesTitle' : 'docTitle'); b.lock('\n'); say(nb ? 'nbIntro' : sl ? 'slidesIntro' : 'docIntro'); b.lock('\n\n');
+      b.lock(nb ? contentsText(doc.contents, t, N, name, false, true) : docContentsText(doc.contents, t, N, name, false, true));
     }
 
     // Locked: sections and columns
@@ -558,8 +615,10 @@
 
     // A notebook: which cell made which table; no code and no output, the Markdown only when free text is allowed
     if (ns.contents) {
-      line('## ', 'nbTitle'); b.lock('\n'); say('nbIntroNs'); b.lock('\n\n');
-      b.lock(contentsText(ns.contents, t, N, (k) => (ns.sections[k] ? S(ns.sections[k].name) : '?'), true, sw.text));
+      const nb = ns.contents.kind === 'notebook', sl = ns.contents.kind === 'slides';
+      const name = (k) => (ns.sections[k] ? S(ns.sections[k].name) : '?');
+      line('## ', nb ? 'nbTitle' : sl ? 'slidesTitle' : 'docTitle'); b.lock('\n'); say(nb ? 'nbIntroNs' : sl ? 'slidesIntroNs' : 'docIntroNs'); b.lock('\n\n');
+      b.lock(nb ? contentsText(ns.contents, t, N, name, true, sw.text) : docContentsText(ns.contents, t, N, name, true, sw.text));
     }
 
     // Sections and columns: structure only
@@ -672,7 +731,7 @@
     if (!sw.rel && ns.relationships.length) missing.push('nsMRel');
     if (!sw.sql && ns.hasSql) missing.push('nsMSql');
     if (!sw.text && ns.hasFreeText) missing.push('nsMText');
-    if (ns.contents) missing.push('nbMCode');
+    if (ns.contents && ns.contents.kind === 'notebook') missing.push('nbMCode');
     for (const k of missing) line('- ', k);
     b.lock('\n');
 

@@ -17,6 +17,9 @@ echo
 echo "=== Avro and Arrow / Feather readers (Node, real files of tests/v14-fixtures written by fastavro and pyarrow)"
 node "$HERE/test_columnar.cjs" | grep -v '^PASS'
 echo
+echo "=== Word / PowerPoint / OpenDocument reader (Node, real files of tests/v14-fixtures written by python-docx, python-pptx and LibreOffice)"
+node "$HERE/test_office.cjs" | grep -v '^PASS'
+echo
 echo "=== Notebook reader (Node, notebooks of tests/v14-fixtures executed by a real kernel)"
 node "$HERE/test_notebook.cjs" | grep -v '^PASS'
 echo

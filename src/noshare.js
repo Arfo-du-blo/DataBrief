@@ -13,7 +13,7 @@
 (function () {
   const DB = window.DB;
   // File metadata that is free text written by people (it may hold anything): shown only when the user allows it.
-  const FREE_TEXT_META = new Set(['mFileLabel', 'mDocs', 'mEmbedded']);
+  const FREE_TEXT_META = new Set(['mFileLabel', 'mDocs', 'mEmbedded', 'mDocTitle', 'mDocSubject', 'mDocAuthor', 'mDocLastAuthor', 'mDocKeywords', 'mDocDescription']);
   // File metadata made of names: hidden when names are replaced. Embedded pandas / Spark metadata lists the columns.
   const FILE_META = new Set(['mExternal']);
   // Facts computed from the records (where the data lies, how many features of each kind): never in "Do not share data"
@@ -95,7 +95,10 @@
             : o.kind === 'image' || o.kind === 'other' ? { kind: o.kind, mime: o.mime }
               : { kind: o.kind, stderr: !!o.stderr })),
       })),
-    } : null;
+    } : doc.contents && (doc.contents.kind === 'document' || doc.contents.kind === 'slides') ? copy(doc.contents) : null;
+    // A document or a presentation (office.js): its text is free text written by people. It is kept in this copy and shown
+    // only when the user allows free text (markdown.js docContentsText); otherwise only its outline (kinds and tables).
+    const docText = !!(contents && contents.kind !== 'notebook' && contents.items.some((it) => (it.k === 'slide' ? it.title || it.text.length || it.notes : it.k !== 'table' && it.text)));
     const fileMeta = (doc.fileMeta || [])
       .map(([key, value]) => ({ key, value: key === 'mNames' ? keepRanges(String(value)) : String(value), freeText: FREE_TEXT_META.has(key), names: NAME_META.has(key), files: FILE_META.has(key), data: DATA_META.has(key) }))
       .filter((m) => m.value !== '');
@@ -106,7 +109,7 @@
       hasLabels: sections.some((s) => s.caption || s.columns.some((c) => c.meta.label || c.meta.values)),
       hasSql: views.length > 0 || sections.some((s) => s.constraints && s.constraints.ddl),
       hasFreeText: sections.some((s) => s.comments.length || s.description) || fileMeta.some((m) => m.freeText) ||
-        !!(contents && contents.cells.some((c) => c.type !== 'code' && c.source)),
+        !!(contents && contents.kind === 'notebook' && contents.cells.some((c) => c.type !== 'code' && c.source)) || docText,
     };
   };
 

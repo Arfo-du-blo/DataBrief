@@ -493,6 +493,12 @@ for _f in sorted(os.listdir(os.path.join(_v14, "arrow-fixtures"))):
 for _k in ("avro", "arrow", "feather"):
     shutil.copy(os.path.join(_v14, "canary", "CONFIDENTIAL_FILE_" + _k + "." + _k), Q(_k, _k))
 
+# --- Word, PowerPoint, OpenDocument (v1.4): REAL files (python-docx, python-pptx, LibreOffice), and their canaries
+for _f in ("report.docx", "report-libreoffice.docx", "report.odt", "deck.pptx", "deck-libreoffice.pptx", "deck.odp"):
+    shutil.copy(os.path.join(_v14, "doc-fixtures", _f), P(_f))
+for _k in ("docx", "odt", "pptx", "odp"):
+    shutil.copy(os.path.join(_v14, "canary", "CONFIDENTIAL_FILE_" + _k + "." + _k), Q(_k, _k))
+
 # --- Jupyter notebooks (v1.4): executed by a real kernel (tests/make_v14_fixtures.sh), their canary, one saved as .json,
 #     and one without any table output (written here: Markdown, code, printed text only)
 for _f in ("analysis.ipynb", "shapes.ipynb"):

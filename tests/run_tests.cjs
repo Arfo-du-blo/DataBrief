@@ -483,6 +483,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       { f: 'geojson.geojson' }, { f: 'gpkg.gpkg' },   // coordinates are records; layer and column names are names
       { f: 'ipynb.ipynb', txt: true },   // code and outputs never (they hold values); Markdown is free text; the table's columns are names
       { f: 'avro.avro', txt: true }, { f: 'arrow.arrow', txt: true }, { f: 'feather.feather', txt: true },   // record doc and writer metadata are free text; the record name is a name
+      { f: 'docx.docx', txt: true }, { f: 'odt.odt', txt: true }, { f: 'pptx.pptx', txt: true }, { f: 'odp.odp', txt: true },   // headings, paragraphs, slide text, notes and the author: free text; tables: data
     ];
     const checks = [];
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
@@ -567,7 +568,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     {
       const p = await newPage();
       ok(await p.evaluate(() => document.getElementById('nsOn').offsetParent === null), '8: switch must not be visible before a file is read');
-      ok(await p.evaluate(() => document.getElementById('chips').children.length === 26 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
+      ok(await p.evaluate(() => document.getElementById('chips').children.length === 28 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
       const r0 = await load(p, F('confidential.csv'));
       ok(r0.md.includes('CONFIDENTIAL_CUSTOMER_74291') && await p.evaluate(() => document.getElementById('nsOn').offsetParent !== null && !document.getElementById('nsOn').checked), '8: after loading: data included, switch visible and off');
       const order = await p.evaluate(() => ['secSummary', 'secShare', 'secOutput'].map((id) => document.getElementById(id).getBoundingClientRect().top));
@@ -672,7 +673,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
     const page = await newPage();
     const chips = await page.$$eval('#chips button.chip', (els) => els.length);
-    if (chips !== 26) checks.push('expected 26 clickable formats, got ' + chips);
+    if (chips !== 28) checks.push('expected 28 clickable formats, got ' + chips);
     for (let i = 0; i < chips; i++) {
       await page.evaluate((n) => document.querySelectorAll('#chips button.chip')[n].click(), i); await wait(60);
       const r = await page.evaluate(() => ({
@@ -686,12 +687,12 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     // every card in every language, with the guide link
     const miss = await page.evaluate(() => {
       const I = window.DB_I18N, out = [];
-      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump', 'Dbf', 'Duckdb', 'Access', 'Dacpac', 'Geojson', 'Gpkg', 'Ipynb', 'Avro', 'Arrow']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
+      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump', 'Dbf', 'Duckdb', 'Access', 'Dacpac', 'Geojson', 'Gpkg', 'Ipynb', 'Avro', 'Arrow', 'Docx', 'Pptx']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
       return out;
     });
     if (miss.length) checks.push('missing card texts: ' + miss.join(','));
     // the guides the cards link to exist in the repository
-    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump', 'dbf', 'duckdb', 'access', 'dacpac', 'geodata', 'notebook', 'avro', 'arrow']) {
+    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump', 'dbf', 'duckdb', 'access', 'dacpac', 'geodata', 'notebook', 'avro', 'arrow', 'documents']) {
       if (!fs.existsSync(path.join(path.dirname(htmlPath), 'docs', 'formats', g + '.md'))) checks.push('guide docs/formats/' + g + '.md is missing');
     }
     // "what was found"
@@ -700,7 +701,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     if (found !== 'Found: 7 sections · 16 columns · 5 relationships (0 declared, 5 inferred)') checks.push('found line: ' + found);
     await page.close();
     if (checks.length) fail('format cards', checks.join(' | '));
-    else pass('format cards', '26 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
+    else pass('format cards', '28 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
   }
 
   // ---------- export helper (commands to export a database) ----------
@@ -940,6 +941,64 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     }
     if (checks.length) fail('Avro and Arrow', checks.join(' | '));
     else pass('Avro and Arrow', 'Avro (4 codecs), Arrow IPC file and stream, Feather v1 and v2 (lz4, zstd): types, decimals, dictionaries, time zones, structs, metadata; no-share names and doc; damaged files refused');
+  }
+
+  // ---------- Word, PowerPoint, OpenDocument (real files: python-docx, python-pptx, LibreOffice) ----------
+  {
+    const checks = [];
+    const bad = (m) => checks.push(m);
+    const wait = (ms) => new Promise((res) => setTimeout(res, ms || 300));
+    const docOf = (p) => p.evaluate(() => {
+      const d = window.DataBrief.getState().doc;
+      return d && { key: d.formatKey, name: d.formatName, secs: d.sections.map((s) => s.name + ':' + s.rows.length + ':' + s.columns.map((c) => c.name).join('|')) };
+    });
+    const DOCS = [['report.docx', 'docx', 'Microsoft Word'], ['report-libreoffice.docx', 'docx', 'Microsoft Word'], ['report.odt', 'odt', 'OpenDocument text']];
+    for (const [f, key, name] of DOCS) {
+      const p = await newPage();
+      const r = await load(p, F(f));
+      const d = r.ok && await docOf(p);
+      if (!d || d.key !== key || d.name !== name || d.secs.join(',') !== 'table_1:4:id|name|country|signup|notes,table_2:4:id|customer_id|total|status,table_3:1:Region|Quarter / Q1|Quarter / Q2') { bad(f + ': ' + JSON.stringify(d || r.err)); await p.close(); continue; }
+      if (f === 'report.docx') {
+        for (const s of ['## Document contents', '2 headings, 4 paragraphs, 3 tables', '> # Quarterly report', '> ## Customers', '> This report lists the customers and their orders.',
+          '**[Table: section 1 `table_1`]**', '**Title (document properties):** Quarterly report', '**Author:** Report author', '| Ana Lima |', '| 42.42 |']) if (!r.md.includes(s)) bad('Word prompt lacks: ' + JSON.stringify(s));
+        if (r.md.indexOf('## Document contents') > r.md.indexOf('## Sections and columns')) bad('the document contents should come before the sections');
+        // "Do not share data": the outline only (headings and paragraphs counted), tables where they are; the text with free text on
+        await p.click('#nsOn'); await wait(500);
+        let ns = await p.evaluate(() => window.DataBrief.getMarkdown());
+        for (const s of ['- Heading (level 1) _(not shared)_', '- Paragraphs: 1 _(not shared)_', '- Table: section 1 `table_1`']) if (!ns.includes(s)) bad('Word no-share lacks: ' + JSON.stringify(s));
+        for (const s of ['Quarterly report', 'This report lists', 'Report author', 'Ana Lima', 'Between the tables']) if (ns.includes(s)) bad('Word no-share leaks: ' + s);
+        await p.evaluate(() => document.querySelector('[data-sw="text"]').click()); await wait();
+        ns = await p.evaluate(() => window.DataBrief.getMarkdown());
+        if (!ns.includes('> # Quarterly report') || !ns.includes('Report author') || ns.includes('Ana Lima')) bad('Word no-share with free text: the text and author should appear, never the records');
+        await p.evaluate(() => localStorage.clear());
+      }
+      await p.close();
+    }
+    const DECKS = [['deck.pptx', 'pptx', 'Microsoft PowerPoint'], ['deck-libreoffice.pptx', 'pptx', 'Microsoft PowerPoint'], ['deck.odp', 'odp', 'OpenDocument presentation']];
+    for (const [f, key, name] of DECKS) {
+      const p = await newPage();
+      const r = await load(p, F(f));
+      const d = r.ok && await docOf(p);
+      if (!d || d.key !== key || d.name !== name || d.secs.join(',') !== 'slide2_table1:4:id|customer_id|total|status') { bad(f + ': ' + JSON.stringify(d || r.err)); await p.close(); continue; }
+      for (const s of ['## Slides', '3 slides, 1 tables', '**Slide 1 · Sales review**', '> Q1 2025', '**Slide 2 · Orders**', '- Table: section 1 `slide2_table1`', '- Speaker notes:\n> Speaker notes: say hello'])
+        if (!r.md.includes(s)) bad(f + ' prompt lacks: ' + JSON.stringify(s));
+      if (f === 'deck.pptx') {
+        await p.click('#nsOn'); await wait(500);
+        const ns = await p.evaluate(() => window.DataBrief.getMarkdown());
+        for (const s of ['**Slide 2**: Text blocks: 1 _(not shared)_', '- Table: section 1 `slide2_table1`', '- Speaker notes: _(not shared)_']) if (!ns.includes(s)) bad('PowerPoint no-share lacks: ' + JSON.stringify(s));
+        for (const s of ['Sales review', 'say hello', 'Deck author', '19.90']) if (ns.includes(s)) bad('PowerPoint no-share leaks: ' + s);
+        await p.evaluate(() => localStorage.clear());
+      }
+      await p.close();
+    }
+    // a damaged document: the damaged-file message, not a spreadsheet error
+    fs.writeFileSync(path.join(outDir, 'broken.docx'), Buffer.concat([Buffer.from([0x50, 0x4b, 0x03, 0x04]), Buffer.alloc(60)]));   // a zip signature, nothing readable after it
+    const p = await newPage();
+    const r = await load(p, path.join(outDir, 'broken.docx'));
+    if (r.ok || !r.err.includes('may be damaged')) bad('broken.docx: expected the damaged-file message, got ' + JSON.stringify(r.ok ? 'a result' : r.err));
+    await p.close();
+    if (checks.length) fail('Word and PowerPoint', checks.join(' | '));
+    else pass('Word and PowerPoint', '.docx (python-docx, LibreOffice), .odt, .pptx (python-pptx, LibreOffice), .odp: tables as data (merged header), text, slides and notes as context, properties; no-share outline, text only when allowed; damaged file refused');
   }
 
   // ---------- SQL dumps and PostgreSQL archives (real dumps of tests/sql-fixtures) ----------

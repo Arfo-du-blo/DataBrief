@@ -35,13 +35,15 @@
     { key: 'ipynb', label: 'Jupyter', exts: ['ipynb'] },
     { key: 'avro', label: 'Avro', exts: ['avro'] },
     { key: 'arrow', label: 'Arrow', exts: ['arrow', 'arrows', 'feather', 'ipc'] },
+    { key: 'docx', label: 'Word / ODT', exts: ['docx', 'docm', 'odt'] },
+    { key: 'pptx', label: 'PowerPoint / ODP', exts: ['pptx', 'pptm', 'odp'] },
   ];
   const FORMAT_NAMES = {
     csv: 'CSV', tsv: 'TSV', txt: 'TXT (CSV)', xlsx: 'Excel (XLSX)', xlsm: 'Excel (XLSM)',
     xls: 'Excel 97-2003 (XLS)', ods: 'OpenDocument (ODS)', json: 'JSON', ndjson: 'NDJSON / JSON Lines',
     xml: 'XML', yaml: 'YAML', html: 'HTML', sav: 'SPSS Statistics (.sav)', zsav: 'SPSS Statistics (.zsav)',
     parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)', dbf: 'dBase / FoxPro (DBF)', duckdb: 'DuckDB export (zip)', access: 'Microsoft Access', dacpac: 'SQL Server data-tier package',
-    geojson: 'GeoJSON', gpkg: 'GeoPackage', ipynb: 'Jupyter notebook', avro: 'Apache Avro', arrow: 'Apache Arrow',
+    geojson: 'GeoJSON', gpkg: 'GeoPackage', ipynb: 'Jupyter notebook', avro: 'Apache Avro', arrow: 'Apache Arrow', docx: 'Microsoft Word', pptx: 'Microsoft PowerPoint', odt: 'OpenDocument text', odp: 'OpenDocument presentation',
   };
   DB.ACCEPT = DB.FORMATS.flatMap((f) => f.exts.map((e) => '.' + e)).concat(['.gz']).join(','); // .gz: a compressed file of any of these
 
@@ -514,7 +516,20 @@
     const names = zipNames(u8);
     if (names.some((n) => /(^|\/)schema\.sql$/.test(n)) && names.some((n) => /(^|\/)load\.sql$/.test(n))) return 'duckdb';
     if (DB.isDacpacNames && DB.isDacpacNames(names)) return 'dacpac';
+    // Word, PowerPoint, OpenDocument text and presentations (an OpenDocument spreadsheet stays with the spreadsheets)
+    if (DB.officeKind) {
+      let mime = '';
+      if (names.includes('mimetype')) {
+        try { const f = window.fflate.unzipSync(u8, { filter: (x) => x.name === 'mimetype' && x.originalSize < 256 }); mime = f.mimetype ? DB.decodeText(f.mimetype).text.trim() : ''; } catch (e) { /* not readable: the other paths */ }
+      }
+      const k = DB.officeKind(names, mime);
+      if (k) return k;
+    }
     return null;
+  }
+  function parseOfficeFile(u8, kind) {
+    const res = DB.parseOffice(u8, kind);
+    return res;
   }
   /* ---------- a SQL Server data-tier package (.dacpac, and the schema of a .bacpac): dacpac.js ---------- */
   function parseDacpacFile(u8) {
@@ -806,7 +821,12 @@
     const magic = sniff(u8);
     if (magic === 'gzip') return parseGzip(u8, fileName, depth || 0);
     let kind;
-    if (magic === 'zip') kind = zipKind(u8) || (ext === 'ods' ? 'ods' : ext === 'xlsm' ? 'xlsm' : 'xlsx');
+    if (magic === 'zip') {
+      kind = zipKind(u8);
+      // a damaged Word or PowerPoint file is not a spreadsheet: say it is damaged
+      if (!kind && ['docx', 'docm', 'odt', 'pptx', 'pptm', 'odp'].includes(ext)) throw new UserError('errCorrupt', { ext: '.' + ext });
+      if (!kind) kind = ext === 'ods' ? 'ods' : ext === 'xlsm' ? 'xlsm' : 'xlsx';
+    }
     else if (magic) kind = magic;
     else {
       const f = DB.FORMATS.find((x) => x.exts.includes(ext));
@@ -815,7 +835,7 @@
       if (kind === 'geojson') kind = 'json';                // read as JSON, recognised as GeoJSON by its content
       if (kind === 'gpkg') kind = 'sqlite';                 // a GeoPackage is a SQLite file
       if (kind === 'ipynb') kind = 'json';                  // a notebook is a JSON file
-      if (['xlsx', 'xlsm', 'xls', 'ods', 'sqlite', 'parquet', 'sav', 'duckdb', 'access', 'dacpac', 'avro'].includes(kind) || (kind === 'arrow' && !DB.arrowKind(u8, ext))) {
+      if (['xlsx', 'xlsm', 'xls', 'ods', 'sqlite', 'parquet', 'sav', 'duckdb', 'access', 'dacpac', 'avro', 'docx', 'pptx'].includes(kind) || (kind === 'arrow' && !DB.arrowKind(u8, ext))) {
         // Binary format expected but the content does not match: try as text.
         const sample = DB.decodeText(u8.subarray(0, 4096)).text.trim();
         if (/^</.test(sample)) kind = /<table/i.test(sample) || /^<!doctype html|^<html/i.test(sample) ? 'html' : 'xml';
@@ -848,6 +868,7 @@
       case 'sav': res = DB.parseSav(buf); res.sections[0].name = baseOf(fileName); break;
       case 'avro': res = DB.parseAvro(u8, { maxRows: DB.SQL_MAX_ROWS }); res.sections[0].name = baseOf(fileName); break;
       case 'arrow': res = parseArrowFile(u8, ext, fileName); break;
+      case 'docx': case 'pptx': case 'odt': case 'odp': res = parseOfficeFile(u8, kind); break;
       default: throw new UserError('errUnsupported', { ext: '.' + ext });
     }
     if (res.geojson) kind = 'geojson';
@@ -857,7 +878,7 @@
     if (res.embedded) { const emb = embeddedMeta(res.embedded); if (emb) res.fileMeta.push(emb); delete res.embedded; }
     const formatKey = kind === 'sav' && ext === 'zsav' ? 'zsav' : kind;
     const sectionKind = ['xlsx', 'xlsm', 'xls', 'ods'].includes(kind) ? 'sheets'
-      : ['html', 'sqlite', 'sql', 'pgdump', 'duckdb', 'access', 'dacpac', 'gpkg', 'ipynb'].includes(kind) ? 'tables' : 'records';
+      : ['html', 'sqlite', 'sql', 'pgdump', 'duckdb', 'access', 'dacpac', 'gpkg', 'ipynb', 'docx', 'pptx', 'odt', 'odp'].includes(kind) ? 'tables' : 'records';
     return finalize(Object.assign(res, {
       fileName, fileSize: u8.length, formatKey, formatName: res.formatName || FORMAT_NAMES[formatKey] || kind.toUpperCase(), sectionKind,
     }));
