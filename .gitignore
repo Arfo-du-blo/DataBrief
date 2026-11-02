@@ -18,3 +18,6 @@ _ideas/
 Thumbs.db
 *.log
 *.local
+
+# Private plans (never committed)
+plans/
