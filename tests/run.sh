@@ -41,6 +41,9 @@ echo
 echo "=== Command-line tool against the page (Chrome): the same prompt for every file and setting"
 node "$HERE/test_cli_parity.cjs" "$HERE/../databrief.html" "$E/fixtures" | grep -v '^PASS'
 echo
+echo "=== Command-line tool: Do not share data (canaries in every output), no network, hostile names, special files"
+node "$HERE/test_cli_privacy.cjs" "$E/fixtures" | grep -v '^PASS'
+echo
 echo "=== Privacy demo (tampered copies)"
 node "$HERE/test_privacy_demo.cjs" "$HERE/.." "$E/venv/bin/python" "$E/fixtures/ventes.csv"
 # Second engine: Firefox (skipped when it is not installed)

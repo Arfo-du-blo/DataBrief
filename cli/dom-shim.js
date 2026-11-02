@@ -21,7 +21,7 @@
    * (plus 1 MB), parameter entities (%name;) and conditional sections give an error (a <parsererror>). */
   const AMPLIFY = 10;
   const PREDEF = { lt: 1, gt: 1, amp: 1, quot: 1, apos: 1 };
-  const NAME = /^[A-Za-z_:][\w.:·À-￿-]*/;
+  const NAME = /^[A-Za-z_:][\w.:\u00b7\u00c0-\uffff-]*/;
   class XmlError extends Error {}
   const charRefs = (s) => s.replace(/&#(x[0-9a-fA-F]+|\d+);/g, (m, n) => {
     const c = n[0] === 'x' ? parseInt(n.slice(1), 16) : parseInt(n, 10);
@@ -95,7 +95,7 @@
       if (e.unparsed) throw new XmlError('reference to an unparsed entity');
       if (e.external) { if (inAttr) throw new XmlError('external entity in an attribute'); return ''; }
       if (stack.includes(name)) throw new XmlError('entity refers to itself: ' + name);
-      const r = e.text.replace(/&([A-Za-z_:][\w.:·À-￿-]*);/g, (m, n) => replace(n, inAttr, stack.concat(name)));
+      const r = e.text.replace(/&([A-Za-z_:][\w.:\u00b7\u00c0-\uffff-]*);/g, (m, n) => replace(n, inAttr, stack.concat(name)));
       if (inAttr && r.includes('<')) throw new XmlError('"<" in an attribute value');
       total += r.length;
       if (total > limit) throw new XmlError('entities expand too much');
@@ -121,7 +121,7 @@
         else if (ch === '>') inTag = false;
       } else if (ch === '<') inTag = true;
       if (ch === '&' && (!inTag || q)) {
-        const m = /^&([A-Za-z_:][\w.:·À-￿-]*);/.exec(text.slice(i, i + 300));
+        const m = /^&([A-Za-z_:][\w.:\u00b7\u00c0-\uffff-]*);/.exec(text.slice(i, i + 300));
         if (m) {
           let r = replace(m[1], inTag, []);
           if (inTag && r !== '&' + m[1] + ';') r = r.replace(/&(?!(?:lt|gt|amp|quot|apos|#\d+|#x[0-9a-fA-F]+);)/g, '&amp;').replace(new RegExp(q, 'g'), q === '"' ? '&quot;' : '&apos;');

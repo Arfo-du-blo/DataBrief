@@ -6,10 +6,11 @@
 
 const RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;
 
-/* A file or folder name: no separators, no control characters, nothing Windows refuses, never empty */
+/* A file or folder name: no separators, no control characters (C0, C1), no characters that reverse the reading direction (a
+ * name could look like another: "rtl<U+202E>gnp.csv" shows as "rtlvsc.png"), nothing Windows refuses, never empty */
 function cleanName(s, max) {
   let n = String(s == null ? '' : s).normalize('NFC')
-    .replace(/[\\/:*?"<>|\u0000-\u001f\u007f]+/g, '_').replace(/\s+/g, ' ').trim();
+    .replace(/[\\/:*?"<>|\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]+/g, '_').replace(/\s+/g, ' ').trim();
   n = n.replace(/^\.+/, '').replace(/[. ]+$/, '');
   if (RESERVED.test(n)) n = '_' + n;
   if (n.length > (max || 100)) {

@@ -56,10 +56,18 @@ function defaultEnv() {
 }
 
 const fmtN = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+const MAX_BYTES = 2 * 1024 * 1024 * 1024 - 1;   // what Node reads into one buffer
+
+/* Text for a terminal: control characters (escape sequences could change the terminal, its title or clipboard) and the
+ * characters that reverse the reading direction (they can make a name look like another) are replaced. Line breaks and tabs
+ * stay unless `oneLine`. */
+const CONTROL = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g;
+const forTerminal = (s, oneLine) => { const t = String(s).replace(CONTROL, '\ufffd'); return oneLine ? t.replace(/[\r\n\t]/g, '\ufffd') : t; };
 
 /* ---------- run ---------- */
 async function run(argv, env) {
-  const say = (s) => env.stderr.write(s + '\n');
+  // everything on standard error is the tool's own text, plus names and messages that can come from the file: made safe
+  const say = (s) => env.stderr.write(forTerminal(s) + '\n');
   const { opts, errors } = parse(argv);
   const version = env.version || realmLib.version();
   if (opts.help) { env.stdout.write(HELP); return EXIT.OK; }
@@ -126,6 +134,9 @@ async function run(argv, env) {
   try {
     const st = env.fs.statSync(opts.file);
     if (st.isDirectory()) return fail(EXIT.FILE, { key: 'errIsFolder', message: opts.file + ' is a folder, not a file' });
+    // a device, a pipe or a socket (/dev/zero, a FIFO) would be read forever: only regular files (a link to one is fine)
+    if (!st.isFile()) return fail(EXIT.FILE, { key: 'errNotFile', message: opts.file + ' is not a regular file (a device, a pipe or a socket)' });
+    if (st.size > MAX_BYTES) return fail(EXIT.FILE, { key: 'errRead', message: opts.file + ' is too large for the command-line tool (2 GB at most)' });
     bytes = env.fs.readFileSync(opts.file);
   } catch (e) {
     const m = e.code === 'ENOENT' ? 'File not found: ' + opts.file
@@ -141,6 +152,14 @@ async function run(argv, env) {
   }
   bytes = null;
 
+  /* "Do not share data" with the file name or the names hidden (--hide=file / --hide=names): they are kept out of everything
+   * the tool shows (summary, JSON, the paths it prints), not only out of the prompt: an AI agent reads those too. The
+   * folder is then named "dataset_..." and the CSV files data.csv / data_01.csv ... */
+  const fileHidden = o.share === 'no' && !!o.sw && o.sw.file === false;
+  const namesHidden = o.share === 'no' && !!o.sw && o.sw.names === false;
+  const baseName = env.path.basename(opts.file);
+  const shownName = fileHidden ? 'the file' : baseName;
+
   /* the output folder */
   const result = { prompt: res.md, files: [], folder: '', copied: null, printed: false };
   let promptPath = '';
@@ -148,12 +167,13 @@ async function run(argv, env) {
     try {
       const base = outfiles.baseFolder(opts.out, env);
       if (base.note) notes.push(base.note);
-      const dir = outfiles.newFolder(base.dir, env.path.basename(opts.file), env);
+      const dir = outfiles.newFolder(base.dir, fileHidden ? 'dataset' : baseName, env);
       result.folder = dir;
       if (opts.review !== undefined) outfiles.write(dir, 'initial_prompt.md', res.md, env);
       promptPath = outfiles.write(dir, 'prompt.md', res.md, env);
       if (o.csv) {
-        const names = outfiles.dataNames(res.files);
+        const neutral = fileHidden || namesHidden;
+        const names = neutral ? res.files.map((f, i) => (res.files.length === 1 ? 'data.csv' : 'data_' + String(i + 1).padStart(2, '0') + '.csv')) : outfiles.dataNames(res.files);
         res.files.forEach((f, i) => { result.files.push(outfiles.write(dir, names[i], f.text, env)); });
         if (!res.files.length) notes.push('--csv: this file holds no table, so there is no data file to write.');
       }
@@ -167,7 +187,7 @@ async function run(argv, env) {
   let final = res.md;
   let reviewed = null;
   if (opts.review !== undefined) {
-    const r = await editor.edit(promptPath, opts.review === true ? null : opts.review, Object.assign({ say }, env));
+    const r = await editor.edit(promptPath, opts.review === true ? null : opts.review, Object.assign({}, env, { say }));
     if (!r.ok) return fail(EXIT.OPTIONS, { key: 'errEditor', message: r.error + ' (prompt.md and initial_prompt.md are in ' + result.folder + ')' });
     try { final = env.fs.readFileSync(promptPath, 'utf8'); } catch (e) { return fail(EXIT.FILE, { key: 'errRead', message: 'Cannot read the edited ' + promptPath + ': ' + e.message }); }
     if (!final.trim()) return fail(EXIT.DELIVERY, { key: 'errEmpty', message: 'The edited prompt is empty: nothing was copied (initial_prompt.md has the original)' });
@@ -183,7 +203,13 @@ async function run(argv, env) {
     if (!c.ok) copyFailed = true;
   }
   const delivered = !copyFailed || opts.print || opts.json || !!result.folder;
-  if (opts.print) { env.stdout.write(final); result.printed = true; }
+  if (opts.print) {
+    // on a terminal, control characters of the data are shown as \ufffd (a file can hold escape sequences); a pipe gets the prompt as it is
+    const shown = env.stdoutIsTTY ? forTerminal(final) : final;
+    if (shown !== final) notes.push('control characters of the data were shown as \ufffd on the terminal; the clipboard, the files and a pipe get them as they are.');
+    env.stdout.write(shown);
+    result.printed = true;
+  }
 
   /* the summary (standard error) */
   const tokens = reviewed && reviewed.changed ? realm.DB.estimateTokens(final) : res.tokens;
@@ -192,7 +218,7 @@ async function run(argv, env) {
   }
   if (!res.shared && o.csv && result.files.length) notes.push('--csv writes the data of the file on this computer: the prompt holds no data, the CSV files do.');
   const lines = [];
-  lines.push('Read ' + env.path.basename(opts.file) + (res.formatName ? ' (' + res.formatName + ')' : '') + '. The prompt is about ' + fmtN(tokens) + ' tokens' + (reviewed && reviewed.changed ? ' (edited)' : '') + '.');
+  lines.push('Read ' + shownName + (res.formatName ? ' (' + res.formatName + ')' : '') + '. The prompt is about ' + fmtN(tokens) + ' tokens' + (reviewed && reviewed.changed ? ' (edited)' : '') + '.');
   lines.push(res.shared ? 'The prompt holds the data of the file.' : 'The prompt holds NO data (Do not share data, level ' + o.level + ').');
   if (reviewed) lines.push('Reviewed in ' + reviewed.editor + (reviewed.note ? ' (' + reviewed.note + ')' : '') + (reviewed.changed ? ': your edits are used.' : ': unchanged.'));
   if (result.folder) {
@@ -207,7 +233,7 @@ async function run(argv, env) {
 
   if (opts.json) {
     env.stdout.write(JSON.stringify({
-      ok: true, version, file: env.path.basename(opts.file), format: res.formatName, shared: res.shared, level: res.shared ? null : o.level,
+      ok: true, version, file: fileHidden ? null : baseName, format: res.formatName, shared: res.shared, level: res.shared ? null : o.level,
       tokens, prompt: final, copied: result.copied ? result.copied.ok : false, folder: result.folder || null, files: result.files,
       reviewed: reviewed ? { editor: reviewed.editor, changed: reviewed.changed } : null, large: res.large, notes, warnings,
     }, null, 2) + '\n');

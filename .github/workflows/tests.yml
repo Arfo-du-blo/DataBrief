@@ -63,6 +63,8 @@ jobs:
         run: node tests/test_core.cjs
       - name: Command-line tool
         run: node tests/test_cli.cjs
+      - name: Do not share data, no network, hostile names, special files (files written by the test)
+        run: node tests/test_cli_privacy.cjs
       - name: Build the one-file tool
         run: node tools/build-cli.cjs
       - name: Run it
