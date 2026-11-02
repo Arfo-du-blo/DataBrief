@@ -9,3 +9,4 @@ tests/dbf-fixtures/** -text
 tests/access-fixtures/** -text
 tests/dacpac-fixtures/** -text
 tests/v14-fixtures/** -text
+man/*.1 text eol=lf
