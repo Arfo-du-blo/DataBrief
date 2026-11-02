@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* The relative links and the #anchors of README.md and docs/**/*.md all point somewhere (GitHub's heading slugs).   node tests/test_docs_links.cjs */
+/* The relative links and the #anchors of README.md and every .md file under docs/ all point somewhere (GitHub's heading slugs).   node tests/test_docs_links.cjs */
 'use strict';
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
