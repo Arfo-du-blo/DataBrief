@@ -91,7 +91,7 @@ powershell -ExecutionPolicy Bypass -File deploy\esp32\make_header.ps1          #
 python3 deploy/esp32/make_header.py                                          # macOS, Linux (or Windows: py)
 ```
 ```
-Built deploy/esp32/DataBrief/databrief_html.h (page 3.31 MB -> 1.22 MB compressed, without the PDF reader)
+Built deploy/esp32/DataBrief/databrief_html.h (page 3.33 MB -> 1.23 MB compressed, without the PDF reader)
 ```
 
 - `build.ps1` also does this automatically, and **PlatformIO does it before each build**, so with Path A you can skip
@@ -152,9 +152,9 @@ each board and generates the page automatically.
 5. Click **→ Upload** (status bar). The first build downloads the toolchain (a few hundred MB, once).
    Before compiling, PlatformIO runs `make_header.py`:
    ```
-   Built .../DataBrief/databrief_html.h (page 3.31 MB -> 1.22 MB compressed, without the PDF reader)
+   Built .../DataBrief/databrief_html.h (page 3.33 MB -> 1.23 MB compressed, without the PDF reader)
    ...
-   Flash: [=======   ]  73.8% (used 2321304 bytes from 3145728 bytes)
+   Flash: [=======   ]  74.1% (used 2330120 bytes from 3145728 bytes)
    ```
 6. Click **🔌 Serial Monitor** to see the board's address (next section).
 
@@ -232,7 +232,7 @@ board serves the official page, byte for byte. See [Check it yourself](verify-pr
 - **Updating the page** (new version, new team settings) = run `make_header` again and upload again.
 - **One page, a few people at a time.** The little web server handles requests one after the other. That's fine
   for a team, since each person loads the page once, but it isn't for hundreds of simultaneous visitors.
-- **The page grows with DataBrief.** Version 1.4 is about 1.2 MB compressed without the PDF reader (about 1.8 MB with it), and the firmware then uses 74% (`esp32dev`), 68% (ESP32-S3) and 75% (Nano ESP32) of its 3 MB slot, as measured by PlatformIO; the 3 MB "Huge APP" slot of a 4 MB board holds a page of roughly 2 MB. If a future version outgrows your board, embed the `databrief.html` of an **earlier release** instead (download it from the releases page, then `make_header.ps1 -Html path\to\databrief.html` or `make_header.py path/to/databrief.html`): the ESP32 only needs *a* DataBrief, not the newest. Boards with 8 or 16 MB of flash and a bigger partition table hold much more.
+- **The page grows with DataBrief.** Version 1.5 is about 1.2 MB compressed without the PDF reader (about 1.8 MB with it), and the firmware then uses 74% (`esp32dev`), 68% (ESP32-S3) and 75% (Nano ESP32) of its 3 MB slot, as measured by PlatformIO; the 3 MB "Huge APP" slot of a 4 MB board holds a page of roughly 2 MB. If a future version outgrows your board, embed the `databrief.html` of an **earlier release** instead (download it from the releases page, then `make_header.ps1 -Html path\to\databrief.html` or `make_header.py path/to/databrief.html`): the ESP32 only needs *a* DataBrief, not the newest. Boards with 8 or 16 MB of flash and a bigger partition table hold much more.
 - **What was tested:** the sketch compiles with PlatformIO and the Arduino-ESP32 core 3.3 for all three boards in
   `platformio.ini`, and the generated header decompresses to `databrief.html` without its PDF reader, the same page from the PowerShell and the Python script (automated in
   `tests/test_esp32.sh`). Flashing a real board, Wi-Fi and mDNS can't be tested automatically: that part is up to
