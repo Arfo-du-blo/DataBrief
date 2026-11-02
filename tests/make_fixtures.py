@@ -478,3 +478,11 @@ with open(P("duckdb-windows.zip"), "r+b") as _f:
     _n, _e = int.from_bytes(_f.read(2), "little"), int.from_bytes(_f.read(2), "little")
     _f.seek(_i.header_offset + 30 + _n + _e)
     _f.write(b"\xff" * _i.compress_size)   # block type 3: not a valid deflate stream
+
+# --- geodata (v1.4): REAL files written by GDAL (tests/make_v14_fixtures.sh), their canaries, and GeoJSON saved as .json ---
+_v14 = os.path.join(os.path.dirname(os.path.abspath(__file__)), "v14-fixtures")
+for _f in ("places.geojson", "city.gpkg"):
+    shutil.copy(os.path.join(_v14, "geo-fixtures", _f), P(_f))
+shutil.copy(os.path.join(_v14, "geo-fixtures", "places.geojson"), P("places_as.json"))
+shutil.copy(os.path.join(_v14, "canary", "CONFIDENTIAL_FILE_geojson.geojson"), Q("geojson", "geojson"))
+shutil.copy(os.path.join(_v14, "canary", "CONFIDENTIAL_FILE_gpkg.gpkg"), Q("gpkg", "gpkg"))

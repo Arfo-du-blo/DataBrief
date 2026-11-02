@@ -634,6 +634,7 @@ how to export it, and its limits.
 | | **SQL Server packages** (`.dacpac`: the schema of a SQL Server database, read without SQL Server) | [DACPAC](docs/formats/dacpac.md) |
 | | **Microsoft Access** (`.mdb`, `.accdb`: tables, rows and the relationships Access stores; no Access needed) | [Access](docs/formats/access.md) |
 | Legacy databases | **DBF** (dBase, FoxPro, Visual FoxPro, shapefile attribute tables; any code page) | [DBF](docs/formats/dbf.md) |
+| Geodata | **GeoJSON** (`.geojson`, or a `.json` holding GeoJSON) and **GeoPackage** (`.gpkg`: every layer); geometries summarised, coordinate systems | [Geodata](docs/formats/geodata.md) |
 
 **Not sure how to export your database?** Click *How do I export my database?* under the formats on the page (it works offline and never connects to anything), or read [Export your database for DataBrief](docs/export-your-database.md): ready-to-copy, read-only commands for 13 engines (schema only, schema and data, foreign keys), with the official links; the PostgreSQL, MySQL, MariaDB, SQLite and ClickHouse ones were run against real servers.
 
@@ -649,6 +650,7 @@ When a file holds several sheets or tables, each one becomes its own section, an
 | SQL Server `.dacpac` | tables and SQL Server types, primary and unique keys, indexes, **foreign keys** (with cascade), views, descriptions, computed columns; no rows (a `.bacpac`'s data is not read) |
 | Access | tables, Access types, rows, and the **relationships** Access stores (composite, cascading deletes); not the primary keys or indexes |
 | DBF | field types, decimals, the code page, deleted records (counted, not shown), Visual FoxPro nulls and varchar; memo field names (their text is in another file and not read) |
+| GeoJSON / GeoPackage | every feature or layer row with its attributes; each geometry **summarised** (kind, number of points, extent; the coordinates of a point), the **coordinate system**, the geometry kinds; GeoPackage layers, attribute tables, titles and descriptions |
 | SQLite | types, primary keys (in order), **foreign keys** (composite, with `ON DELETE`), unique constraints, indexes, `CREATE TABLE`, views with their SQL, **relationships**, generated columns, exact 64-bit integers |
 | Parquet | the **type of every nested field** (`STRUCT`, `LIST`, `MAP`), required fields, decimals, timestamp units, pandas metadata, row groups, compression |
 | Excel / ODS | sheet names, hidden sheets, cell comments, **merged cells, hidden rows and columns, defined names**, the number of formulas (those without a stored result are counted, not lost) |
@@ -735,6 +737,7 @@ src/
   dbf.js, dbf-codepages.js    the DBF reader (dBase, FoxPro) and its DOS code pages (generated)
   dacpac.js                   the SQL Server data-tier package reader (model.xml)
   access.js                   the Access reader (wraps the vendored mdb-reader; tools/build-mdb-reader.sh rebuilds it)
+  geo.js                      GeoJSON, and the geometries of a GeoPackage (WKB): summarised, never copied whole
   relationships.js            declared and inferred relationships between sections
   profile.js                  the data profile (statistics of every column; on by default, can be switched off)
   noshare.js                  "Do not share data": the record-free copy of a file

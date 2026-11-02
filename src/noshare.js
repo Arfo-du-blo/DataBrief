@@ -15,7 +15,9 @@
   // File metadata that is free text written by people (it may hold anything): shown only when the user allows it.
   const FREE_TEXT_META = new Set(['mFileLabel', 'mDocs', 'mEmbedded']);
   // File metadata made of names: hidden when names are replaced. Embedded pandas / Spark metadata lists the columns.
-  const FILE_META = new Set(['mExternal']);   // names of other files (COPY FROM a file, linked tables): hidden with the file name too
+  const FILE_META = new Set(['mExternal']);
+  // Facts computed from the records (where the data lies, how many features of each kind): never in "Do not share data"
+  const DATA_META = new Set(['mExtent', 'mGeomTypes']);   // names of other files (COPY FROM a file, linked tables): hidden with the file name too
   const NAME_META = new Set(['mViews', 'mSkipped', 'mNames', 'mRoot', 'mWeight', 'mEmbedded', 'mExternal', 'mMemo']);
   const copy = (v) => (v == null ? v : JSON.parse(JSON.stringify(v)));
   const baseOf = (name) => (name || 'data').replace(/\.[^.]+$/, '') || 'data';
@@ -81,7 +83,7 @@
     });
     const views = (doc.views || []).map((v) => ({ name: v.name, sql: v.sql }));
     const fileMeta = (doc.fileMeta || [])
-      .map(([key, value]) => ({ key, value: key === 'mNames' ? keepRanges(String(value)) : String(value), freeText: FREE_TEXT_META.has(key), names: NAME_META.has(key), files: FILE_META.has(key) }))
+      .map(([key, value]) => ({ key, value: key === 'mNames' ? keepRanges(String(value)) : String(value), freeText: FREE_TEXT_META.has(key), names: NAME_META.has(key), files: FILE_META.has(key), data: DATA_META.has(key) }))
       .filter((m) => m.value !== '');
     return {
       level, fileName: doc.fileName, fileSize: doc.fileSize, formatName: doc.formatName, formatKey: doc.formatKey, sectionKind: doc.sectionKind,

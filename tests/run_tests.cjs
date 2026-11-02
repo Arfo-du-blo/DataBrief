@@ -480,6 +480,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       { f: 'parquet.parquet', txt: true }, { f: 'sqlite.sqlite', sql: true },
       { f: 'sql.sql', txt: true, lab: true, sql: true }, { f: 'pgdump.dump', txt: true, lab: true, sql: true }, { f: 'dbf.dbf', names: 'CONF_COL' }, { f: 'access.accdb' }, { f: 'dacpac.dacpac', noRec: true, txt: true, lab: true, sql: true },
       { f: 'csvgz.csv.gz' },   // the section is named after the file inside the gzip: the file name too
+      { f: 'geojson.geojson' }, { f: 'gpkg.gpkg' },   // coordinates are records; layer and column names are names
     ];
     const checks = [];
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
@@ -564,7 +565,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     {
       const p = await newPage();
       ok(await p.evaluate(() => document.getElementById('nsOn').offsetParent === null), '8: switch must not be visible before a file is read');
-      ok(await p.evaluate(() => document.getElementById('chips').children.length === 21 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
+      ok(await p.evaluate(() => document.getElementById('chips').children.length === 23 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
       const r0 = await load(p, F('confidential.csv'));
       ok(r0.md.includes('CONFIDENTIAL_CUSTOMER_74291') && await p.evaluate(() => document.getElementById('nsOn').offsetParent !== null && !document.getElementById('nsOn').checked), '8: after loading: data included, switch visible and off');
       const order = await p.evaluate(() => ['secSummary', 'secShare', 'secOutput'].map((id) => document.getElementById(id).getBoundingClientRect().top));
@@ -669,7 +670,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
     const page = await newPage();
     const chips = await page.$$eval('#chips button.chip', (els) => els.length);
-    if (chips !== 21) checks.push('expected 21 clickable formats, got ' + chips);
+    if (chips !== 23) checks.push('expected 23 clickable formats, got ' + chips);
     for (let i = 0; i < chips; i++) {
       await page.evaluate((n) => document.querySelectorAll('#chips button.chip')[n].click(), i); await wait(60);
       const r = await page.evaluate(() => ({
@@ -683,12 +684,12 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     // every card in every language, with the guide link
     const miss = await page.evaluate(() => {
       const I = window.DB_I18N, out = [];
-      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump', 'Dbf', 'Duckdb', 'Access', 'Dacpac']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
+      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump', 'Dbf', 'Duckdb', 'Access', 'Dacpac', 'Geojson', 'Gpkg']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
       return out;
     });
     if (miss.length) checks.push('missing card texts: ' + miss.join(','));
     // the guides the cards link to exist in the repository
-    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump', 'dbf', 'duckdb', 'access', 'dacpac']) {
+    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump', 'dbf', 'duckdb', 'access', 'dacpac', 'geodata']) {
       if (!fs.existsSync(path.join(path.dirname(htmlPath), 'docs', 'formats', g + '.md'))) checks.push('guide docs/formats/' + g + '.md is missing');
     }
     // "what was found"
@@ -697,7 +698,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     if (found !== 'Found: 7 sections · 16 columns · 5 relationships (0 declared, 5 inferred)') checks.push('found line: ' + found);
     await page.close();
     if (checks.length) fail('format cards', checks.join(' | '));
-    else pass('format cards', '21 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
+    else pass('format cards', '23 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
   }
 
   // ---------- export helper (commands to export a database) ----------
@@ -746,6 +747,64 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     await page.close();
     if (checks.length) fail('export helper', checks.join(' | '));
     else pass('export helper', '13 engines, 3 commands each as written, copy button, docs links, language switch while open, 15 languages');
+  }
+
+  // ---------- geodata: GeoJSON and GeoPackage (real files written by GDAL, tests/v14-fixtures) ----------
+  {
+    const checks = [];
+    const bad = (m) => checks.push(m);
+    const wait = (ms) => new Promise((res) => setTimeout(res, ms || 300));
+    const docOf = (p) => p.evaluate(() => {
+      const d = window.DataBrief.getState().doc;
+      return d && { key: d.formatKey, name: d.formatName, secs: d.sections.map((s) => ({ n: s.name, rows: s.rows.length, cols: s.columns.map((c) => c.name + ':' + c.type) })) };
+    });
+    let p = await newPage();
+    let r = await load(p, F('places.geojson'));
+    let d = r.ok && await docOf(p);
+    if (!d || d.key !== 'geojson' || d.name !== 'GeoJSON' || d.secs.length !== 1 || d.secs[0].n !== 'places' || d.secs[0].rows !== 5 ||
+      d.secs[0].cols.join(',') !== 'id:integer,name:text,category:text,geometry:geometry') bad('places.geojson: ' + JSON.stringify(d || r.err));
+    if (r.ok) {
+      const md = r.md;
+      for (const s of ['POINT (2.3522 48.8566)', 'MULTIPOLYGON (2 parts, 2 rings, 8 points; x 2.34…2.37, y 48.85…48.86)', 'Coordinate reference system',
+        'WGS 84 (longitude, latitude)', 'Point: 1, LineString: 1, Polygon: 1, MultiPolygon: 1, no geometry: 1', 'x 2.3…2.37, y 48.85…48.87', '| geometry |']) if (!md.includes(s)) bad('geojson prompt lacks: ' + s);
+      if (/POINT \(2\.3522 48\.8566\): 1/.test(md)) bad('a geometry was counted as a category in the statistics');
+      // "Do not share data": the coordinate system stays, the geometries, the extent and the counts per kind go
+      await p.click('#nsOn'); await wait(500);
+      for (const level of [1, 3]) {
+        if (level === 3) { await p.click('#nsLevelGroup button[data-level="3"]'); await wait(400); }
+        const ns = await p.evaluate(() => window.DataBrief.getMarkdown());
+        if (!ns.includes('WGS 84 (longitude, latitude)')) bad('no-share level ' + level + ': the coordinate system should stay (structure)');
+        for (const s of ['2.3522', '48.85', 'LINESTRING (', 'Point: 1', 'Extent']) if (ns.includes(s)) bad('no-share level ' + level + ' leaks: ' + s);
+      }
+      await p.evaluate(() => localStorage.clear());
+    }
+    await p.close();
+
+    // GeoJSON saved as .json: recognised by its content
+    p = await newPage();
+    r = await load(p, F('places_as.json'));
+    d = r.ok && await docOf(p);
+    if (!d || d.key !== 'geojson') bad('GeoJSON in a .json file: ' + JSON.stringify(d || r.err));
+    await p.close();
+
+    // GeoPackage: 3 layers, never the gpkg_* / rtree_* machinery; each geometry column with its coordinate system
+    p = await newPage();
+    r = await load(p, F('city.gpkg'));
+    d = r.ok && await docOf(p);
+    const names = d ? d.secs.map((s) => s.n).sort().join(',') : '';
+    if (!d || d.key !== 'gpkg' || d.name !== 'GeoPackage' || names !== 'attributes_only,places,places_lambert93') bad('city.gpkg: ' + JSON.stringify(d || r.err));
+    if (d) {
+      const sec = (n) => d.secs.find((s) => s.n === n);
+      if (!sec('places') || !sec('places').cols.includes('geom:geometry') || sec('places').rows !== 5) bad('gpkg places layer: ' + JSON.stringify(sec('places')));
+      if (!sec('attributes_only') || sec('attributes_only').cols.some((c) => /geometry/.test(c))) bad('gpkg attributes table should have no geometry column: ' + JSON.stringify(sec('attributes_only')));
+    }
+    if (r.ok) {
+      for (const s of ['GeoPackage content', '2 feature layers, 1 attribute table', 'EPSG:4326', 'Lambert-93 (EPSG:2154)', 'POINT (2.3522 48.8566)']) if (!r.md.includes(s)) bad('gpkg prompt lacks: ' + s);
+      if (/gpkg_|rtree_/.test(r.md)) bad('the GeoPackage machinery tables should not be in the prompt');
+    }
+    await p.close();
+    if (checks.length) fail('geodata', checks.join(' | '));
+    else pass('geodata', 'GeoJSON (also as .json) and GeoPackage written by GDAL: layers, summarised geometries, coordinate systems, no machinery tables; no-share keeps the system, drops coordinates, extent and counts');
   }
 
   // ---------- SQL dumps and PostgreSQL archives (real dumps of tests/sql-fixtures) ----------

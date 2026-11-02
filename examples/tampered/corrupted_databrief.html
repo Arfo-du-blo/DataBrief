@@ -3824,6 +3824,126 @@ window.DB_I18N = {
   for (const [lang, vals] of Object.entries(U)) UK.forEach((k, i) => { window.DB_I18N.ui[lang][k] = vals[i]; });
 })();
 </script>
+<script>/* DataBrief - translations for geodata (GeoJSON, GeoPackage). GPL-3.0-or-later.
+ * Prompt order: cGeometry, tGeometry, mCrs, mGeomTypes, mExtent, mGpkg.
+ * UI order: fcGeojsonReads, fcGeojsonBest, fcGeojsonGood, fcGpkgReads, fcGpkgBest, fcGpkgGood */
+'use strict';
+(function () {
+  const PK = ['cGeometry', 'tGeometry', 'mCrs', 'mGeomTypes', 'mExtent', 'mGpkg'];
+  const UK = ['fcGeojsonReads', 'fcGeojsonBest', 'fcGeojsonGood', 'fcGpkgReads', 'fcGpkgBest', 'fcGpkgGood'];
+  const P = {
+    en: ["Geometry", "geometry", "Coordinate reference system", "Geometry kinds (number of features)", "Extent (bounding box of all geometries)", "GeoPackage content"],
+    fr: ["Géométrie", "géométrie", "Système de coordonnées", "Types de géométrie (nombre d'entités)", "Emprise (rectangle englobant toutes les géométries)", "Contenu du GeoPackage"],
+    es: ["Geometría", "geometría", "Sistema de coordenadas", "Tipos de geometría (número de entidades)", "Extensión (rectángulo que engloba todas las geometrías)", "Contenido del GeoPackage"],
+    de: ["Geometrie", "Geometrie", "Koordinatenbezugssystem", "Geometriearten (Anzahl der Objekte)", "Ausdehnung (umschließendes Rechteck aller Geometrien)", "Inhalt des GeoPackage"],
+    it: ["Geometria", "geometria", "Sistema di coordinate", "Tipi di geometria (numero di elementi)", "Estensione (rettangolo che racchiude tutte le geometrie)", "Contenuto del GeoPackage"],
+    pt: ["Geometria", "geometria", "Sistema de coordenadas", "Tipos de geometria (número de feições)", "Extensão (retângulo que envolve todas as geometrias)", "Conteúdo do GeoPackage"],
+    nl: ["Geometrie", "geometrie", "Coördinatenreferentiesysteem", "Geometriesoorten (aantal objecten)", "Omvang (omhullende rechthoek van alle geometrieën)", "Inhoud van het GeoPackage"],
+    pl: ["Geometria", "geometria", "Układ współrzędnych", "Rodzaje geometrii (liczba obiektów)", "Zasięg (prostokąt obejmujący wszystkie geometrie)", "Zawartość GeoPackage"],
+    ru: ["Геометрия", "геометрия", "Система координат", "Типы геометрии (число объектов)", "Охват (прямоугольник, вмещающий все геометрии)", "Содержимое GeoPackage"],
+    tr: ["Geometri", "geometri", "Koordinat referans sistemi", "Geometri türleri (öge sayısı)", "Kapsam (tüm geometrileri içine alan dikdörtgen)", "GeoPackage içeriği"],
+    zh: ["几何", "几何", "坐标参考系", "几何类型（要素数）", "范围（所有几何的外包矩形）", "GeoPackage 内容"],
+    ja: ["ジオメトリ", "ジオメトリ", "座標参照系", "ジオメトリの種類（地物数）", "範囲（全ジオメトリを囲む矩形）", "GeoPackage の内容"],
+    ko: ["지오메트리", "지오메트리", "좌표 참조계", "지오메트리 종류(피처 수)", "범위(모든 지오메트리를 감싸는 사각형)", "GeoPackage 내용"],
+    hi: ["ज्यामिति", "ज्यामिति", "निर्देशांक संदर्भ प्रणाली", "ज्यामिति के प्रकार (फ़ीचर की संख्या)", "विस्तार (सभी ज्यामितियों को घेरने वाला आयत)", "GeoPackage की सामग्री"],
+    ar: ["الهندسة", "هندسة", "نظام الإحداثيات المرجعي", "أنواع الهندسة (عدد المعالم)", "النطاق (المستطيل المحيط بكل الهندسات)", "محتوى GeoPackage"],
+  };
+  const U = {
+    en: ["Every feature of a GeoJSON file (a FeatureCollection, a Feature or a single geometry): its properties as columns, and its geometry summarised in one column (kind, number of points, extent; the coordinates of a point). The coordinate system: WGS 84 unless the file says otherwise.",
+      "The .geojson file itself, or a .json that holds GeoJSON (recognised by its content). QGIS, GDAL (ogr2ogr -f GeoJSON) and web maps export it.",
+      "Geometries are summarised, not copied: the AI knows what each feature is and where it lies, but cannot redraw the map from the prompt. TopoJSON is not GeoJSON: it is read as plain JSON.",
+      "Every layer of a GeoPackage: feature layers (their attributes, and a geometry column summarised with its kind and coordinate system) and attribute tables, with the keys and relationships of the SQLite database underneath.",
+      "The .gpkg file itself. QGIS, GDAL (ogr2ogr -f GPKG) and ArcGIS Pro write it.",
+      "Geometries are summarised (kind, number of points, extent), not copied. Tile sets (map images) are counted but not read, and the GeoPackage's own tables (gpkg_*, rtree_*) are left out."],
+    fr: ["Chaque entité d'un fichier GeoJSON (une FeatureCollection, une Feature ou une géométrie seule) : ses propriétés en colonnes, et sa géométrie résumée dans une colonne (type, nombre de points, emprise ; les coordonnées d'un point). Le système de coordonnées : WGS 84 sauf indication contraire du fichier.",
+      "Le fichier .geojson lui-même, ou un .json qui contient du GeoJSON (reconnu par son contenu). QGIS, GDAL (ogr2ogr -f GeoJSON) et les cartes web l'exportent.",
+      "Les géométries sont résumées, pas copiées : l'IA sait ce qu'est chaque entité et où elle se trouve, mais ne peut pas redessiner la carte à partir du prompt. Le TopoJSON n'est pas du GeoJSON : il est lu comme du JSON ordinaire.",
+      "Chaque couche d'un GeoPackage : couches d'entités (leurs attributs, et une colonne de géométrie résumée avec son type et son système de coordonnées) et tables d'attributs, avec les clés et relations de la base SQLite sous-jacente.",
+      "Le fichier .gpkg lui-même. QGIS, GDAL (ogr2ogr -f GPKG) et ArcGIS Pro l'écrivent.",
+      "Les géométries sont résumées (type, nombre de points, emprise), pas copiées. Les jeux de tuiles (images de carte) sont comptés mais pas lus, et les tables propres au GeoPackage (gpkg_*, rtree_*) sont laissées de côté."],
+    es: ["Cada entidad de un archivo GeoJSON (una FeatureCollection, una Feature o una geometría sola): sus propiedades como columnas y su geometría resumida en una columna (tipo, número de puntos, extensión; las coordenadas de un punto). El sistema de coordenadas: WGS 84 salvo que el archivo indique otro.",
+      "El propio archivo .geojson, o un .json que contenga GeoJSON (se reconoce por su contenido). QGIS, GDAL (ogr2ogr -f GeoJSON) y los mapas web lo exportan.",
+      "Las geometrías se resumen, no se copian: la IA sabe qué es cada entidad y dónde está, pero no puede volver a dibujar el mapa a partir del prompt. TopoJSON no es GeoJSON: se lee como JSON normal.",
+      "Cada capa de un GeoPackage: capas de entidades (sus atributos y una columna de geometría resumida con su tipo y su sistema de coordenadas) y tablas de atributos, con las claves y relaciones de la base SQLite subyacente.",
+      "El propio archivo .gpkg. QGIS, GDAL (ogr2ogr -f GPKG) y ArcGIS Pro lo escriben.",
+      "Las geometrías se resumen (tipo, número de puntos, extensión), no se copian. Los conjuntos de teselas (imágenes de mapa) se cuentan pero no se leen, y las tablas propias del GeoPackage (gpkg_*, rtree_*) se dejan de lado."],
+    de: ["Jedes Objekt einer GeoJSON-Datei (eine FeatureCollection, ein Feature oder eine einzelne Geometrie): seine Eigenschaften als Spalten und seine Geometrie in einer Spalte zusammengefasst (Art, Anzahl der Punkte, Ausdehnung; die Koordinaten eines Punkts). Das Koordinatensystem: WGS 84, sofern die Datei nichts anderes angibt.",
+      "Die .geojson-Datei selbst oder eine .json mit GeoJSON-Inhalt (am Inhalt erkannt). QGIS, GDAL (ogr2ogr -f GeoJSON) und Webkarten exportieren sie.",
+      "Geometrien werden zusammengefasst, nicht kopiert: Die KI weiß, was jedes Objekt ist und wo es liegt, kann die Karte aus dem Prompt aber nicht neu zeichnen. TopoJSON ist kein GeoJSON: Es wird als gewöhnliches JSON gelesen.",
+      "Jede Ebene eines GeoPackage: Objektebenen (ihre Attribute und eine Geometriespalte, zusammengefasst mit Art und Koordinatensystem) und Attributtabellen, mit den Schlüsseln und Beziehungen der zugrunde liegenden SQLite-Datenbank.",
+      "Die .gpkg-Datei selbst. QGIS, GDAL (ogr2ogr -f GPKG) und ArcGIS Pro schreiben sie.",
+      "Geometrien werden zusammengefasst (Art, Anzahl der Punkte, Ausdehnung), nicht kopiert. Kachelsätze (Kartenbilder) werden gezählt, aber nicht gelesen, und die eigenen Tabellen des GeoPackage (gpkg_*, rtree_*) werden weggelassen."],
+    it: ["Ogni elemento di un file GeoJSON (una FeatureCollection, una Feature o una geometria singola): le sue proprietà come colonne e la sua geometria riassunta in una colonna (tipo, numero di punti, estensione; le coordinate di un punto). Il sistema di coordinate: WGS 84 salvo diversa indicazione del file.",
+      "Il file .geojson stesso, o un .json che contiene GeoJSON (riconosciuto dal contenuto). QGIS, GDAL (ogr2ogr -f GeoJSON) e le mappe web lo esportano.",
+      "Le geometrie sono riassunte, non copiate: l'IA sa cos'è ogni elemento e dove si trova, ma non può ridisegnare la mappa dal prompt. TopoJSON non è GeoJSON: viene letto come JSON normale.",
+      "Ogni livello di un GeoPackage: livelli di elementi (i loro attributi e una colonna di geometria riassunta con tipo e sistema di coordinate) e tabelle di attributi, con le chiavi e le relazioni del database SQLite sottostante.",
+      "Il file .gpkg stesso. QGIS, GDAL (ogr2ogr -f GPKG) e ArcGIS Pro lo scrivono.",
+      "Le geometrie sono riassunte (tipo, numero di punti, estensione), non copiate. I set di tile (immagini di mappa) sono contati ma non letti, e le tabelle proprie del GeoPackage (gpkg_*, rtree_*) sono escluse."],
+    pt: ["Cada feição de um arquivo GeoJSON (uma FeatureCollection, uma Feature ou uma geometria isolada): suas propriedades como colunas e sua geometria resumida em uma coluna (tipo, número de pontos, extensão; as coordenadas de um ponto). O sistema de coordenadas: WGS 84, salvo indicação contrária do arquivo.",
+      "O próprio arquivo .geojson, ou um .json que contenha GeoJSON (reconhecido pelo conteúdo). QGIS, GDAL (ogr2ogr -f GeoJSON) e mapas web o exportam.",
+      "As geometrias são resumidas, não copiadas: a IA sabe o que é cada feição e onde ela fica, mas não consegue redesenhar o mapa a partir do prompt. TopoJSON não é GeoJSON: é lido como JSON comum.",
+      "Cada camada de um GeoPackage: camadas de feições (seus atributos e uma coluna de geometria resumida com tipo e sistema de coordenadas) e tabelas de atributos, com as chaves e relações do banco SQLite subjacente.",
+      "O próprio arquivo .gpkg. QGIS, GDAL (ogr2ogr -f GPKG) e ArcGIS Pro o gravam.",
+      "As geometrias são resumidas (tipo, número de pontos, extensão), não copiadas. Conjuntos de tiles (imagens de mapa) são contados mas não lidos, e as tabelas próprias do GeoPackage (gpkg_*, rtree_*) ficam de fora."],
+    nl: ["Elk object van een GeoJSON-bestand (een FeatureCollection, een Feature of één losse geometrie): de eigenschappen als kolommen, en de geometrie samengevat in één kolom (soort, aantal punten, omvang; de coördinaten van een punt). Het coördinatenstelsel: WGS 84, tenzij het bestand iets anders zegt.",
+      "Het .geojson-bestand zelf, of een .json met GeoJSON erin (herkend aan de inhoud). QGIS, GDAL (ogr2ogr -f GeoJSON) en webkaarten exporteren het.",
+      "Geometrieën worden samengevat, niet gekopieerd: de AI weet wat elk object is en waar het ligt, maar kan de kaart niet opnieuw tekenen vanuit de prompt. TopoJSON is geen GeoJSON: het wordt als gewone JSON gelezen.",
+      "Elke laag van een GeoPackage: objectlagen (hun attributen en een geometriekolom, samengevat met soort en coördinatenstelsel) en attribuuttabellen, met de sleutels en relaties van de onderliggende SQLite-database.",
+      "Het .gpkg-bestand zelf. QGIS, GDAL (ogr2ogr -f GPKG) en ArcGIS Pro schrijven het.",
+      "Geometrieën worden samengevat (soort, aantal punten, omvang), niet gekopieerd. Tegelsets (kaartafbeeldingen) worden geteld maar niet gelezen, en de eigen tabellen van het GeoPackage (gpkg_*, rtree_*) worden weggelaten."],
+    pl: ["Każdy obiekt pliku GeoJSON (FeatureCollection, Feature lub pojedyncza geometria): jego właściwości jako kolumny i jego geometria streszczona w jednej kolumnie (rodzaj, liczba punktów, zasięg; współrzędne punktu). Układ współrzędnych: WGS 84, chyba że plik podaje inny.",
+      "Sam plik .geojson albo plik .json zawierający GeoJSON (rozpoznawany po zawartości). Eksportują go QGIS, GDAL (ogr2ogr -f GeoJSON) i mapy internetowe.",
+      "Geometrie są streszczane, nie kopiowane: AI wie, czym jest każdy obiekt i gdzie się znajduje, ale nie odtworzy mapy z promptu. TopoJSON to nie GeoJSON: jest czytany jako zwykły JSON.",
+      "Każda warstwa GeoPackage: warstwy obiektów (ich atrybuty i kolumna geometrii streszczona z rodzajem i układem współrzędnych) oraz tabele atrybutów, z kluczami i relacjami bazy SQLite pod spodem.",
+      "Sam plik .gpkg. Zapisują go QGIS, GDAL (ogr2ogr -f GPKG) i ArcGIS Pro.",
+      "Geometrie są streszczane (rodzaj, liczba punktów, zasięg), nie kopiowane. Zestawy kafli (obrazy map) są liczone, ale nieodczytywane, a własne tabele GeoPackage (gpkg_*, rtree_*) są pomijane."],
+    ru: ["Каждый объект файла GeoJSON (FeatureCollection, Feature или отдельная геометрия): его свойства как столбцы и его геометрия, сведённая в один столбец (тип, число точек, охват; координаты точки). Система координат: WGS 84, если файл не указывает иное.",
+      "Сам файл .geojson или файл .json с GeoJSON внутри (распознаётся по содержимому). Его экспортируют QGIS, GDAL (ogr2ogr -f GeoJSON) и веб-карты.",
+      "Геометрии сводятся, а не копируются: ИИ знает, что представляет каждый объект и где он находится, но не может заново нарисовать карту по промпту. TopoJSON — не GeoJSON: он читается как обычный JSON.",
+      "Каждый слой GeoPackage: слои объектов (их атрибуты и столбец геометрии, сведённый с типом и системой координат) и таблицы атрибутов, с ключами и связями лежащей в основе базы SQLite.",
+      "Сам файл .gpkg. Его записывают QGIS, GDAL (ogr2ogr -f GPKG) и ArcGIS Pro.",
+      "Геометрии сводятся (тип, число точек, охват), а не копируются. Наборы тайлов (изображения карт) учитываются, но не читаются, а собственные таблицы GeoPackage (gpkg_*, rtree_*) пропускаются."],
+    tr: ["Bir GeoJSON dosyasındaki her öge (bir FeatureCollection, bir Feature ya da tek bir geometri): özellikleri sütun olarak, geometrisi de tek bir sütunda özetlenmiş olarak (tür, nokta sayısı, kapsam; bir noktanın koordinatları). Koordinat sistemi: dosya başka bir şey belirtmedikçe WGS 84.",
+      ".geojson dosyasının kendisi ya da GeoJSON içeren bir .json (içeriğinden tanınır). QGIS, GDAL (ogr2ogr -f GeoJSON) ve web haritaları bunu dışa aktarır.",
+      "Geometriler kopyalanmaz, özetlenir: yapay zekâ her ögenin ne olduğunu ve nerede bulunduğunu bilir ama haritayı istemden yeniden çizemez. TopoJSON, GeoJSON değildir: düz JSON olarak okunur.",
+      "Bir GeoPackage'ın her katmanı: öge katmanları (öznitelikleri ile türü ve koordinat sistemiyle özetlenmiş bir geometri sütunu) ve öznitelik tabloları, alttaki SQLite veritabanının anahtarları ve ilişkileriyle birlikte.",
+      ".gpkg dosyasının kendisi. QGIS, GDAL (ogr2ogr -f GPKG) ve ArcGIS Pro bunu yazar.",
+      "Geometriler kopyalanmaz, özetlenir (tür, nokta sayısı, kapsam). Döşeme setleri (harita görüntüleri) sayılır ama okunmaz; GeoPackage'ın kendi tabloları (gpkg_*, rtree_*) dışarıda bırakılır."],
+    zh: ["GeoJSON 文件中的每个要素（FeatureCollection、Feature 或单个几何）：属性作为列，几何汇总为一列（类型、点数、范围；点的坐标）。坐标系：除非文件另有说明，均为 WGS 84。",
+      ".geojson 文件本身，或包含 GeoJSON 的 .json 文件（按内容识别）。QGIS、GDAL（ogr2ogr -f GeoJSON）和网络地图都可以导出。",
+      "几何只做汇总，不会复制：AI 知道每个要素是什么、位于何处，但无法根据提示词重绘地图。TopoJSON 不是 GeoJSON，会按普通 JSON 读取。",
+      "GeoPackage 的每个图层：要素图层（属性，以及汇总了类型和坐标系的几何列）和属性表，并包括底层 SQLite 数据库的键和关系。",
+      ".gpkg 文件本身。QGIS、GDAL（ogr2ogr -f GPKG）和 ArcGIS Pro 都可以写出。",
+      "几何只做汇总（类型、点数、范围），不会复制。瓦片集（地图图像）只计数不读取，GeoPackage 自身的表（gpkg_*、rtree_*）不包含在内。"],
+    ja: ["GeoJSON ファイルのすべての地物（FeatureCollection、Feature、または単独のジオメトリ）：属性を列として、ジオメトリを 1 列に要約して（種類、点の数、範囲、ポイントの座標）。座標系は、ファイルに別の指定がない限り WGS 84 です。",
+      ".geojson ファイルそのもの、または GeoJSON を含む .json（内容で判別します）。QGIS、GDAL（ogr2ogr -f GeoJSON）、Web 地図から書き出せます。",
+      "ジオメトリはコピーせず要約します。AI は各地物が何でどこにあるかを把握できますが、プロンプトから地図を描き直すことはできません。TopoJSON は GeoJSON ではないため、通常の JSON として読み取ります。",
+      "GeoPackage のすべてのレイヤー：地物レイヤー（属性と、種類・座標系付きで要約したジオメトリ列）と属性テーブル。基になる SQLite データベースのキーとリレーションも含みます。",
+      ".gpkg ファイルそのもの。QGIS、GDAL（ogr2ogr -f GPKG）、ArcGIS Pro が書き出します。",
+      "ジオメトリはコピーせず要約します（種類、点の数、範囲）。タイルセット（地図画像）は数えますが読み取らず、GeoPackage 自身のテーブル（gpkg_*、rtree_*）は除外します。"],
+    ko: ["GeoJSON 파일의 모든 피처(FeatureCollection, Feature 또는 단일 지오메트리): 속성은 열로, 지오메트리는 한 열에 요약해서(종류, 점 개수, 범위, 점의 좌표) 보여 줍니다. 좌표계는 파일에 다른 지정이 없으면 WGS 84입니다.",
+      ".geojson 파일 자체, 또는 GeoJSON이 들어 있는 .json(내용으로 인식). QGIS, GDAL(ogr2ogr -f GeoJSON), 웹 지도에서 내보낼 수 있습니다.",
+      "지오메트리는 복사하지 않고 요약합니다. AI는 각 피처가 무엇이고 어디에 있는지 알지만 프롬프트로 지도를 다시 그릴 수는 없습니다. TopoJSON은 GeoJSON이 아니므로 일반 JSON으로 읽습니다.",
+      "GeoPackage의 모든 레이어: 피처 레이어(속성, 그리고 종류와 좌표계와 함께 요약한 지오메트리 열)와 속성 테이블, 그리고 바탕이 되는 SQLite 데이터베이스의 키와 관계.",
+      ".gpkg 파일 자체. QGIS, GDAL(ogr2ogr -f GPKG), ArcGIS Pro가 저장합니다.",
+      "지오메트리는 복사하지 않고 요약합니다(종류, 점 개수, 범위). 타일 세트(지도 이미지)는 개수만 세고 읽지 않으며, GeoPackage 자체의 테이블(gpkg_*, rtree_*)은 제외합니다."],
+    hi: ["GeoJSON फ़ाइल का हर फ़ीचर (FeatureCollection, Feature या एक अकेली ज्यामिति): उसकी प्रॉपर्टी कॉलम के रूप में, और उसकी ज्यामिति एक कॉलम में सारांश के रूप में (प्रकार, बिंदुओं की संख्या, विस्तार; बिंदु के निर्देशांक)। निर्देशांक प्रणाली: WGS 84, जब तक फ़ाइल कुछ और न बताए।",
+      "स्वयं .geojson फ़ाइल, या GeoJSON वाली .json फ़ाइल (सामग्री से पहचानी जाती है)। QGIS, GDAL (ogr2ogr -f GeoJSON) और वेब मैप इसे एक्सपोर्ट करते हैं।",
+      "ज्यामितियों का सारांश दिया जाता है, उन्हें कॉपी नहीं किया जाता: AI जानता है कि हर फ़ीचर क्या है और कहाँ है, पर प्रॉम्प्ट से नक्शा दोबारा नहीं बना सकता। TopoJSON, GeoJSON नहीं है: उसे सामान्य JSON की तरह पढ़ा जाता है।",
+      "GeoPackage की हर परत: फ़ीचर परतें (उनके एट्रिब्यूट, और प्रकार व निर्देशांक प्रणाली के साथ सारांशित ज्यामिति कॉलम) और एट्रिब्यूट तालिकाएँ, नीचे के SQLite डेटाबेस की कुंजियों और संबंधों के साथ।",
+      "स्वयं .gpkg फ़ाइल। QGIS, GDAL (ogr2ogr -f GPKG) और ArcGIS Pro इसे लिखते हैं।",
+      "ज्यामितियों का सारांश दिया जाता है (प्रकार, बिंदुओं की संख्या, विस्तार), उन्हें कॉपी नहीं किया जाता। टाइल सेट (नक्शे की छवियाँ) गिने जाते हैं पर पढ़े नहीं जाते, और GeoPackage की अपनी तालिकाएँ (gpkg_*, rtree_*) छोड़ दी जाती हैं।"],
+    ar: ["كل معلم في ملف GeoJSON (‏FeatureCollection أو Feature أو هندسة منفردة): خصائصه كأعمدة، وهندسته ملخّصة في عمود واحد (النوع، عدد النقاط، النطاق؛ وإحداثيات النقطة). نظام الإحداثيات: WGS 84 ما لم يذكر الملف غير ذلك.",
+      "ملف ‎.geojson نفسه، أو ملف ‎.json يحتوي على GeoJSON (يُتعرَّف عليه من محتواه). تصدّره QGIS وGDAL ‏(ogr2ogr -f GeoJSON) والخرائط على الويب.",
+      "تُلخَّص الهندسات ولا تُنسخ: يعرف الذكاء الاصطناعي ما هو كل معلم وأين يقع، لكنه لا يستطيع إعادة رسم الخريطة من الموجّه. TopoJSON ليس GeoJSON: يُقرأ كملف JSON عادي.",
+      "كل طبقة في GeoPackage: طبقات المعالم (سماتها، وعمود هندسة ملخّص بنوعه ونظام إحداثياته) وجداول السمات، مع مفاتيح قاعدة بيانات SQLite الأساسية وعلاقاتها.",
+      "ملف ‎.gpkg نفسه. تكتبه QGIS وGDAL ‏(ogr2ogr -f GPKG) وArcGIS Pro.",
+      "تُلخَّص الهندسات (النوع، عدد النقاط، النطاق) ولا تُنسخ. تُحصى مجموعات البلاطات (صور الخرائط) ولا تُقرأ، وتُستبعد جداول GeoPackage الخاصة (gpkg_*‎ وrtree_*‎)."],
+  };
+  for (const [lang, vals] of Object.entries(P)) PK.forEach((k, i) => { window.DB_I18N.prompt[lang][k] = vals[i]; });
+  for (const [lang, vals] of Object.entries(U)) UK.forEach((k, i) => { window.DB_I18N.ui[lang][k] = vals[i]; });
+})();
+</script>
 <script>/* DataBrief - translations for the SQL Server data-tier package (.dacpac / .bacpac) card. GPL-3.0-or-later.
  * UI order: fcDacpacReads, fcDacpacBest, fcDacpacGood */
 'use strict';
@@ -4501,7 +4621,9 @@ window.DB_I18N = {
   // File metadata that is free text written by people (it may hold anything): shown only when the user allows it.
   const FREE_TEXT_META = new Set(['mFileLabel', 'mDocs', 'mEmbedded']);
   // File metadata made of names: hidden when names are replaced. Embedded pandas / Spark metadata lists the columns.
-  const FILE_META = new Set(['mExternal']);   // names of other files (COPY FROM a file, linked tables): hidden with the file name too
+  const FILE_META = new Set(['mExternal']);
+  // Facts computed from the records (where the data lies, how many features of each kind): never in "Do not share data"
+  const DATA_META = new Set(['mExtent', 'mGeomTypes']);   // names of other files (COPY FROM a file, linked tables): hidden with the file name too
   const NAME_META = new Set(['mViews', 'mSkipped', 'mNames', 'mRoot', 'mWeight', 'mEmbedded', 'mExternal', 'mMemo']);
   const copy = (v) => (v == null ? v : JSON.parse(JSON.stringify(v)));
   const baseOf = (name) => (name || 'data').replace(/\.[^.]+$/, '') || 'data';
@@ -4567,7 +4689,7 @@ window.DB_I18N = {
     });
     const views = (doc.views || []).map((v) => ({ name: v.name, sql: v.sql }));
     const fileMeta = (doc.fileMeta || [])
-      .map(([key, value]) => ({ key, value: key === 'mNames' ? keepRanges(String(value)) : String(value), freeText: FREE_TEXT_META.has(key), names: NAME_META.has(key), files: FILE_META.has(key) }))
+      .map(([key, value]) => ({ key, value: key === 'mNames' ? keepRanges(String(value)) : String(value), freeText: FREE_TEXT_META.has(key), names: NAME_META.has(key), files: FILE_META.has(key), data: DATA_META.has(key) }))
       .filter((m) => m.value !== '');
     return {
       level, fileName: doc.fileName, fileSize: doc.fileSize, formatName: doc.formatName, formatKey: doc.formatKey, sectionKind: doc.sectionKind,
@@ -5577,6 +5699,197 @@ window.DB.DBF_CODEPAGES = {
     if (have < nRec) fileMeta.push(['mCutRecords', String(nRec - have)]);
     if (truncatedAt) fileMeta.push(['mRowsCut', String(maxRows)]);
     return { sections: [{ name: '', columns: cols, rows, rowsTotal: total }], fileMeta, notes: {} };
+  };
+})();
+</script>
+<script>/* DataBrief - geodata: GeoJSON, and the geometries of a GeoPackage (a SQLite file, read by parsers.js). GPL-3.0-or-later.
+ *   DB.geoJsonDoc(tree, baseName) -> { sections, fileMeta, notes } when the JSON is GeoJSON, else null
+ *   DB.gpkgGeometry(u8)           -> { type, text, empty } from a GeoPackage geometry blob ("GP" header + WKB), or null
+ *   DB.geoSummary(geom)           -> "POINT (2.35 48.86)", "POLYGON (1 ring, 5 points; x 2.33…2.36, y 48.85…48.87)"
+ * A geometry is summarised, never copied whole: its kind, its size and its extent. Coordinates are values of the data:
+ * the column is of the kind "geometry" (never counted as categories) and "Do not share data" treats it like any record. */
+'use strict';
+(function () {
+  const DB = window.DB;
+  const KINDS = ['', 'POINT', 'LINESTRING', 'POLYGON', 'MULTIPOINT', 'MULTILINESTRING', 'MULTIPOLYGON', 'GEOMETRYCOLLECTION'];
+  const NAME = { POINT: 'Point', LINESTRING: 'LineString', POLYGON: 'Polygon', MULTIPOINT: 'MultiPoint', MULTILINESTRING: 'MultiLineString',
+    MULTIPOLYGON: 'MultiPolygon', GEOMETRYCOLLECTION: 'GeometryCollection' };
+  const MAX_DEPTH = 32;
+
+  /* ---------------------------------------------------------------- a geometry, whatever its source ----------
+     { kind: 'POLYGON', dims: '' | 'Z' | 'M' | 'ZM', parts, rings, points, bbox: [minx, miny, maxx, maxy] | null, first: [x, y], empty } */
+  function newGeom(kind, dims) { return { kind, dims: dims || '', parts: 0, rings: 0, points: 0, bbox: null, first: null, empty: true }; }
+  function addPoint(g, x, y) {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    g.points++; g.empty = false;
+    if (!g.first) g.first = [x, y];
+    if (!g.bbox) g.bbox = [x, y, x, y];
+    else { if (x < g.bbox[0]) g.bbox[0] = x; if (y < g.bbox[1]) g.bbox[1] = y; if (x > g.bbox[2]) g.bbox[2] = x; if (y > g.bbox[3]) g.bbox[3] = y; }
+  }
+  function merge(g, h) {
+    g.points += h.points; g.rings += h.rings;
+    if (h.empty) return;
+    g.empty = false;
+    if (!g.first) g.first = h.first;
+    if (!g.bbox) g.bbox = h.bbox.slice();
+    else { g.bbox[0] = Math.min(g.bbox[0], h.bbox[0]); g.bbox[1] = Math.min(g.bbox[1], h.bbox[1]); g.bbox[2] = Math.max(g.bbox[2], h.bbox[2]); g.bbox[3] = Math.max(g.bbox[3], h.bbox[3]); }
+  }
+
+  // Numbers as people read them: no 2.3500000000000001, at most 10 significant digits
+  const num = (x) => String(Number(x.toPrecision(10)));
+  const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+  DB.geoSummary = function (g) {
+    if (!g) return '';
+    const head = g.kind + (g.dims ? ' ' + g.dims : '');
+    if (g.empty) return head + ' EMPTY';
+    if (g.kind === 'POINT') return head + ' (' + num(g.first[0]) + ' ' + num(g.first[1]) + ')';
+    const bits = [];
+    if (g.kind.startsWith('MULTI') || g.kind === 'GEOMETRYCOLLECTION') bits.push(plural(g.parts, 'part', 'parts'));
+    if (g.kind.endsWith('POLYGON')) bits.push(plural(g.rings, 'ring', 'rings'));
+    bits.push(plural(g.points, 'point', 'points'));
+    const b = g.bbox;
+    return head + ' (' + bits.join(', ') + '; x ' + num(b[0]) + '…' + num(b[2]) + ', y ' + num(b[1]) + '…' + num(b[3]) + ')';
+  };
+
+  /* ---------------------------------------------------------------- WKB (ISO and extended) ----------
+     Every count is checked against the bytes left: a damaged or hostile blob gives null, never a huge loop. */
+  function readWkb(u8, start, end) {
+    const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+    let p = start;
+    function geom(depth) {
+      if (depth > MAX_DEPTH || p + 5 > end) throw 0;
+      const le = u8[p] === 1; p++;
+      const u32 = () => { if (p + 4 > end) throw 0; const v = dv.getUint32(p, le); p += 4; return v; };
+      let t = u32();
+      let z = false, m = false;
+      if (t & 0x80000000) z = true;                      // EWKB flags
+      if (t & 0x40000000) m = true;
+      if (t & 0x20000000) u32();                         // EWKB SRID
+      t &= 0x0fffffff;
+      const th = Math.floor(t / 1000);                   // ISO: 1000 Z, 2000 M, 3000 ZM
+      if (th === 1 || th === 3) z = true;
+      if (th === 2 || th === 3) m = true;
+      const kind = KINDS[t % 1000];
+      if (!kind) throw 0;
+      const step = 16 + (z ? 8 : 0) + (m ? 8 : 0);
+      const g = newGeom(kind, (z ? 'Z' : '') + (m ? 'M' : ''));
+      const points = (n, into) => {
+        if (n * step > end - p) throw 0;
+        for (let i = 0; i < n; i++) { addPoint(into, dv.getFloat64(p, le), dv.getFloat64(p + 8, le)); p += step; }
+      };
+      if (kind === 'POINT') { points(1, g); if (g.points && Number.isNaN(g.first[0])) g.empty = true; return g; }
+      if (kind === 'LINESTRING') { points(u32(), g); return g; }
+      if (kind === 'POLYGON') {
+        const rings = u32();
+        if (rings * 4 > end - p) throw 0;
+        g.rings = rings;
+        for (let r = 0; r < rings; r++) points(u32(), g);
+        return g;
+      }
+      const n = u32();                                    // multi-geometries and collections: n geometries, each with its own header
+      if (n * 5 > end - p) throw 0;
+      g.parts = n;
+      for (let i = 0; i < n; i++) merge(g, geom(depth + 1));
+      return g;
+    }
+    try { return geom(0); } catch (e) { return null; }
+  }
+  DB.readWkb = (u8) => readWkb(u8, 0, u8.length);
+
+  /* GeoPackage geometry: "GP", version, flags, srs_id (int32), envelope (0, 32, 48 or 64 bytes), then WKB */
+  DB.gpkgGeometry = function (u8) {
+    if (!u8 || !ArrayBuffer.isView(u8) || u8.length < 8 || u8[0] !== 0x47 || u8[1] !== 0x50) return null;   // isView: also across realms
+    const flags = u8[3];
+    const env = [0, 32, 48, 48, 64][(flags >> 1) & 7];
+    if (env === undefined) return null;
+    const start = 8 + env;
+    if ((flags & 0x20) || start > u8.length) return null;    // "extended" GeoPackage geometries: not standard WKB
+    const g = start < u8.length ? readWkb(u8, start, u8.length) : null;
+    if (!g) return null;
+    if (flags & 0x10) g.empty = true;
+    return { type: NAME[g.kind] || g.kind, text: DB.geoSummary(g), empty: g.empty };
+  };
+
+  /* ---------------------------------------------------------------- GeoJSON ---------- */
+  const GEO_TYPES = ['Point', 'LineString', 'Polygon', 'MultiPoint', 'MultiLineString', 'MultiPolygon', 'GeometryCollection'];
+  function fromGeoJson(o, depth) {
+    if (!o || typeof o !== 'object' || depth > MAX_DEPTH) return null;
+    const kind = Object.keys(NAME).find((k) => NAME[k] === o.type);
+    if (!kind) return null;
+    const c = o.coordinates;
+    let dims = '';
+    const g = newGeom(kind, '');
+    const pt = (a) => { if (Array.isArray(a) && a.length >= 2) { if (a.length >= 3) dims = 'Z'; addPoint(g, +a[0], +a[1]); } };
+    const line = (a) => { if (Array.isArray(a)) a.forEach(pt); };
+    const poly = (a) => { if (Array.isArray(a)) { g.rings += a.length; a.forEach(line); } };
+    switch (kind) {
+      case 'POINT': pt(c); break;
+      case 'LINESTRING': case 'MULTIPOINT': line(c); if (kind === 'MULTIPOINT') g.parts = Array.isArray(c) ? c.length : 0; break;
+      case 'POLYGON': poly(c); break;
+      case 'MULTILINESTRING': if (Array.isArray(c)) { g.parts = c.length; c.forEach(line); } break;
+      case 'MULTIPOLYGON': if (Array.isArray(c)) { g.parts = c.length; c.forEach(poly); } break;
+      case 'GEOMETRYCOLLECTION': {
+        const list = Array.isArray(o.geometries) ? o.geometries : [];
+        g.parts = list.length;
+        for (const x of list) { const h = fromGeoJson(x, depth + 1); if (h) merge(g, h); }
+        break;
+      }
+      default: break;
+    }
+    g.dims = dims;
+    return g;
+  }
+  DB.geoFromGeoJson = (o) => fromGeoJson(o, 0);
+
+  // RFC 7946: WGS 84 longitude/latitude unless an old-style "crs" member says otherwise
+  function crsOf(tree) {
+    const n = tree && tree.crs && tree.crs.properties && tree.crs.properties.name;
+    if (!n) return 'WGS 84 (longitude, latitude)';
+    const m = /EPSG:{1,2}(\d+)$/i.exec(String(n));
+    if (/CRS84$/i.test(String(n)) || (m && m[1] === '4326')) return 'WGS 84 (longitude, latitude)';
+    return m ? 'EPSG:' + m[1] : String(n).slice(0, 80);
+  }
+
+  DB.isGeoJson = (tree) => !!tree && typeof tree === 'object' && !Array.isArray(tree) &&
+    ((tree.type === 'FeatureCollection' && Array.isArray(tree.features)) || (tree.type === 'Feature' && 'geometry' in tree) || GEO_TYPES.includes(tree.type));
+
+  DB.geoJsonDoc = function (tree, baseName) {
+    if (!DB.isGeoJson(tree)) return null;
+    const features = tree.type === 'FeatureCollection' ? tree.features : tree.type === 'Feature' ? [tree] : [{ type: 'Feature', properties: {}, geometry: tree }];
+    const hasPropId = features.some((f) => f && f.properties && Object.prototype.hasOwnProperty.call(f.properties, 'id'));
+    const records = [];
+    const counts = new Map();
+    let bbox = null;
+    let geomName = 'geometry';
+    for (const f of features) if (f && f.properties && Object.prototype.hasOwnProperty.call(f.properties, geomName)) geomName = 'geometry_';
+    for (const f of features) {
+      if (!f || typeof f !== 'object') continue;
+      const rec = {};
+      if (f.id !== undefined && f.id !== null) rec[hasPropId ? 'feature_id' : 'id'] = f.id;
+      Object.assign(rec, f.properties && typeof f.properties === 'object' && !Array.isArray(f.properties) ? f.properties : {});
+      const g = fromGeoJson(f.geometry, 0);
+      rec[geomName] = g ? DB.geoSummary(g) : '';
+      const type = g ? (g.empty ? NAME[g.kind] + ' (empty)' : NAME[g.kind]) : 'no geometry';
+      counts.set(type, (counts.get(type) || 0) + 1);
+      if (g && !g.empty) {
+        if (!bbox) bbox = g.bbox.slice();
+        else { bbox[0] = Math.min(bbox[0], g.bbox[0]); bbox[1] = Math.min(bbox[1], g.bbox[1]); bbox[2] = Math.max(bbox[2], g.bbox[2]); bbox[3] = Math.max(bbox[3], g.bbox[3]); }
+      }
+      records.push(rec);
+    }
+    const flat = DB.flattenRecords(records);
+    const notes = {};
+    if (flat.flags.flattened) notes.flattened = true;
+    if (flat.flags.arrays) notes.arrays = true;
+    if (flat.flags.isoDates) notes.isoDates = true;
+    const crs = crsOf(tree);
+    const types = Array.from(counts.keys()).filter((k) => k !== 'no geometry' && !/\(empty\)$/.test(k));
+    const columns = flat.columns.map((n) => ({ name: n, meta: n === geomName ? { geometry: types.join(', ') + (types.length ? ' · ' : '') + crs } : {} }));
+    // A FeatureCollection may carry its own (layer) name: GDAL writes it
+    const name = typeof tree.name === 'string' && tree.name.trim() ? tree.name.trim().slice(0, 120) : baseName;
+    const fileMeta = [['mCrs', crs], ['mGeomTypes', Array.from(counts.entries()).map(([k, v]) => k + ': ' + v).join(', ')]];
+    if (bbox) fileMeta.push(['mExtent', 'x ' + num(bbox[0]) + '…' + num(bbox[2]) + ', y ' + num(bbox[1]) + '…' + num(bbox[3])]);
+    return { sections: [{ name, columns, rows: flat.rows }], fileMeta, notes };
   };
 })();
 </script>
@@ -7182,12 +7495,15 @@ window.DB.DBF_CODEPAGES = {
     { key: 'duckdb', label: 'DuckDB', exts: ['zip'] },
     { key: 'access', label: 'Access', exts: ['mdb', 'accdb'] },
     { key: 'dacpac', label: 'DACPAC', exts: ['dacpac', 'bacpac'] },
+    { key: 'geojson', label: 'GeoJSON', exts: ['geojson'] },
+    { key: 'gpkg', label: 'GeoPackage', exts: ['gpkg'] },
   ];
   const FORMAT_NAMES = {
     csv: 'CSV', tsv: 'TSV', txt: 'TXT (CSV)', xlsx: 'Excel (XLSX)', xlsm: 'Excel (XLSM)',
     xls: 'Excel 97-2003 (XLS)', ods: 'OpenDocument (ODS)', json: 'JSON', ndjson: 'NDJSON / JSON Lines',
     xml: 'XML', yaml: 'YAML', html: 'HTML', sav: 'SPSS Statistics (.sav)', zsav: 'SPSS Statistics (.zsav)',
     parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)', dbf: 'dBase / FoxPro (DBF)', duckdb: 'DuckDB export (zip)', access: 'Microsoft Access', dacpac: 'SQL Server data-tier package',
+    geojson: 'GeoJSON', gpkg: 'GeoPackage',
   };
   DB.ACCEPT = DB.FORMATS.flatMap((f) => f.exts.map((e) => '.' + e)).concat(['.gz']).join(','); // .gz: a compressed file of any of these
 
@@ -7326,6 +7642,8 @@ window.DB.DBF_CODEPAGES = {
         try { tree = lines(); } catch (e2) { throw e; }
       }
     }
+    const geo = DB.geoJsonDoc && DB.geoJsonDoc(tree, baseOf(name));
+    if (geo) { geo.geojson = true; return geo; }
     return treeToDoc(tree, baseOf(name));
   }
 
@@ -7455,6 +7773,28 @@ window.DB.DBF_CODEPAGES = {
     try { while (st.step()) out.push(st.getAsObject()); } finally { st.free(); }
     return out;
   }
+  // GeoPackage registry: which tables are layers (features or attributes), their geometry column and coordinate system
+  function readGpkg(db) {
+    const safe = (sql) => { try { return allRows(db, sql); } catch (e) { return []; } };
+    const srs = new Map(safe('SELECT srs_id, srs_name, organization, organization_coordsys_id FROM gpkg_spatial_ref_sys')
+      .map((r) => [r.srs_id, r]));
+    const srsText = (id) => {
+      const s = srs.get(id);
+      if (!s || id === 0 || id === -1) return id === 0 ? 'undefined geographic coordinates' : 'undefined cartesian coordinates';
+      const code = s.organization && String(s.organization).toUpperCase() !== 'NONE' ? s.organization + ':' + s.organization_coordsys_id : '';
+      return [String(s.srs_name || '').slice(0, 80), code ? '(' + code + ')' : ''].filter(Boolean).join(' ');
+    };
+    const contents = new Map(safe('SELECT table_name, data_type, identifier, description FROM gpkg_contents')
+      .map((r) => [r.table_name, { kind: r.data_type, identifier: String(r.identifier || ''), description: String(r.description || '') }]));
+    const geom = new Map(safe('SELECT table_name, column_name, geometry_type_name, srs_id FROM gpkg_geometry_columns')
+      .map((r) => [r.table_name, { column: r.column_name, text: String(r.geometry_type_name || 'GEOMETRY') + ' · ' + srsText(r.srs_id) }]));
+    const kinds = Array.from(contents.values()).map((c) => c.kind);
+    const n = (k) => kinds.filter((x) => x === k).length;
+    const summary = [n('features') ? n('features') + ' feature layer' + (n('features') > 1 ? 's' : '') : '',
+      n('attributes') ? n('attributes') + ' attribute table' + (n('attributes') > 1 ? 's' : '') : '',
+      n('tiles') ? n('tiles') + ' tile set' + (n('tiles') > 1 ? 's' : '') + ' (images, not read)' : ''].filter(Boolean).join(', ');
+    return { contents, geom, summary: summary || 'no registered layer' };
+  }
   async function parseSqlite(buf) {
     const SQL = await getSql();
     const db = new SQL.Database(new Uint8Array(buf));
@@ -7465,6 +7805,10 @@ window.DB.DBF_CODEPAGES = {
       } catch (e) { throw new UserError('errSqlite', {}, String(e.message || e)); }
       const sections = [];
       const skipped = [];
+      // A GeoPackage is a SQLite file with registered layers: its gpkg_* and rtree_* tables are machinery, not data, and the
+      // geometry columns hold "GP" blobs (decoded by geo.js into a short summary)
+      const gpkg = master.some((m) => m.name === 'gpkg_contents') && master.some((m) => m.name === 'gpkg_geometry_columns') ? readGpkg(db) : null;
+      if (gpkg) master = master.filter((m) => !/^(gpkg_|rtree_|sqlite_)/i.test(m.name) && (gpkg.contents.get(m.name) || {}).kind !== 'tiles');
       // Columns of a table in primary-key order (used when a foreign key does not name its target columns).
       const pkCache = new Map();
       const pkColumns = (table) => {
@@ -7506,6 +7850,8 @@ window.DB.DBF_CODEPAGES = {
             }
             const key = [c.pk > 0 ? { key: 'pk' } : null].concat(arrows).filter(Boolean);
             const meta = { sqlType: c.type || '', key, notNull: c.notnull ? { key: 'yes' } : '' };
+            const gc = gpkg && gpkg.geom.get(t.name);
+            if (gc && gc.column === c.name) meta.geometry = gc.text;
             if (c.hidden === 2) meta.generated = { key: 'genVirtual' };
             else if (c.hidden === 3) meta.generated = { key: 'genStored' };
             return { name: c.name, meta };
@@ -7524,8 +7870,12 @@ window.DB.DBF_CODEPAGES = {
           // Rows: the columns are named explicitly, in the same order as the header. 64-bit integers stay exact (BigInt).
           const st = db.prepare('SELECT ' + info.map((c) => qi(c.name)).join(', ') + ' FROM ' + qi(t.name));
           const rows = [];
-          try { while (st.step()) rows.push(st.get(null, { useBigInt: true }).map(DB.str)); } finally { st.free(); }
+          const gi = gpkg && gpkg.geom.has(t.name) ? info.findIndex((c) => c.name === gpkg.geom.get(t.name).column) : -1;
+          const cell = (v, i) => (i === gi && v instanceof Uint8Array ? ((DB.gpkgGeometry(v) || {}).text || '[geometry not readable]') : DB.str(v));
+          try { while (st.step()) rows.push(st.get(null, { useBigInt: true }).map(cell)); } finally { st.free(); }
+          const layer = gpkg && gpkg.contents.get(t.name);
           sections.push({
+            description: layer ? [layer.identifier !== t.name ? layer.identifier : '', layer.description].filter(Boolean).join(' · ') : '',
             name: t.name, columns, rows,
             constraints: { pk: info.filter((c) => c.pk > 0).sort((a, b) => a.pk - b.pk).map((c) => c.name), fks, unique, indexes, ddl: t.sql || '' },
           });
@@ -7537,7 +7887,8 @@ window.DB.DBF_CODEPAGES = {
       const views = master.filter((m) => m.type === 'view');
       if (views.length) fileMeta.push(['mViews', views.map((v) => '`' + v.name + '`').join(', ')]);
       if (skipped.length) fileMeta.push(['mSkipped', skipped.map((v) => '`' + v + '`').join(', ')]);
-      return { sections, fileMeta, notes: {}, views: views.map((v) => ({ name: v.name, sql: v.sql || '' })).filter((v) => v.sql) };
+      if (gpkg) fileMeta.unshift(['mGpkg', gpkg.summary]);
+      return { gpkg: !!gpkg, sections, fileMeta, notes: {}, views: views.map((v) => ({ name: v.name, sql: v.sql || '' })).filter((v) => v.sql) };
     } finally {
       db.close();
     }
@@ -7892,6 +8243,8 @@ window.DB.DBF_CODEPAGES = {
       const f = DB.FORMATS.find((x) => x.exts.includes(ext));
       if (!f) throw new UserError('errUnsupported', { ext: ext ? '.' + ext : '?' });
       kind = f.key;
+      if (kind === 'geojson') kind = 'json';                // read as JSON, recognised as GeoJSON by its content
+      if (kind === 'gpkg') kind = 'sqlite';                 // a GeoPackage is a SQLite file
       if (['xlsx', 'xlsm', 'xls', 'ods', 'sqlite', 'parquet', 'sav', 'duckdb', 'access', 'dacpac'].includes(kind)) {
         // Binary format expected but the content does not match: try as text.
         const sample = DB.decodeText(u8.subarray(0, 4096)).text.trim();
@@ -7925,9 +8278,11 @@ window.DB.DBF_CODEPAGES = {
       case 'sav': res = DB.parseSav(buf); res.sections[0].name = baseOf(fileName); break;
       default: throw new UserError('errUnsupported', { ext: '.' + ext });
     }
+    if (res.geojson) kind = 'geojson';
+    if (res.gpkg) kind = 'gpkg';
     const formatKey = kind === 'sav' && ext === 'zsav' ? 'zsav' : kind;
     const sectionKind = ['xlsx', 'xlsm', 'xls', 'ods'].includes(kind) ? 'sheets'
-      : ['html', 'sqlite', 'sql', 'pgdump', 'duckdb', 'access', 'dacpac'].includes(kind) ? 'tables' : 'records';
+      : ['html', 'sqlite', 'sql', 'pgdump', 'duckdb', 'access', 'dacpac', 'gpkg'].includes(kind) ? 'tables' : 'records';
     return finalize(Object.assign(res, {
       fileName, fileSize: u8.length, formatKey, formatName: FORMAT_NAMES[formatKey] || kind.toUpperCase(), sectionKind,
     }));
@@ -7937,7 +8292,7 @@ window.DB.DBF_CODEPAGES = {
     doc.sections = doc.sections.filter((s) => s && s.columns);
     const fromSql = ['sql', 'pgdump', 'dbf', 'duckdb', 'access', 'dacpac'].includes(doc.formatKey);
     for (const s of doc.sections) {
-      s.columns.forEach((c, i) => { c.type = DB.detectColumnType(s.rows, i); });
+      s.columns.forEach((c, i) => { c.type = c.meta && c.meta.geometry ? 'geometry' : DB.detectColumnType(s.rows, i); });   // coordinates: never categories
       // A dump of the structure only (or whose data is in other files): no row was read, the SQL type tells the kind
       if (fromSql && !s.rows.length) s.columns.forEach((c) => { c.type = typeFromSql(c.meta && c.meta.sqlType); });
       // The rows read can be fewer than the rows of the table (a large dump): the true count is kept
@@ -8043,11 +8398,11 @@ window.DB.DBF_CODEPAGES = {
 
   const META_COLS = [
     ['label', 'cLabel'], ['values', 'cValues'], ['measure', 'cMeasure'], ['format', 'cFormat'], ['missing', 'cMissing'],
-    ['sqlType', 'cSql'], ['key', 'cKey'], ['notNull', 'cNotNull'], ['generated', 'cGenerated'], ['parquetType', 'cParquet'],
+    ['sqlType', 'cSql'], ['key', 'cKey'], ['notNull', 'cNotNull'], ['generated', 'cGenerated'], ['parquetType', 'cParquet'], ['geometry', 'cGeometry'],
   ];
   const TYPE_KEYS = {
     integer: 'tInteger', decimal: 'tDecimal', date: 'tDate', datetime: 'tDatetime', time: 'tTime',
-    boolean: 'tBoolean', text: 'tText', empty: 'tEmpty', mixed: 'tMixed',
+    boolean: 'tBoolean', text: 'tText', empty: 'tEmpty', mixed: 'tMixed', geometry: 'tGeometry',
   };
 
   function metaText(v, t) {
@@ -8454,7 +8809,7 @@ window.DB.DBF_CODEPAGES = {
     b.lock('- **'); say('rows'); b.lock(':** ' + N(ns.sections.reduce((a, s) => a + s.rows, 0)) + '\n');
     b.lock('- **'); say('nsLevelLabel'); b.lock(':** '); say('nsL' + level); b.lock('\n');
     for (const m of ns.fileMeta) {
-      if ((m.freeText && !sw.text) || (m.names && !sw.names) || (m.files && !sw.file) || m.key === 'mViews') continue;
+      if (m.data || (m.freeText && !sw.text) || (m.names && !sw.names) || (m.files && !sw.file) || m.key === 'mViews') continue;
       b.lock('- **'); say(m.key); b.lock(':**');
       if (m.value.includes('\n')) b.lock('\n' + m.value.split('\n').map((l) => '  > ' + l).join('\n') + '\n');
       else b.lock(' ' + m.value + '\n');
@@ -8831,8 +9186,8 @@ window.DB.DBF_CODEPAGES = {
   const chips = $('chips');
   // One card per family of formats (what is read / the best file / good to know), opened by clicking a format.
   const CARD = { csv: 'Csv', tsv: 'Csv', txt: 'Csv', xlsx: 'Excel', xlsm: 'Excel', xls: 'Excel', ods: 'Excel', json: 'Json', ndjson: 'Json',
-    xml: 'Xml', yaml: 'Yaml', html: 'Html', sav: 'Spss', parquet: 'Parquet', sqlite: 'Sqlite', sql: 'Sql', pgdump: 'Pgdump', dbf: 'Dbf', duckdb: 'Duckdb', access: 'Access', dacpac: 'Dacpac' };
-  const GUIDE = { Csv: 'csv', Excel: 'excel', Json: 'json', Xml: 'xml', Yaml: 'yaml', Html: 'html', Spss: 'spss', Parquet: 'parquet', Sqlite: 'sqlite', Sql: 'sql', Pgdump: 'pgdump', Dbf: 'dbf', Duckdb: 'duckdb', Access: 'access', Dacpac: 'dacpac' };
+    xml: 'Xml', yaml: 'Yaml', html: 'Html', sav: 'Spss', parquet: 'Parquet', sqlite: 'Sqlite', sql: 'Sql', pgdump: 'Pgdump', dbf: 'Dbf', duckdb: 'Duckdb', access: 'Access', dacpac: 'Dacpac', geojson: 'Geojson', gpkg: 'Gpkg' };
+  const GUIDE = { Csv: 'csv', Excel: 'excel', Json: 'json', Xml: 'xml', Yaml: 'yaml', Html: 'html', Spss: 'spss', Parquet: 'parquet', Sqlite: 'sqlite', Sql: 'sql', Pgdump: 'pgdump', Dbf: 'dbf', Duckdb: 'duckdb', Access: 'access', Dacpac: 'dacpac', Geojson: 'geodata', Gpkg: 'geodata' };
   function openCard(f) {
     const k = CARD[f.key];
     $('fmtTitle').textContent = (f.key === 'sav' ? 'SPSS .sav / .zsav' : f.label) + ' · ' + f.exts.map((e) => '.' + e).join(' ');

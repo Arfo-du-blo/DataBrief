@@ -30,12 +30,15 @@
     { key: 'duckdb', label: 'DuckDB', exts: ['zip'] },
     { key: 'access', label: 'Access', exts: ['mdb', 'accdb'] },
     { key: 'dacpac', label: 'DACPAC', exts: ['dacpac', 'bacpac'] },
+    { key: 'geojson', label: 'GeoJSON', exts: ['geojson'] },
+    { key: 'gpkg', label: 'GeoPackage', exts: ['gpkg'] },
   ];
   const FORMAT_NAMES = {
     csv: 'CSV', tsv: 'TSV', txt: 'TXT (CSV)', xlsx: 'Excel (XLSX)', xlsm: 'Excel (XLSM)',
     xls: 'Excel 97-2003 (XLS)', ods: 'OpenDocument (ODS)', json: 'JSON', ndjson: 'NDJSON / JSON Lines',
     xml: 'XML', yaml: 'YAML', html: 'HTML', sav: 'SPSS Statistics (.sav)', zsav: 'SPSS Statistics (.zsav)',
     parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)', dbf: 'dBase / FoxPro (DBF)', duckdb: 'DuckDB export (zip)', access: 'Microsoft Access', dacpac: 'SQL Server data-tier package',
+    geojson: 'GeoJSON', gpkg: 'GeoPackage',
   };
   DB.ACCEPT = DB.FORMATS.flatMap((f) => f.exts.map((e) => '.' + e)).concat(['.gz']).join(','); // .gz: a compressed file of any of these
 
@@ -174,6 +177,8 @@
         try { tree = lines(); } catch (e2) { throw e; }
       }
     }
+    const geo = DB.geoJsonDoc && DB.geoJsonDoc(tree, baseOf(name));
+    if (geo) { geo.geojson = true; return geo; }
     return treeToDoc(tree, baseOf(name));
   }
 
@@ -303,6 +308,28 @@
     try { while (st.step()) out.push(st.getAsObject()); } finally { st.free(); }
     return out;
   }
+  // GeoPackage registry: which tables are layers (features or attributes), their geometry column and coordinate system
+  function readGpkg(db) {
+    const safe = (sql) => { try { return allRows(db, sql); } catch (e) { return []; } };
+    const srs = new Map(safe('SELECT srs_id, srs_name, organization, organization_coordsys_id FROM gpkg_spatial_ref_sys')
+      .map((r) => [r.srs_id, r]));
+    const srsText = (id) => {
+      const s = srs.get(id);
+      if (!s || id === 0 || id === -1) return id === 0 ? 'undefined geographic coordinates' : 'undefined cartesian coordinates';
+      const code = s.organization && String(s.organization).toUpperCase() !== 'NONE' ? s.organization + ':' + s.organization_coordsys_id : '';
+      return [String(s.srs_name || '').slice(0, 80), code ? '(' + code + ')' : ''].filter(Boolean).join(' ');
+    };
+    const contents = new Map(safe('SELECT table_name, data_type, identifier, description FROM gpkg_contents')
+      .map((r) => [r.table_name, { kind: r.data_type, identifier: String(r.identifier || ''), description: String(r.description || '') }]));
+    const geom = new Map(safe('SELECT table_name, column_name, geometry_type_name, srs_id FROM gpkg_geometry_columns')
+      .map((r) => [r.table_name, { column: r.column_name, text: String(r.geometry_type_name || 'GEOMETRY') + ' · ' + srsText(r.srs_id) }]));
+    const kinds = Array.from(contents.values()).map((c) => c.kind);
+    const n = (k) => kinds.filter((x) => x === k).length;
+    const summary = [n('features') ? n('features') + ' feature layer' + (n('features') > 1 ? 's' : '') : '',
+      n('attributes') ? n('attributes') + ' attribute table' + (n('attributes') > 1 ? 's' : '') : '',
+      n('tiles') ? n('tiles') + ' tile set' + (n('tiles') > 1 ? 's' : '') + ' (images, not read)' : ''].filter(Boolean).join(', ');
+    return { contents, geom, summary: summary || 'no registered layer' };
+  }
   async function parseSqlite(buf) {
     const SQL = await getSql();
     const db = new SQL.Database(new Uint8Array(buf));
@@ -313,6 +340,10 @@
       } catch (e) { throw new UserError('errSqlite', {}, String(e.message || e)); }
       const sections = [];
       const skipped = [];
+      // A GeoPackage is a SQLite file with registered layers: its gpkg_* and rtree_* tables are machinery, not data, and the
+      // geometry columns hold "GP" blobs (decoded by geo.js into a short summary)
+      const gpkg = master.some((m) => m.name === 'gpkg_contents') && master.some((m) => m.name === 'gpkg_geometry_columns') ? readGpkg(db) : null;
+      if (gpkg) master = master.filter((m) => !/^(gpkg_|rtree_|sqlite_)/i.test(m.name) && (gpkg.contents.get(m.name) || {}).kind !== 'tiles');
       // Columns of a table in primary-key order (used when a foreign key does not name its target columns).
       const pkCache = new Map();
       const pkColumns = (table) => {
@@ -354,6 +385,8 @@
             }
             const key = [c.pk > 0 ? { key: 'pk' } : null].concat(arrows).filter(Boolean);
             const meta = { sqlType: c.type || '', key, notNull: c.notnull ? { key: 'yes' } : '' };
+            const gc = gpkg && gpkg.geom.get(t.name);
+            if (gc && gc.column === c.name) meta.geometry = gc.text;
             if (c.hidden === 2) meta.generated = { key: 'genVirtual' };
             else if (c.hidden === 3) meta.generated = { key: 'genStored' };
             return { name: c.name, meta };
@@ -372,8 +405,12 @@
           // Rows: the columns are named explicitly, in the same order as the header. 64-bit integers stay exact (BigInt).
           const st = db.prepare('SELECT ' + info.map((c) => qi(c.name)).join(', ') + ' FROM ' + qi(t.name));
           const rows = [];
-          try { while (st.step()) rows.push(st.get(null, { useBigInt: true }).map(DB.str)); } finally { st.free(); }
+          const gi = gpkg && gpkg.geom.has(t.name) ? info.findIndex((c) => c.name === gpkg.geom.get(t.name).column) : -1;
+          const cell = (v, i) => (i === gi && v instanceof Uint8Array ? ((DB.gpkgGeometry(v) || {}).text || '[geometry not readable]') : DB.str(v));
+          try { while (st.step()) rows.push(st.get(null, { useBigInt: true }).map(cell)); } finally { st.free(); }
+          const layer = gpkg && gpkg.contents.get(t.name);
           sections.push({
+            description: layer ? [layer.identifier !== t.name ? layer.identifier : '', layer.description].filter(Boolean).join(' · ') : '',
             name: t.name, columns, rows,
             constraints: { pk: info.filter((c) => c.pk > 0).sort((a, b) => a.pk - b.pk).map((c) => c.name), fks, unique, indexes, ddl: t.sql || '' },
           });
@@ -385,7 +422,8 @@
       const views = master.filter((m) => m.type === 'view');
       if (views.length) fileMeta.push(['mViews', views.map((v) => '`' + v.name + '`').join(', ')]);
       if (skipped.length) fileMeta.push(['mSkipped', skipped.map((v) => '`' + v + '`').join(', ')]);
-      return { sections, fileMeta, notes: {}, views: views.map((v) => ({ name: v.name, sql: v.sql || '' })).filter((v) => v.sql) };
+      if (gpkg) fileMeta.unshift(['mGpkg', gpkg.summary]);
+      return { gpkg: !!gpkg, sections, fileMeta, notes: {}, views: views.map((v) => ({ name: v.name, sql: v.sql || '' })).filter((v) => v.sql) };
     } finally {
       db.close();
     }
@@ -740,6 +778,8 @@
       const f = DB.FORMATS.find((x) => x.exts.includes(ext));
       if (!f) throw new UserError('errUnsupported', { ext: ext ? '.' + ext : '?' });
       kind = f.key;
+      if (kind === 'geojson') kind = 'json';                // read as JSON, recognised as GeoJSON by its content
+      if (kind === 'gpkg') kind = 'sqlite';                 // a GeoPackage is a SQLite file
       if (['xlsx', 'xlsm', 'xls', 'ods', 'sqlite', 'parquet', 'sav', 'duckdb', 'access', 'dacpac'].includes(kind)) {
         // Binary format expected but the content does not match: try as text.
         const sample = DB.decodeText(u8.subarray(0, 4096)).text.trim();
@@ -773,9 +813,11 @@
       case 'sav': res = DB.parseSav(buf); res.sections[0].name = baseOf(fileName); break;
       default: throw new UserError('errUnsupported', { ext: '.' + ext });
     }
+    if (res.geojson) kind = 'geojson';
+    if (res.gpkg) kind = 'gpkg';
     const formatKey = kind === 'sav' && ext === 'zsav' ? 'zsav' : kind;
     const sectionKind = ['xlsx', 'xlsm', 'xls', 'ods'].includes(kind) ? 'sheets'
-      : ['html', 'sqlite', 'sql', 'pgdump', 'duckdb', 'access', 'dacpac'].includes(kind) ? 'tables' : 'records';
+      : ['html', 'sqlite', 'sql', 'pgdump', 'duckdb', 'access', 'dacpac', 'gpkg'].includes(kind) ? 'tables' : 'records';
     return finalize(Object.assign(res, {
       fileName, fileSize: u8.length, formatKey, formatName: FORMAT_NAMES[formatKey] || kind.toUpperCase(), sectionKind,
     }));
@@ -785,7 +827,7 @@
     doc.sections = doc.sections.filter((s) => s && s.columns);
     const fromSql = ['sql', 'pgdump', 'dbf', 'duckdb', 'access', 'dacpac'].includes(doc.formatKey);
     for (const s of doc.sections) {
-      s.columns.forEach((c, i) => { c.type = DB.detectColumnType(s.rows, i); });
+      s.columns.forEach((c, i) => { c.type = c.meta && c.meta.geometry ? 'geometry' : DB.detectColumnType(s.rows, i); });   // coordinates: never categories
       // A dump of the structure only (or whose data is in other files): no row was read, the SQL type tells the kind
       if (fromSql && !s.rows.length) s.columns.forEach((c) => { c.type = typeFromSql(c.meta && c.meta.sqlType); });
       // The rows read can be fewer than the rows of the table (a large dump): the true count is kept

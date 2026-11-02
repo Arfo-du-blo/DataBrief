@@ -89,11 +89,11 @@
 
   const META_COLS = [
     ['label', 'cLabel'], ['values', 'cValues'], ['measure', 'cMeasure'], ['format', 'cFormat'], ['missing', 'cMissing'],
-    ['sqlType', 'cSql'], ['key', 'cKey'], ['notNull', 'cNotNull'], ['generated', 'cGenerated'], ['parquetType', 'cParquet'],
+    ['sqlType', 'cSql'], ['key', 'cKey'], ['notNull', 'cNotNull'], ['generated', 'cGenerated'], ['parquetType', 'cParquet'], ['geometry', 'cGeometry'],
   ];
   const TYPE_KEYS = {
     integer: 'tInteger', decimal: 'tDecimal', date: 'tDate', datetime: 'tDatetime', time: 'tTime',
-    boolean: 'tBoolean', text: 'tText', empty: 'tEmpty', mixed: 'tMixed',
+    boolean: 'tBoolean', text: 'tText', empty: 'tEmpty', mixed: 'tMixed', geometry: 'tGeometry',
   };
 
   function metaText(v, t) {
@@ -500,7 +500,7 @@
     b.lock('- **'); say('rows'); b.lock(':** ' + N(ns.sections.reduce((a, s) => a + s.rows, 0)) + '\n');
     b.lock('- **'); say('nsLevelLabel'); b.lock(':** '); say('nsL' + level); b.lock('\n');
     for (const m of ns.fileMeta) {
-      if ((m.freeText && !sw.text) || (m.names && !sw.names) || (m.files && !sw.file) || m.key === 'mViews') continue;
+      if (m.data || (m.freeText && !sw.text) || (m.names && !sw.names) || (m.files && !sw.file) || m.key === 'mViews') continue;
       b.lock('- **'); say(m.key); b.lock(':**');
       if (m.value.includes('\n')) b.lock('\n' + m.value.split('\n').map((l) => '  > ' + l).join('\n') + '\n');
       else b.lock(' ' + m.value + '\n');

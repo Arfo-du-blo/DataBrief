@@ -11,6 +11,9 @@ echo
 echo "=== Access reader (Node, real files of tests/access-fixtures)"
 node "$HERE/test_access.cjs" | grep -v "^PASS"
 echo
+echo "=== Geodata reader (Node, real files of tests/v14-fixtures written by GDAL)"
+node "$HERE/test_geo.cjs" | grep -v '^PASS'
+echo
 echo "=== DBF reader (Node, real files of tests/dbf-fixtures)"
 node "$HERE/test_dbf.cjs" | grep -v '^PASS'
 echo
