@@ -2,7 +2,8 @@
 #   browser-and-servers  the page in headless Chrome (formats, relationships, profile, "Do not share data" canaries,
 #                        15 languages, the privacy demo) and the Python and Node.js servers; also checks that the
 #                        committed databrief.html is exactly what build.ps1 produces from the sources
-#   cli                  the command-line tool on Linux, Windows and macOS with Node 18, 22 and 24
+#   cli                  the command-line tool on Linux, Windows and macOS with Node 18, 22 and 24 (and its packages, except on Windows)
+#   packages             the .deb in clean Ubuntu and Debian systems (Docker): on version tags and on demand
 #   powershell           the PowerShell server, on Windows
 #   docker               both Docker images (amd64 and arm64 under emulation), Compose, the Raspberry Pi script and the
 #                        web server configuration files: on version tags and on demand (heavy)
@@ -69,6 +70,10 @@ jobs:
         run: node tools/build-cli.cjs
       - name: Run it
         run: node dist/databrief-cli.cjs tests/v14-fixtures/doc-fixtures/report.docx --no-copy --print --no-share
+      # The npm package (packed, installed with npm install -g, run), the Homebrew formula and Scoop manifest, the .deb (Linux).
+      - name: Packages
+        if: runner.os != 'Windows'
+        run: node tests/test_packages.cjs
 
   powershell:
     runs-on: windows-latest
@@ -78,6 +83,19 @@ jobs:
       - name: PowerShell server tests
         shell: powershell
         run: powershell -NoProfile -ExecutionPolicy Bypass -File tests\test_powershell.ps1
+
+  # The .deb installed in clean Ubuntu 26.04, 24.04, 22.04 and Debian systems (Docker), lintian, the Homebrew formula's Ruby syntax.
+  packages:
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Packages in clean systems
+        run: bash tests/test_packages.sh
 
   docker:
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'

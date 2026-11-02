@@ -1,0 +1,36 @@
+# Checks the formula whenever it changes (the DataBrief release writes it): Homebrew's own audit, an install from the release file,
+# and the formula's test block, on macOS and on Linux.
+name: Formula
+
+on:
+  push:
+    paths: ['Formula/**']   # (the DataBrief release writes the formula; before it exists there is nothing to check)
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  formula:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      - name: Tap this repository
+        run: |
+          mkdir -p "$(brew --repository)/Library/Taps/arfo-du-blo"
+          ln -s "$GITHUB_WORKSPACE" "$(brew --repository)/Library/Taps/arfo-du-blo/homebrew-databrief"
+      - name: Audit
+        run: brew audit --strict --online arfo-du-blo/databrief/databrief
+      - name: Install
+        run: brew install --verbose arfo-du-blo/databrief/databrief
+      - name: Test
+        run: brew test arfo-du-blo/databrief/databrief
+      - name: Manual page
+        run: man -w databrief

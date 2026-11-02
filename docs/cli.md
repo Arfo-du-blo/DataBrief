@@ -7,20 +7,34 @@ The same readers and the same [Do not share data](no-share.md) rules as the page
 
 ## Get it
 
-- **From a release:** download `databrief-cli.cjs` from the [latest release](https://github.com/Arfo-du-blo/DataBrief/releases/latest)
-  and check it against `SHA256SUMS.txt` (`sha256sum -c`, or `Get-FileHash` on Windows), like the page. It is one file
-  with everything inside (about 5 MB), no `npm install`.
-- **From the sources:** `node tools/build-cli.cjs` writes `dist/databrief-cli.cjs`. The build is reproducible: the same
-  sources give the same bytes, on every system.
-- **You need Node.js 18 or newer** (checked at start). Nothing else, except a clipboard tool on Linux (below).
+Every way gives you the same tool. **You need Node.js 18 or newer** (checked at start; an older one gets a clear message).
+Nothing else, except a clipboard tool on Linux (below).
+
+| You use | Install | Node.js |
+|---|---|---|
+| **npm**, any system | `npx databrief FILE` (nothing installed), or `npm install -g databrief` | you have it |
+| **Ubuntu, Debian** | `sudo apt install ./databrief_1.5.0_all.deb`, the file from the [release](https://github.com/Arfo-du-blo/DataBrief/releases/latest) | `apt` installs `nodejs` (recommended by the package); on a system whose Node is older than 18, install a newer one (NodeSource, nvm...) |
+| **Homebrew**, macOS or Linux | `brew install Arfo-du-blo/databrief/databrief` | Homebrew installs it |
+| **Scoop**, Windows | `scoop bucket add databrief https://github.com/Arfo-du-blo/scoop-databrief`, then `scoop install databrief` | Scoop installs `nodejs-lts` |
+| **One file**, any system | download `databrief-cli.cjs` from the release, then `node databrief-cli.cjs FILE` | you have it |
+| **From the sources** | `node tools/build-cli.cjs` writes `dist/databrief-cli.cjs`; `node tools/build-npm.cjs` and `node tools/build-deb.cjs` write the packages | you have it |
+
+- **Check what you downloaded:** every file of a [release](https://github.com/Arfo-du-blo/DataBrief/releases/latest) is in
+  `SHA256SUMS.txt` (`sha256sum -c SHA256SUMS.txt`, or `Get-FileHash` on Windows), like the page. The Homebrew formula and the
+  Scoop manifest carry the same fingerprint of `databrief-cli.cjs`, and the package manager checks it.
+- **The builds are reproducible:** the same sources give the same bytes, on every system. The npm package holds exactly the
+  file of the release, and it is published by GitHub Actions with a provenance record (npmjs.com shows where it was built).
+- **The `.deb`** is one package for every architecture (the tool is JavaScript). It installs `/usr/bin/databrief`, the manual
+  (`man databrief`) and the licenses of the libraries inside the tool in `/usr/share/doc/databrief/`. `apt remove databrief`
+  leaves nothing behind. It was installed and removed in clean Ubuntu 26.04, 24.04 and Debian systems, and passes `lintian`.
+
+In this guide `databrief` is the command the install gives you. With the one file, write `node databrief-cli.cjs` instead
+(or, on Linux and macOS, `chmod +x databrief-cli.cjs` and run `./databrief-cli.cjs`, since it starts with `#!/usr/bin/env node`).
 
 ```bash
-node databrief-cli.cjs --help
-node databrief-cli.cjs sales.xlsx
+databrief --help
+databrief sales.xlsx
 ```
-
-On Linux and macOS the file starts with `#!/usr/bin/env node`: `chmod +x databrief-cli.cjs` and run it as
-`./databrief-cli.cjs`, or put it in your `PATH` as `databrief`.
 
 ## What it does
 
@@ -133,7 +147,7 @@ names a person or a team (`owner`, `author`, `contact`...) is dropped. See [the 
 ## For programs: `--json`
 
 ```bash
-node databrief-cli.cjs sales.xlsx --json --no-copy
+databrief sales.xlsx --json --no-copy
 ```
 
 One JSON object on standard output (`ok`, `version`, `file`, `format`, `shared`, `level`, `tokens`, `prompt`, `copied`,
@@ -184,19 +198,19 @@ differences:
 
 ```bash
 # a spreadsheet, no data in the prompt, to ask an AI how to analyse it
-node databrief-cli.cjs survey.xlsx --no-share
+databrief survey.xlsx --no-share
 
 # level 2 (adds counts), without the column names
-node databrief-cli.cjs survey.xlsx --no-share=2 --hide=names
+databrief survey.xlsx --no-share=2 --hide=names
 
 # a database dump: prompt.md and one CSV per table, the prompt asks the AI to load them
-node databrief-cli.cjs dump.sql --mode files --csv
+databrief dump.sql --mode files --csv
 
 # a big file: the first rows that fit
-node databrief-cli.cjs events.parquet --limit auto
+databrief events.parquet --limit auto
 
 # for a program
-node databrief-cli.cjs report.pdf --json --no-copy | jq -r .prompt
+databrief report.pdf --json --no-copy | jq -r .prompt
 ```
 
 ## See also

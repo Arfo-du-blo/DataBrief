@@ -1,10 +1,16 @@
 # On a version tag (git tag v1.1.0 && git push origin v1.1.0):
 #   1. a GitHub release with databrief.html, databrief_set_default.html, the command-line tool databrief-cli.cjs, its manual
-#      databrief.1 and SHA256SUMS.txt (their fingerprints, see docs/verify-privacy.md) attached
+#      databrief.1, the Debian / Ubuntu package databrief_<version>_all.deb and SHA256SUMS.txt (their fingerprints, see
+#      docs/verify-privacy.md) attached                                                                        (job release)
 #   2. Docker images on GitHub Container Registry, for PCs (linux/amd64) and ARM boards such as the Raspberry Pi
-#      (linux/arm64); Docker picks the right one automatically:
+#      (linux/arm64); Docker picks the right one automatically:                                                (job docker)
 #        ghcr.io/<owner>/databrief:latest, :nginx, :<version>, :<version>-nginx   (nginx variant)
 #        ghcr.io/<owner>/databrief:python, :<version>-python                      (Python variant)
+#   3. the npm package "databrief", with provenance, by trusted publishing: npmjs.com > the package > Settings > Trusted
+#      Publisher: GitHub Actions, owner Arfo-du-blo, repository DataBrief, workflow release.yml. No token.      (job npm)
+#   4. the Homebrew formula and the Scoop manifest, written into the repositories homebrew-databrief and
+#      scoop-databrief with the secret PACKAGES_TOKEN (a fine-grained token that can write to those two only)  (job packages)
+# The jobs 2, 3 and 4 wait for the release (1) and do not depend on each other: one that fails can be run again alone.
 # After the first release: GitHub profile > Packages > databrief > Package settings > Change visibility > Public
 name: Release
 
@@ -38,8 +44,16 @@ jobs:
           cmp databrief.1 man/databrief.1 || { echo "man/databrief.1 is out of date: run node tools/build-man.cjs and commit"; exit 1; }
           [ "$(node databrief-cli.cjs --version)" = "databrief ${GITHUB_REF_NAME#v}" ] || { echo "package.json says another version than the tag"; exit 1; }
 
+      # The Debian / Ubuntu package (dpkg-deb is on the runner): the same tool, the manual, the licenses; reproducible.
+      - name: Build the Debian / Ubuntu package
+        run: |
+          mkdir -p dist
+          DATABRIEF_VERSION="${GITHUB_REF_NAME#v}" node tools/build-deb.cjs dist/
+          cp dist/databrief_*_all.deb .
+          ls -l databrief_*_all.deb
+
       - name: Fingerprints (SHA-256) of the released files
-        run: sha256sum databrief.html databrief_set_default.html databrief-cli.cjs databrief.1 | tee SHA256SUMS.txt
+        run: sha256sum databrief.html databrief_set_default.html databrief-cli.cjs databrief.1 databrief_*_all.deb | tee SHA256SUMS.txt
 
       - name: Create (or update) the GitHub release
         env:
@@ -47,11 +61,21 @@ jobs:
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             # the tag was pushed again: replace the files of the existing release
-            gh release upload "$GITHUB_REF_NAME" databrief.html databrief_set_default.html databrief-cli.cjs databrief.1 SHA256SUMS.txt --clobber
+            gh release upload "$GITHUB_REF_NAME" databrief.html databrief_set_default.html databrief-cli.cjs databrief.1 databrief_*_all.deb SHA256SUMS.txt --clobber
           else
-            gh release create "$GITHUB_REF_NAME" databrief.html databrief_set_default.html databrief-cli.cjs databrief.1 SHA256SUMS.txt \
+            gh release create "$GITHUB_REF_NAME" databrief.html databrief_set_default.html databrief-cli.cjs databrief.1 databrief_*_all.deb SHA256SUMS.txt \
               --title "DataBrief $GITHUB_REF_NAME" --generate-notes
           fi
+
+  docker:
+    needs: release
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the HTML files from the sources (the images contain them)
+        shell: pwsh
+        run: ./build.ps1
 
       - name: Image name (registry names must be lowercase)
         run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/databrief" >> "$GITHUB_ENV"
@@ -90,3 +114,84 @@ jobs:
           tags: |
             ${{ env.IMAGE }}:python
             ${{ env.IMAGE }}:${{ github.ref_name }}-python
+
+  # The npm package. Trusted publishing: npmjs.com knows that this workflow of this repository may publish "databrief", so the job
+  # proves who it is (id-token) and needs no token; the package gets a provenance record. A version already on npm is left alone
+  # (the first one, 1.5.0-rc.1, is published by hand). A tag with a dash (v1.5.0-rc.2) goes to the npm tag "next", never "latest".
+  npm:
+    needs: release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+      - name: A recent npm (trusted publishing needs npm 11.5.1 or newer)
+        run: |
+          npm install -g npm@^11.5.1
+          npm --version
+      - name: Build the package
+        run: node tools/build-npm.cjs dist/npm --version "${GITHUB_REF_NAME#v}"
+      - name: The tool in the package is the file of the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" -p databrief-cli.cjs -D released
+          cmp released/databrief-cli.cjs dist/npm/databrief-cli.cjs
+      - name: Publish
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          if npm view "databrief@$V" version >/dev/null 2>&1; then echo "databrief@$V is already on npm: nothing to do"; exit 0; fi
+          TAG=latest
+          case "$V" in *-*) TAG=next ;; esac
+          npm publish ./dist/npm --provenance --access public --tag "$TAG"
+
+  # The Homebrew formula and the Scoop manifest: written from packaging/ with the fingerprints of the files the release published,
+  # and pushed to the two small repositories. Only for a real release (no dash in the tag).
+  packages:
+    needs: release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Download what the release published, and check it against SHA256SUMS.txt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir released
+          cd released
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY"
+          grep -E ' (databrief-cli\.cjs|databrief\.1)$' SHA256SUMS.txt | sha256sum -c -
+      - name: Write the formula and the manifest
+        env:
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          case "$V" in *-*) echo "A pre-release: no Homebrew or Scoop recipe"; exit 0 ;; esac
+          [ -n "$PACKAGES_TOKEN" ] || { echo "The secret PACKAGES_TOKEN is not set (see the header of this file)"; exit 1; }
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for r in homebrew-databrief scoop-databrief; do
+            git clone "https://x-access-token:${PACKAGES_TOKEN}@github.com/${GITHUB_REPOSITORY_OWNER}/$r.git" "$r"
+          done
+          CLI=$(sha256sum released/databrief-cli.cjs | cut -d' ' -f1)
+          MAN=$(sha256sum released/databrief.1 | cut -d' ' -f1)
+          node tools/update-packages.cjs --version "$V" --cli-sha "$CLI" --man-sha "$MAN" --tap homebrew-databrief --bucket scoop-databrief
+          for r in homebrew-databrief scoop-databrief; do
+            cd "$GITHUB_WORKSPACE/$r"
+            git add -A
+            if git diff --cached --quiet; then
+              echo "$r: nothing changed"
+            else
+              git commit -m "databrief $V"
+              git push origin HEAD:main
+            fi
+          done

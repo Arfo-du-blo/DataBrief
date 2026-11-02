@@ -6,7 +6,7 @@
  * env: platform, vars, spawnSync, which(name) -> path or null, waitEnter() -> Promise, nowMs() */
 'use strict';
 
-const TERMINAL = new Set(['vi', 'vim', 'nvim', 'nano', 'pico', 'micro', 'hx', 'helix', 'emacs', 'ne', 'joe', 'jed', 'mcedit', 'kak', 'ed', 'editor', 'sensible-editor']);
+const TERMINAL = new Set(['vi', 'vim', 'nvim', 'nano', 'pico', 'micro', 'hx', 'helix', 'emacs', 'ne', 'joe', 'jed', 'mcedit', 'kak', 'ed', 'editor']);   // ("editor" is Debian's alternative; the tool starts nothing else of Debian's, and a name that is not started stays out of this list)
 // Editors that return at once unless asked to wait: the flag that makes them wait
 const WAIT_FLAG = { code: '--wait', 'code-insiders': '--wait', codium: '--wait', cursor: '--wait', subl: '--wait', atom: '--wait', gedit: '--wait', kate: '--block', zed: '--wait' };
 // Programs that wait without being asked

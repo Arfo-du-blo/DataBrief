@@ -5,6 +5,7 @@
  * the vendored libraries, the SQLite WebAssembly (base64), the xmldom and parse5 bundles and src/core.js. Line endings are
  * normalised to LF, nothing depends on the time or the machine: the same sources give the same bytes everywhere, which
  * the tests check (and the release publishes the file's SHA-256).
+ * DATABRIEF_VERSION=1.5.0-rc.1 builds a file that says another version (the npm release candidate).
  * To check a build against a copy:  node tools/build-cli.cjs /tmp/other.cjs && cmp dist/databrief-cli.cjs /tmp/other.cjs */
 'use strict';
 const fs = require('fs');
@@ -25,7 +26,9 @@ for (const s of list) {
   if (s.wasm) wasm[s.wasm] = fs.readFileSync(path.join(ROOT, s.wasm)).toString('base64');
   else sources[s.file] = read(s.file);
 }
-const version = JSON.parse(read('package.json')).version;
+// DATABRIEF_VERSION replaces the version of package.json (a release candidate: 1.5.0-rc.1, built by tools/build-npm.cjs)
+const version = process.env.DATABRIEF_VERSION || JSON.parse(read('package.json')).version;
+if (!/^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/.test(version)) throw new Error('Not a version: ' + version);
 const data = { version, list, sources, wasm };
 
 const entry = read('cli/databrief.cjs').replace(/^#!.*\n/, '');

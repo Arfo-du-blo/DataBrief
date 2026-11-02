@@ -533,16 +533,26 @@ page, byte for byte** (a test compares them on every test file; the few exceptio
 Node.js 18 or newer; nothing else to install.
 
 ```bash
-node databrief-cli.cjs sales.xlsx                      # the prompt is copied to the clipboard
-node databrief-cli.cjs sales.xlsx --no-share           # the same, with no data in it
-node databrief-cli.cjs orders.parquet --csv            # prompt.md and the data as CSV files, in ./databrief/
-node databrief-cli.cjs report.docx --review=nano       # edit the prompt before it is copied
-node databrief-cli.cjs dump.sql --print --no-copy      # print it
+databrief sales.xlsx                      # the prompt is copied to the clipboard
+databrief sales.xlsx --no-share           # the same, with no data in it
+databrief orders.parquet --csv            # prompt.md and the data as CSV files, in ./databrief/
+databrief report.docx --review=nano       # edit the prompt before it is copied
+databrief dump.sql --print --no-copy      # print it
 ```
 
-- **Get it:** `databrief-cli.cjs` is attached to each [release](https://github.com/Arfo-du-blo/DataBrief/releases/latest),
-  listed in `SHA256SUMS.txt` like the page. It is one file with everything inside (about 5 MB); or build it from the
-  sources: `node tools/build-cli.cjs`.
+- **Get it:** whichever way suits your system. Each needs Node.js 18 or newer, which npm, Homebrew, Scoop and `apt` fetch
+  for you where they can.
+
+  | You use | Install |
+  |---|---|
+  | **npm** (any system) | `npx databrief FILE`, or `npm install -g databrief` |
+  | **Ubuntu, Debian** | download `databrief_1.5.0_all.deb` from the [release](https://github.com/Arfo-du-blo/DataBrief/releases/latest), then `sudo apt install ./databrief_1.5.0_all.deb` |
+  | **macOS, Linux** (Homebrew) | `brew install Arfo-du-blo/databrief/databrief` |
+  | **Windows** (Scoop) | `scoop bucket add databrief https://github.com/Arfo-du-blo/scoop-databrief`, then `scoop install databrief` |
+  | **Any system** | download `databrief-cli.cjs` from the release and run `node databrief-cli.cjs`; or build it: `node tools/build-cli.cjs` |
+
+  Every file of the release is listed in `SHA256SUMS.txt`, like the page, and the npm package is published by GitHub Actions
+  with a provenance record. The `man databrief` page comes with the npm, `apt` and Homebrew installs.
 - **It never connects to anything** and never runs a shell; a test runs it with every network call blocked.
 - **Why not just MarkItDown, files-to-prompt or data2prompt?** Those tools exist and are good at what they do. As far
   as we know, this one is the one that also reads Access, DBF, SPSS, Avro, PostgreSQL archives, DuckDB exports, SQL
@@ -552,7 +562,7 @@ node databrief-cli.cjs dump.sql --print --no-copy      # print it
   can open: it may be able to read the file itself.
 
 **→ The full guide (every option, the files it writes, `--review`, exit codes, limits): [docs/cli.md](docs/cli.md)**
-· or `databrief-cli.cjs --help`, and the `man` page [`man/databrief.1`](man/databrief.1).
+· or `databrief --help`, and the `man` page [`man/databrief.1`](man/databrief.1).
 
 [↑ Back to the table](#choose-how-to-use-databrief)
 
@@ -839,7 +849,8 @@ cli/                          the command-line tool: databrief.cjs (entry), main
                               --help and the man page), clipboard.cjs, outfiles.cjs, editor.cjs, realm.cjs (the page's
                               scripts in a separate Node realm), dom-shim.js (DOMParser for Node: xmldom and parse5)
 man/databrief.1               the manual page (written by tools/build-man.cjs)
-package.json                  the command-line tool's package (version, bin, Node 18+)
+package.json                  the repository's version and fields (private: the npm package is written by tools/build-npm.cjs)
+packaging/                    the npm README, the Homebrew formula and Scoop manifest templates and their repositories' READMEs
 deploy/
   databrief.conf              shared configuration file (every setting commented)
   python/serve.py             Python server (--setup)
@@ -857,7 +868,8 @@ examples/tampered/            the privacy demo: tampered copies + receiver.py (n
 .gitlab-ci.yml                the same for GitLab: Pages, release, Docker images (Container Registry)
 vendor/                       third-party libraries and their licenses
 tools/                        build-mdb-reader.sh, build-flechette.sh, build-pdfjs.sh, build-xmldom.sh, build-parse5.sh: rebuild the
-                              bundled libraries of vendor/; build-cli.cjs (the one-file command line), build-man.cjs (the man page)
+                              bundled libraries of vendor/; build-cli.cjs (the one-file command line), build-man.cjs (the man page), build-npm.cjs and
+                              build-deb.cjs (the npm and Debian / Ubuntu packages), update-packages.cjs (the Homebrew and Scoop recipes)
 tests/                        test suites; *-fixtures/ hold real files written by each engine's own tools
 ```
 
@@ -877,7 +889,10 @@ git tag v1.5.0 && git push origin v1.5.0
 ```
 
 `.github/workflows/release.yml` creates the GitHub release (with both HTML files, the command-line tool
-`databrief-cli.cjs`, the man page `databrief.1` and `SHA256SUMS.txt`, their fingerprints) and publishes the Docker images, for `amd64` and `arm64`, to `ghcr.io/<owner>/databrief`. After the
+`databrief-cli.cjs`, the man page `databrief.1`, the Debian / Ubuntu package and `SHA256SUMS.txt`, their fingerprints),
+publishes the **npm package** (trusted publishing: npmjs.com links the package to this workflow, no token; with provenance),
+writes the **Homebrew formula and the Scoop manifest** into the repositories `homebrew-databrief` and `scoop-databrief` (the
+secret `PACKAGES_TOKEN`: a fine-grained token that can write to those two only), and publishes the Docker images, for `amd64` and `arm64`, to `ghcr.io/<owner>/databrief`. After the
 first release, make the package public: **your GitHub profile → Packages → databrief → Package settings → Change
 visibility → Public**.
 
