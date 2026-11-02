@@ -37,13 +37,13 @@
     { key: 'arrow', label: 'Arrow', exts: ['arrow', 'arrows', 'feather', 'ipc'] },
     { key: 'docx', label: 'Word / ODT', exts: ['docx', 'docm', 'odt'] },
     { key: 'pptx', label: 'PowerPoint / ODP', exts: ['pptx', 'pptm', 'odp'] },
-  ];
+  ].concat(window.pdfjsLib ? [{ key: 'pdf', label: 'PDF', exts: ['pdf'] }] : []);   // PDF: only in a page with pdf.js (not the ESP32 one)
   const FORMAT_NAMES = {
     csv: 'CSV', tsv: 'TSV', txt: 'TXT (CSV)', xlsx: 'Excel (XLSX)', xlsm: 'Excel (XLSM)',
     xls: 'Excel 97-2003 (XLS)', ods: 'OpenDocument (ODS)', json: 'JSON', ndjson: 'NDJSON / JSON Lines',
     xml: 'XML', yaml: 'YAML', html: 'HTML', sav: 'SPSS Statistics (.sav)', zsav: 'SPSS Statistics (.zsav)',
     parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)', dbf: 'dBase / FoxPro (DBF)', duckdb: 'DuckDB export (zip)', access: 'Microsoft Access', dacpac: 'SQL Server data-tier package',
-    geojson: 'GeoJSON', gpkg: 'GeoPackage', ipynb: 'Jupyter notebook', avro: 'Apache Avro', arrow: 'Apache Arrow', docx: 'Microsoft Word', pptx: 'Microsoft PowerPoint', odt: 'OpenDocument text', odp: 'OpenDocument presentation',
+    geojson: 'GeoJSON', gpkg: 'GeoPackage', ipynb: 'Jupyter notebook', avro: 'Apache Avro', arrow: 'Apache Arrow', docx: 'Microsoft Word', pptx: 'Microsoft PowerPoint', odt: 'OpenDocument text', odp: 'OpenDocument presentation', pdf: 'PDF document',
   };
   DB.ACCEPT = DB.FORMATS.flatMap((f) => f.exts.map((e) => '.' + e)).concat(['.gz']).join(','); // .gz: a compressed file of any of these
 
@@ -55,6 +55,7 @@
     if (u8.length >= 16 && s(0, 15) === 'SQLite format 3') return 'sqlite';
     if (u8.length >= 4 && s(0, 4) === 'PAR1') return 'parquet';
     if (DB.isAvro && DB.isAvro(u8)) return 'avro';
+    if (DB.pdfAvailable && DB.pdfAvailable() && u8.length >= 8 && DB.isPdf(u8)) return 'pdf';
     if (DB.arrowKind && ['file', 'feather1'].includes(DB.arrowKind(u8, ''))) return 'arrow';
     if (u8.length >= 4 && (s(0, 4) === '$FL2' || s(0, 4) === '$FL3')) return 'sav';
     if (u8.length >= 8 && u8[0] === 0xd0 && u8[1] === 0xcf && u8[2] === 0x11 && u8[3] === 0xe0) return 'xls';
@@ -775,7 +776,8 @@
     if (u8.length >= 12 && s(8, 12) === 'DUCK' && binary) return 'Duckdb';
     if (u8.length >= 8 && u8[0] === 0x89 && s(1, 4) === 'HDF' && u8[4] === 0x0d && u8[5] === 0x0a && u8[6] === 0x1a && u8[7] === 0x0a) return 'Hdf5';
     if (u8.length >= 8 && s(0, 3) === 'ORC' && binary) return 'Orc';
-    if (u8.length >= 8 && s(0, 5) === '%PDF-') return 'Pdf';
+    // a PDF is read when the page has pdf.js; the page built for the ESP32 has none: the message says what to do instead
+    if (u8.length >= 8 && s(0, 5) === '%PDF-' && !(DB.pdfAvailable && DB.pdfAvailable())) return 'Pdf';
     if (u8.length >= 64 && s(0, 4) === 'TAPE' && binary) return 'MssqlBak';
     if (u8.length >= 64 && /EXPORT:V\d/.test(s(0, 64)) && binary) return 'OracleDmp';
     return null;
@@ -869,6 +871,7 @@
       case 'avro': res = DB.parseAvro(u8, { maxRows: DB.SQL_MAX_ROWS }); res.sections[0].name = baseOf(fileName); break;
       case 'arrow': res = parseArrowFile(u8, ext, fileName); break;
       case 'docx': case 'pptx': case 'odt': case 'odp': res = parseOfficeFile(u8, kind); break;
+      case 'pdf': res = await DB.parsePdf(u8); break;
       default: throw new UserError('errUnsupported', { ext: '.' + ext });
     }
     if (res.geojson) kind = 'geojson';
@@ -878,7 +881,7 @@
     if (res.embedded) { const emb = embeddedMeta(res.embedded); if (emb) res.fileMeta.push(emb); delete res.embedded; }
     const formatKey = kind === 'sav' && ext === 'zsav' ? 'zsav' : kind;
     const sectionKind = ['xlsx', 'xlsm', 'xls', 'ods'].includes(kind) ? 'sheets'
-      : ['html', 'sqlite', 'sql', 'pgdump', 'duckdb', 'access', 'dacpac', 'gpkg', 'ipynb', 'docx', 'pptx', 'odt', 'odp'].includes(kind) ? 'tables' : 'records';
+      : ['html', 'sqlite', 'sql', 'pgdump', 'duckdb', 'access', 'dacpac', 'gpkg', 'ipynb', 'docx', 'pptx', 'odt', 'odp', 'pdf'].includes(kind) ? 'tables' : 'records';
     return finalize(Object.assign(res, {
       fileName, fileSize: u8.length, formatKey, formatName: res.formatName || FORMAT_NAMES[formatKey] || kind.toUpperCase(), sectionKind,
     }));

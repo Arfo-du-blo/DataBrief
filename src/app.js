@@ -84,8 +84,8 @@
   const chips = $('chips');
   // One card per family of formats (what is read / the best file / good to know), opened by clicking a format.
   const CARD = { csv: 'Csv', tsv: 'Csv', txt: 'Csv', xlsx: 'Excel', xlsm: 'Excel', xls: 'Excel', ods: 'Excel', json: 'Json', ndjson: 'Json',
-    xml: 'Xml', yaml: 'Yaml', html: 'Html', sav: 'Spss', parquet: 'Parquet', sqlite: 'Sqlite', sql: 'Sql', pgdump: 'Pgdump', dbf: 'Dbf', duckdb: 'Duckdb', access: 'Access', dacpac: 'Dacpac', geojson: 'Geojson', gpkg: 'Gpkg', ipynb: 'Ipynb', avro: 'Avro', arrow: 'Arrow', docx: 'Docx', odt: 'Docx', pptx: 'Pptx', odp: 'Pptx' };
-  const GUIDE = { Csv: 'csv', Excel: 'excel', Json: 'json', Xml: 'xml', Yaml: 'yaml', Html: 'html', Spss: 'spss', Parquet: 'parquet', Sqlite: 'sqlite', Sql: 'sql', Pgdump: 'pgdump', Dbf: 'dbf', Duckdb: 'duckdb', Access: 'access', Dacpac: 'dacpac', Geojson: 'geodata', Gpkg: 'geodata', Ipynb: 'notebook', Avro: 'avro', Arrow: 'arrow', Docx: 'documents', Pptx: 'documents' };
+    xml: 'Xml', yaml: 'Yaml', html: 'Html', sav: 'Spss', parquet: 'Parquet', sqlite: 'Sqlite', sql: 'Sql', pgdump: 'Pgdump', dbf: 'Dbf', duckdb: 'Duckdb', access: 'Access', dacpac: 'Dacpac', geojson: 'Geojson', gpkg: 'Gpkg', ipynb: 'Ipynb', avro: 'Avro', arrow: 'Arrow', docx: 'Docx', odt: 'Docx', pptx: 'Pptx', odp: 'Pptx', pdf: 'Pdf' };
+  const GUIDE = { Csv: 'csv', Excel: 'excel', Json: 'json', Xml: 'xml', Yaml: 'yaml', Html: 'html', Spss: 'spss', Parquet: 'parquet', Sqlite: 'sqlite', Sql: 'sql', Pgdump: 'pgdump', Dbf: 'dbf', Duckdb: 'duckdb', Access: 'access', Dacpac: 'dacpac', Geojson: 'geodata', Gpkg: 'geodata', Ipynb: 'notebook', Avro: 'avro', Arrow: 'arrow', Docx: 'documents', Pptx: 'documents', Pdf: 'pdf' };
   function openCard(f) {
     const k = CARD[f.key];
     $('fmtTitle').textContent = (f.key === 'sav' ? 'SPSS .sav / .zsav' : f.label) + ' · ' + f.exts.map((e) => '.' + e).join(' ');

@@ -484,6 +484,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       { f: 'ipynb.ipynb', txt: true },   // code and outputs never (they hold values); Markdown is free text; the table's columns are names
       { f: 'avro.avro', txt: true }, { f: 'arrow.arrow', txt: true }, { f: 'feather.feather', txt: true },   // record doc and writer metadata are free text; the record name is a name
       { f: 'docx.docx', txt: true }, { f: 'odt.odt', txt: true }, { f: 'pptx.pptx', txt: true }, { f: 'odp.odp', txt: true },   // headings, paragraphs, slide text, notes and the author: free text; tables: data
+      { f: 'pdf.pdf', txt: true }, { f: 'pdfslides.pdf', txt: true },   // PDF: page text and properties free text, guessed tables data (markers may be cut where cells wrap: the checks look for prefixes)
     ];
     const checks = [];
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
@@ -568,7 +569,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     {
       const p = await newPage();
       ok(await p.evaluate(() => document.getElementById('nsOn').offsetParent === null), '8: switch must not be visible before a file is read');
-      ok(await p.evaluate(() => document.getElementById('chips').children.length === 28 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
+      ok(await p.evaluate(() => document.getElementById('chips').children.length === 29 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
       const r0 = await load(p, F('confidential.csv'));
       ok(r0.md.includes('CONFIDENTIAL_CUSTOMER_74291') && await p.evaluate(() => document.getElementById('nsOn').offsetParent !== null && !document.getElementById('nsOn').checked), '8: after loading: data included, switch visible and off');
       const order = await p.evaluate(() => ['secSummary', 'secShare', 'secOutput'].map((id) => document.getElementById(id).getBoundingClientRect().top));
@@ -673,7 +674,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
     const page = await newPage();
     const chips = await page.$$eval('#chips button.chip', (els) => els.length);
-    if (chips !== 28) checks.push('expected 28 clickable formats, got ' + chips);
+    if (chips !== 29) checks.push('expected 29 clickable formats, got ' + chips);
     for (let i = 0; i < chips; i++) {
       await page.evaluate((n) => document.querySelectorAll('#chips button.chip')[n].click(), i); await wait(60);
       const r = await page.evaluate(() => ({
@@ -687,12 +688,12 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     // every card in every language, with the guide link
     const miss = await page.evaluate(() => {
       const I = window.DB_I18N, out = [];
-      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump', 'Dbf', 'Duckdb', 'Access', 'Dacpac', 'Geojson', 'Gpkg', 'Ipynb', 'Avro', 'Arrow', 'Docx', 'Pptx']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
+      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump', 'Dbf', 'Duckdb', 'Access', 'Dacpac', 'Geojson', 'Gpkg', 'Ipynb', 'Avro', 'Arrow', 'Docx', 'Pptx', 'Pdf']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
       return out;
     });
     if (miss.length) checks.push('missing card texts: ' + miss.join(','));
     // the guides the cards link to exist in the repository
-    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump', 'dbf', 'duckdb', 'access', 'dacpac', 'geodata', 'notebook', 'avro', 'arrow', 'documents']) {
+    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump', 'dbf', 'duckdb', 'access', 'dacpac', 'geodata', 'notebook', 'avro', 'arrow', 'documents', 'pdf']) {
       if (!fs.existsSync(path.join(path.dirname(htmlPath), 'docs', 'formats', g + '.md'))) checks.push('guide docs/formats/' + g + '.md is missing');
     }
     // "what was found"
@@ -701,7 +702,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     if (found !== 'Found: 7 sections · 16 columns · 5 relationships (0 declared, 5 inferred)') checks.push('found line: ' + found);
     await page.close();
     if (checks.length) fail('format cards', checks.join(' | '));
-    else pass('format cards', '28 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
+    else pass('format cards', '29 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
   }
 
   // ---------- export helper (commands to export a database) ----------
@@ -999,6 +1000,52 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     await p.close();
     if (checks.length) fail('Word and PowerPoint', checks.join(' | '));
     else pass('Word and PowerPoint', '.docx (python-docx, LibreOffice), .odt, .pptx (python-pptx, LibreOffice), .odp: tables as data (merged header), text, slides and notes as context, properties; no-share outline, text only when allowed; damaged file refused');
+  }
+
+  // ---------- PDF (real files: LibreOffice Writer and Impress, Chrome), and the page built for the ESP32 (without pdf.js) ----------
+  {
+    const checks = [];
+    const bad = (m) => checks.push(m);
+    const wait = (ms) => new Promise((res) => setTimeout(res, ms || 300));
+    const docOf = (p) => p.evaluate(() => {
+      const d = window.DataBrief.getState().doc;
+      return d && { key: d.formatKey, name: d.formatName, secs: d.sections.map((s) => s.name + ':' + s.rows.length + ':' + s.columns.map((c) => c.name).join('|')) };
+    });
+    const PDFS = [['report.pdf', 'page1_table1:4:id|name|country|signup|notes,page1_table2:4:id|customer_id|total|status,page1_table3:1:Region|Quarter Q1|Q2'],
+      ['deck.pdf', 'page2_table1:4:id|customer_id|total|status'], ['orders-chrome.pdf', 'page1_table1:4:id|customer_id|total|status']];
+    for (const [f, secs] of PDFS) {
+      const p = await newPage();
+      const r = await load(p, F(f));
+      const d = r.ok && await docOf(p);
+      if (!d || d.key !== 'pdf' || d.name !== 'PDF document' || d.secs.join(',') !== secs) { bad(f + ': ' + JSON.stringify(d || r.err)); await p.close(); continue; }
+      if (r.csp && r.csp.length) bad(f + ': security policy violations while reading a PDF: ' + r.csp.join('; '));
+      if (f === 'deck.pdf') {
+        for (const s of ['## Pages', '3 pages, 1 tables (guessed)', '**Page 1**', '> Sales review', '- Table: section 1 `page2_table1`', '**Tables from a PDF:**', '| 42.42 |', '**Author:** Deck author'])
+          if (!r.md.includes(s)) bad('PDF prompt lacks: ' + JSON.stringify(s));
+        await p.click('#nsOn'); await wait(500);
+        const ns = await p.evaluate(() => window.DataBrief.getMarkdown());
+        for (const s of ['**Page 2**: Text blocks: 1 _(not shared)_', '- Table: section 1 `page2_table1`']) if (!ns.includes(s)) bad('PDF no-share lacks: ' + JSON.stringify(s));
+        for (const s of ['Sales review', 'Deck author', '42.42']) if (ns.includes(s)) bad('PDF no-share leaks: ' + s);
+        await p.evaluate(() => localStorage.clear());
+      }
+      await p.close();
+    }
+    // the ESP32 page: the same page without pdf.js (deploy/esp32/make_header.py): no PDF chip, a PDF gets the clear message
+    const esp = path.join(outDir, 'esp32_page.html');
+    require('child_process').execFileSync('python3', ['-c', 'import sys; sys.path.insert(0, sys.argv[1]); import make_header as m; ' +
+      'open(sys.argv[3], "wb").write(m.embedded_page(open(sys.argv[2], "rb").read(), False))', path.join(__dirname, '..', 'deploy', 'esp32'), htmlPath, esp]);
+    const espHtml = fs.readFileSync(esp, 'utf8');
+    if (espHtml.includes('GlobalWorkerOptions') || espHtml.length > fs.statSync(htmlPath).size - 1500000) bad('the ESP32 page still holds pdf.js');
+    const p = await newPageAt('file://' + esp);
+    const chips = await p.evaluate(() => Array.from(document.querySelectorAll('#chips button.chip')).map((b) => b.textContent));
+    if (chips.length !== 28 || chips.includes('PDF')) bad('ESP32 page: expected 28 chips without PDF, got ' + chips.length);
+    const r = await load(p, F('report.pdf'));
+    if (r.ok || !r.err.includes('PDF document')) bad('ESP32 page: a PDF should get the "recognised but not readable" message, got ' + JSON.stringify(r.ok ? 'a result' : r.err));
+    const r2 = await load(p, F('report.docx'));
+    if (!r2.ok) bad('ESP32 page: other formats still read (report.docx): ' + r2.err);
+    await p.close();
+    if (checks.length) fail('PDF', checks.join(' | '));
+    else pass('PDF', 'Writer, Impress and Chrome PDFs: tables guessed and labelled, page text, properties, no policy violation; no-share outline; the ESP32 page without pdf.js refuses PDFs clearly');
   }
 
   // ---------- SQL dumps and PostgreSQL archives (real dumps of tests/sql-fixtures) ----------
@@ -1329,7 +1376,6 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       ['duckdb', Buffer.concat([pad(8), ascii('DUCK'), pad(200)]), 'DuckDB database'],
       ['hdf5', Buffer.concat([Buffer.from([0x89]), ascii('HDF\r\n'), Buffer.from([0x1a, 0x0a]), pad(100)]), 'HDF5 file'],
       ['orc', Buffer.concat([ascii('ORC'), Buffer.from([0x01, 0x02, 0x00, 0x03]), pad(100)]), 'Apache ORC'],
-      ['pdf', ascii('%PDF-1.7\n%\xe2\xe3\xcf\xd3\n1 0 obj\n<< >>\nendobj\n'), 'PDF document'],
       ['bak', Buffer.concat([ascii('TAPE'), pad(100)]), 'SQL Server backup'],
       ['dmp', Buffer.concat([Buffer.from([0x03, 0x00]), ascii('EXPORT:V19.00.00\nUSCOTT\nRTABLES\n'), pad(100)]), 'Oracle export'],
     ];
@@ -1423,7 +1469,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     if (miss.length) bad('missing texts: ' + miss.join(','));
     await p.close();
     if (checks.length) fail('unreadable formats and gzip', checks.join(' | '));
-    else pass('unreadable formats and gzip', '6 known formats refused with advice (by content, any name), no false alarm on text, gzip read, damaged and nested gzip refused, 15 languages');
+    else pass('unreadable formats and gzip', '5 known formats refused with advice (by content, any name), no false alarm on text, gzip read, damaged and nested gzip refused, 15 languages');
   }
 
   // ---------- "Do not share data": the same promise in all 15 languages, and the strings are really translated ----------

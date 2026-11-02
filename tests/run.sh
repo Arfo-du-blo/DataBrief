@@ -20,6 +20,9 @@ echo
 echo "=== Word / PowerPoint / OpenDocument reader (Node, real files of tests/v14-fixtures written by python-docx, python-pptx and LibreOffice)"
 node "$HERE/test_office.cjs" | grep -v '^PASS'
 echo
+echo "=== PDF reader (Node, real PDFs of tests/v14-fixtures written by LibreOffice and Chrome)"
+node "$HERE/test_pdf.cjs" | grep -v '^PASS\|^Warning'
+echo
 echo "=== Notebook reader (Node, notebooks of tests/v14-fixtures executed by a real kernel)"
 node "$HERE/test_notebook.cjs" | grep -v '^PASS'
 echo

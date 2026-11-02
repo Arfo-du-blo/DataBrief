@@ -288,10 +288,11 @@
     const quote = (s) => s.split('\n').map((l) => '> ' + l).join('\n');
     const tableLine = (k) => (k >= 0 ? t('docTable', { n: k + 1 }) + ' ' + code(secName(k)) : t('docTableCut', { n: N(500) }));
     const out = [];
-    if (cont.kind === 'slides') {
-      out.push('**' + t('slideCounts', { n: N(c.slides), t: N(c.tables) }) + '**', '');
+    if (cont.kind === 'slides' || cont.kind === 'pages') {
+      const pg = cont.kind === 'pages';
+      out.push('**' + t(pg ? 'pageCounts' : 'slideCounts', { n: N(c.slides), t: N(c.tables) }) + '**', '');
       for (const s of cont.items) {
-        const head = '**' + t('slideN', { n: s.n }) + (s.title && showText ? ' · ' + s.title.replace(/\s*\n\s*/g, ' ') : '') + '**';
+        const head = '**' + t(pg ? 'pageN' : 'slideN', { n: s.n }) + (s.title && showText ? ' · ' + s.title.replace(/\s*\n\s*/g, ' ') : '') + '**';
         const lines = [];
         if (showText) {
           lines.push(head);
@@ -447,6 +448,8 @@
     if (notes.yamlDocs) line('- ', 'fmtYamlDocs');
     if (notes.nestedSkipped) line('- ', 'fmtNested', null, { n: notes.nestedSkipped });
     if (notes.nbShortened) line('- ', 'nbShortened');
+    if (notes.pdfTables) line('- ', 'fmtPdfTables');
+    if (notes.pdfNoText) line('- ', 'fmtPdfNoText');
     if (views.some((v) => v.partial)) line('- ', 'fmtPartial');
     if (anyCsv && !files) line('- ', 'fmtCode');
     });
@@ -454,9 +457,9 @@
 
     // Locked: the cells of a notebook (its tables are the sections below)
     if (doc.contents) {
-      const nb = doc.contents.kind === 'notebook', sl = doc.contents.kind === 'slides';
+      const nb = doc.contents.kind === 'notebook', sl = doc.contents.kind === 'slides', pg = doc.contents.kind === 'pages';
       const name = (k) => (doc.sections[k] ? doc.sections[k].name : '?');
-      line('## ', nb ? 'nbTitle' : sl ? 'slidesTitle' : 'docTitle'); b.lock('\n'); say(nb ? 'nbIntro' : sl ? 'slidesIntro' : 'docIntro'); b.lock('\n\n');
+      line('## ', nb ? 'nbTitle' : sl ? 'slidesTitle' : pg ? 'pagesTitle' : 'docTitle'); b.lock('\n'); say(nb ? 'nbIntro' : sl ? 'slidesIntro' : pg ? 'pagesIntro' : 'docIntro'); b.lock('\n\n');
       b.lock(nb ? contentsText(doc.contents, t, N, name, false, true) : docContentsText(doc.contents, t, N, name, false, true));
     }
 
@@ -615,9 +618,9 @@
 
     // A notebook: which cell made which table; no code and no output, the Markdown only when free text is allowed
     if (ns.contents) {
-      const nb = ns.contents.kind === 'notebook', sl = ns.contents.kind === 'slides';
+      const nb = ns.contents.kind === 'notebook', sl = ns.contents.kind === 'slides', pg = ns.contents.kind === 'pages';
       const name = (k) => (ns.sections[k] ? S(ns.sections[k].name) : '?');
-      line('## ', nb ? 'nbTitle' : sl ? 'slidesTitle' : 'docTitle'); b.lock('\n'); say(nb ? 'nbIntroNs' : sl ? 'slidesIntroNs' : 'docIntroNs'); b.lock('\n\n');
+      line('## ', nb ? 'nbTitle' : sl ? 'slidesTitle' : pg ? 'pagesTitle' : 'docTitle'); b.lock('\n'); say(nb ? 'nbIntroNs' : sl ? 'slidesIntroNs' : pg ? 'pagesIntroNs' : 'docIntroNs'); b.lock('\n\n');
       b.lock(nb ? contentsText(ns.contents, t, N, name, true, sw.text) : docContentsText(ns.contents, t, N, name, true, sw.text));
     }
 

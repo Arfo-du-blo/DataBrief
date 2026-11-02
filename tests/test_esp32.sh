@@ -32,13 +32,20 @@ EOF
 
 cp -r "$ROOT/deploy/esp32" "$T/esp32"
 rm -f "$T/esp32/DataBrief/databrief_html.h"
-if python3 "$T/esp32/make_header.py" "$ROOT/databrief.html" > "$T/py.txt" 2>&1 && r="$(decodes_to_page "$T/esp32/DataBrief/databrief_html.h" "$ROOT/databrief.html" 2>&1)"; then
-  ok "make_header.py: header decompresses to databrief.html ($r)"
+# The ESP32 page is databrief.html without its PDF reader (pdf.js between the "DataBrief: PDF reader" markers)
+if python3 "$T/esp32/make_header.py" "$ROOT/databrief.html" --page-out "$T/page.html" > "$T/py.txt" 2>&1 && r="$(decodes_to_page "$T/esp32/DataBrief/databrief_html.h" "$T/page.html" 2>&1)"; then
+  ok "make_header.py: header decompresses to the page without the PDF reader ($r)"
 else bad "make_header.py" "$(cat "$T/py.txt") $r"; fi
+if ! grep -q 'GlobalWorkerOptions' "$T/page.html" && grep -q 'GlobalWorkerOptions' "$ROOT/databrief.html" && [ "$(stat -c %s "$T/page.html")" -lt "$(( $(stat -c %s "$ROOT/databrief.html") - 1500000 ))" ]; then
+  ok "the ESP32 page has no PDF reader (databrief.html has one): $(stat -c %s "$T/page.html") bytes instead of $(stat -c %s "$ROOT/databrief.html")"
+else bad "PDF reader left out" "the ESP32 page still holds pdf.js, or databrief.html has none"; fi
+python3 "$T/esp32/make_header.py" "$ROOT/databrief.html" --with-pdf > /dev/null 2>&1
+if r="$(decodes_to_page "$T/esp32/DataBrief/databrief_html.h" "$ROOT/databrief.html" 2>&1)"; then ok "make_header.py --with-pdf: header decompresses to databrief.html exactly ($r)"
+else bad "make_header.py --with-pdf" "$r"; fi
 
 if [ -f "$ROOT/deploy/esp32/DataBrief/databrief_html.h" ]; then
-  if r="$(decodes_to_page "$ROOT/deploy/esp32/DataBrief/databrief_html.h" "$ROOT/databrief.html" 2>&1)"; then
-    ok "make_header.ps1 (from build.ps1): header decompresses to databrief.html ($r)"
+  if r="$(decodes_to_page "$ROOT/deploy/esp32/DataBrief/databrief_html.h" "$T/page.html" 2>&1)"; then
+    ok "make_header.ps1 (from build.ps1): header decompresses to the same page without the PDF reader ($r)"
   else bad "make_header.ps1 (from build.ps1)" "$r (run build.ps1 again?)"; fi
 else echo "SKIP make_header.ps1: run build.ps1 first"; fi
 

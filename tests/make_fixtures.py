@@ -498,6 +498,11 @@ for _f in ("report.docx", "report-libreoffice.docx", "report.odt", "deck.pptx", 
     shutil.copy(os.path.join(_v14, "doc-fixtures", _f), P(_f))
 for _k in ("docx", "odt", "pptx", "odp"):
     shutil.copy(os.path.join(_v14, "canary", "CONFIDENTIAL_FILE_" + _k + "." + _k), Q(_k, _k))
+# --- PDF (v1.4): REAL files (LibreOffice Writer and Impress, Chrome), and their canaries
+for _f in ("report.pdf", "deck.pdf", "orders-chrome.pdf"):
+    shutil.copy(os.path.join(_v14, "doc-fixtures", _f), P(_f))
+for _k in ("pdf", "pdfslides"):
+    shutil.copy(os.path.join(_v14, "canary", "CONFIDENTIAL_FILE_" + _k + ".pdf"), Q(_k, "pdf"))
 
 # --- Jupyter notebooks (v1.4): executed by a real kernel (tests/make_v14_fixtures.sh), their canary, one saved as .json,
 #     and one without any table output (written here: Markdown, code, printed text only)

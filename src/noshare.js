@@ -95,10 +95,10 @@
             : o.kind === 'image' || o.kind === 'other' ? { kind: o.kind, mime: o.mime }
               : { kind: o.kind, stderr: !!o.stderr })),
       })),
-    } : doc.contents && (doc.contents.kind === 'document' || doc.contents.kind === 'slides') ? copy(doc.contents) : null;
+    } : doc.contents && ['document', 'slides', 'pages'].includes(doc.contents.kind) ? copy(doc.contents) : null;
     // A document or a presentation (office.js): its text is free text written by people. It is kept in this copy and shown
     // only when the user allows free text (markdown.js docContentsText); otherwise only its outline (kinds and tables).
-    const docText = !!(contents && contents.kind !== 'notebook' && contents.items.some((it) => (it.k === 'slide' ? it.title || it.text.length || it.notes : it.k !== 'table' && it.text)));
+    const docText = !!(contents && contents.kind !== 'notebook' && contents.items.some((it) => (it.k === 'slide' || it.k === 'page' ? it.title || it.text.length || it.notes : it.k !== 'table' && it.text)));
     const fileMeta = (doc.fileMeta || [])
       .map(([key, value]) => ({ key, value: key === 'mNames' ? keepRanges(String(value)) : String(value), freeText: FREE_TEXT_META.has(key), names: NAME_META.has(key), files: FILE_META.has(key), data: DATA_META.has(key) }))
       .filter((m) => m.value !== '');

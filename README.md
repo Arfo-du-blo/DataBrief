@@ -639,6 +639,7 @@ how to export it, and its limits.
 | Geodata | **GeoJSON** (`.geojson`, or a `.json` holding GeoJSON) and **GeoPackage** (`.gpkg`: every layer); geometries summarised, coordinate systems | [Geodata](docs/formats/geodata.md) |
 | Notebooks | **Jupyter** (`.ipynb`, or a `.json` holding a notebook): the tables of the stored outputs (pandas, Polars, R) as data, every cell for context; never run | [Notebooks](docs/formats/notebook.md) |
 | Documents | **Word** (`.docx`), **PowerPoint** (`.pptx`), **OpenDocument** (`.odt`, `.odp`): every table as data, the text, slides and speaker notes for context | [Word and PowerPoint](docs/formats/documents.md) |
+| PDF | **PDF**, best effort: the text of every page, and tables **guessed** from the position of the text (labelled as such in the prompt); not in the ESP32 page | [PDF](docs/formats/pdf.md) |
 
 **Not sure how to export your database?** Click *How do I export my database?* under the formats on the page (it works offline and never connects to anything), or read [Export your database for DataBrief](docs/export-your-database.md): ready-to-copy, read-only commands for 13 engines (schema only, schema and data, foreign keys), with the official links; the PostgreSQL, MySQL, MariaDB, SQLite and ClickHouse ones were run against real servers.
 
@@ -657,6 +658,7 @@ When a file holds several sheets or tables, each one becomes its own section, an
 | GeoJSON / GeoPackage | every feature or layer row with its attributes; each geometry **summarised** (kind, number of points, extent; the coordinates of a point), the **coordinate system**, the geometry kinds; GeoPackage layers, attribute tables, titles and descriptions |
 | Jupyter notebook | the **data frames** of the stored outputs (named index, MultiIndex, Polars and R column types, the true size of a shortened table), and every cell in order: Markdown, code, printed text, errors, the language |
 | Word / PowerPoint / ODT / ODP | every **table as data** (merged cells repeated, the header row the file marks, a merged header over two rows), and as context the headings, paragraphs and lists in order, or each slide's title, text and speaker notes; title, author and dates of the document |
+| PDF | the text of every page (paragraphs, headings), tables **guessed** from the position of the text (columns that line up, wrapped cells joined), title, author, dates and the program that made it |
 | SQLite | types, primary keys (in order), **foreign keys** (composite, with `ON DELETE`), unique constraints, indexes, `CREATE TABLE`, views with their SQL, **relationships**, generated columns, exact 64-bit integers |
 | Parquet | the **type of every nested field** (`STRUCT`, `LIST`, `MAP`), required fields, decimals, timestamp units, pandas metadata, row groups, compression |
 | Avro | the **type of every field** from the schema (enums with their symbols, decimals, dates, timestamps, nullable fields, arrays, maps), nested records flattened, the record name and its documentation, the writer's metadata, the compression |
@@ -704,8 +706,12 @@ both, and lets you catch a deliberately tampered copy in the act:
 
 ## Limits
 
-- Encrypted or password-protected files (Excel, SQLite, Access) cannot be read: save a copy without the password first.
-- Files DataBrief recognises but cannot read (a DuckDB database, HDF5, ORC, PDF, a SQL Server `.bak`, an Oracle `.dmp`) are
+- **PDF is best effort.** A PDF stores text placed on pages, not tables: DataBrief guesses tables from the position of the
+  text and says so in the prompt; columns can come out split or joined. A scanned PDF holds images, not text, and is not
+  read (no text recognition). When you have the original file (spreadsheet, Word document), give that instead. The PDF
+  reader (pdf.js) adds about 0.5 MB, compressed, to the page: the page built for the ESP32 leaves it out.
+- Encrypted or password-protected files (Excel, SQLite, Access, PDF) cannot be read: save a copy without the password first.
+- Files DataBrief recognises but cannot read (a DuckDB database, HDF5, ORC, a SQL Server `.bak`, an Oracle `.dmp`; a PDF in the ESP32 page) are
   recognised by their content, whatever their name, and answered with what to do instead. `.gz` files (`dump.sql.gz`, `data.csv.gz`) are unpacked and read.
 - SQL dumps are read up to 250,000 rows per table (the counts stay exact). A `.gz` file, a zipped DuckDB export or one
   table of a PostgreSQL archive larger than 1 GB once decompressed is not read (the table is named as skipped). PostgreSQL's directory format (`pg_dump -Fd`)
@@ -750,6 +756,7 @@ src/
   avro.js                     the Avro reader (original code: container, schema, codecs, logical types)
   arrow.js                    Arrow IPC and Feather v2 (with the vendored flechette), Feather v1 (original code)
   office.js                   Word, PowerPoint, OpenDocument text and presentations (a small XML reader without a DOM)
+  pdf.js                      PDF: the page text, and tables guessed from text positions (with the vendored pdf.js)
   relationships.js            declared and inferred relationships between sections
   profile.js                  the data profile (statistics of every column; on by default, can be switched off)
   noshare.js                  "Do not share data": the record-free copy of a file
@@ -773,7 +780,7 @@ examples/tampered/            the privacy demo: tampered copies + receiver.py (n
 .github/workflows/            pages.yml (GitHub Pages), release.yml (release + Docker images), tests.yml (tests on every push)
 .gitlab-ci.yml                the same for GitLab: Pages, release, Docker images (Container Registry)
 vendor/                       third-party libraries and their licenses
-tools/                        build-mdb-reader.sh, build-flechette.sh: rebuild vendor/mdb-reader.min.js and vendor/flechette.min.js
+tools/                        build-mdb-reader.sh, build-flechette.sh, build-pdfjs.sh: rebuild the bundled libraries of vendor/
 tests/                        test suites; *-fixtures/ hold real files written by each engine's own tools
 ```
 

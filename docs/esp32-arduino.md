@@ -96,6 +96,10 @@ Built deploy/esp32/DataBrief/databrief_html.h (page 2.95 MB -> 1.11 MB compresse
 
 - `build.ps1` also does this automatically, and **PlatformIO does it before each build**, so with Path A you can skip
   this step.
+- **Without the PDF reader.** The script leaves out the PDF reader of the page (pdf.js, about 0.5 MB compressed): every
+  other format works, and a PDF gets a message that says to give the original file instead. To keep it (it fits on the
+  8–16 MB boards; it is tight on a 4 MB board), add `-WithPdf` (PowerShell), `--with-pdf` (Python), or set the
+  environment variable `DATABRIEF_PDF=1` for PlatformIO.
 - **Your team's version:** make a `databrief.html` with your defaults using the
   [settings page](../README.md#team-defaults-settings-page), then pass it to the script:
   `make_header.ps1 -Html C:\path\to\databrief.html` or `make_header.py path/to/databrief.html`
