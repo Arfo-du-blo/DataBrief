@@ -291,7 +291,7 @@ async function go(args, over, content) {
     ok('--review=code: --wait is added; no wait for Enter', env.calls[0].args[0] === '--wait' && env.state.enters === 0);
 
     env = mkEnv(mk({ gui: '/usr/bin/gui' }, { vars: { PATH: '/bin', EDITOR: 'gui' } }));
-    env.spawnSync = (exe, args, opt) => { env.calls.push({ exe, args, opt }); fs.appendFileSync(args[args.length - 1], 'saved\n'); return { status: 0 }; };
+    env.spawnSync = (exe, args, opt) => { env.calls.push({ exe, args, opt }); if (exe === '/usr/bin/gui') fs.appendFileSync(args[args.length - 1], 'saved\n'); return { status: 0 }; };   // only the editor edits (the clipboard tool is called too)
     code = await main.run([env.file('people.csv', csvText), '--review'], env);
     ok('--review: an editor that returns at once: the tool waits for Enter, then reads the file', env.state.enters === 1 && /Press Enter here when you have saved and closed the file in \$EDITOR \(gui\)/.test(env.stderr.text) && clipText(env)[0].endsWith('saved\n'), env.stderr.text);
 
