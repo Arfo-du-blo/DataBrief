@@ -21,25 +21,38 @@ const ROOT = process.env.DATABRIEF_ROOT || path.join(__dirname, '..');
 // After the page's scripts: the XML and HTML parsers Node lacks, and the page's file -> prompt flow
 const TOOL_SCRIPTS = ['vendor/xmldom.min.js', 'vendor/parse5.min.js', 'cli/dom-shim.js', 'src/core.js'];
 
-/* The scripts in page order: [{ file } | { wasm }]. pdf: false leaves out the PDF reader block (as the ESP32 page). */
-function scriptList(opt) {
-  let tpl = fs.readFileSync(path.join(ROOT, 'src/template.html'), 'utf8');
-  if (opt && opt.pdf === false) tpl = tpl.replace(/<!-- DataBrief: PDF reader start[\s\S]*?<!-- DataBrief: PDF reader end -->/, '');
+/* The tool as one file (dist/databrief-cli.cjs, tools/build-cli.cjs) carries the scripts, the SQLite WebAssembly and the version
+ * in ./bundle-data.cjs; in the source tree there is no such file and the scripts are read from the files. */
+let EMBED = null;
+try { EMBED = require('./bundle-data.cjs'); } catch (e) { /* the source tree */ }
+
+/* The scripts of src/template.html in page order, [{ file, pdf? } | { wasm }]; pdf marks the PDF reader block (left out of the
+ * ESP32 page), then the tool's own scripts. */
+function fullScriptList(tpl) {
+  const a = tpl.indexOf('<!-- DataBrief: PDF reader start'), b = tpl.indexOf('<!-- DataBrief: PDF reader end -->');
   const out = [];
   const re = /<script>\/\*@inline ([^*]+)\*\/<\/script>|window\.DB_SQL_WASM = "\/\*@base64 ([^*]+)\*\/"/g;
   let m;
   while ((m = re.exec(tpl))) {
     if (m[2]) out.push({ wasm: m[2] });
-    else if (m[1] !== 'src/app.js') out.push({ file: m[1] });
+    else if (m[1] !== 'src/app.js') out.push(a >= 0 && m.index > a && m.index < b ? { file: m[1], pdf: true } : { file: m[1] });
   }
   if (!out.some((x) => x.file === 'src/parsers.js')) throw new Error('src/template.html: the script list was not found');
   return out.concat(TOOL_SCRIPTS.map((file) => ({ file })));
 }
 
+/* pdf: false leaves out the PDF reader block (as the ESP32 page). */
+function scriptList(opt) {
+  const full = EMBED ? EMBED.list : fullScriptList(fs.readFileSync(path.join(ROOT, 'src/template.html'), 'utf8'));
+  return full.filter((s) => !(s.pdf && opt && opt.pdf === false)).map((s) => (s.pdf ? { file: s.file } : s));
+}
+
 function source(file) {
+  if (EMBED) return EMBED.sources[file];
   const key = 'DATABRIEF_SRC_' + path.basename(file).replace(/\.(min\.)?js$/, '').replace(/\W/g, '_').toUpperCase();
   return fs.readFileSync(process.env[key] || path.join(ROOT, file), 'utf8');
 }
+const wasmBase64 = (p) => (EMBED ? EMBED.wasm[p] : fs.readFileSync(path.join(ROOT, p)).toString('base64'));
 
 function create(opt) {
   opt = opt || {};
@@ -60,7 +73,7 @@ function create(opt) {
   ctx.location = { search: '' };                    // src/config.js: no URL parameters
   vm.createContext(ctx, { name: 'DataBrief', codeGeneration: { strings: false, wasm: true } });
   for (const s of scriptList(opt)) {
-    if (s.wasm) { ctx.DB_SQL_WASM = fs.readFileSync(path.join(ROOT, s.wasm)).toString('base64'); continue; }
+    if (s.wasm) { ctx.DB_SQL_WASM = wasmBase64(s.wasm); continue; }
     vm.runInContext(source(s.file), ctx, { filename: s.file });
   }
   const DB = ctx.DB;
@@ -68,6 +81,7 @@ function create(opt) {
   return {
     DB,
     context: ctx,   // the realm's global object (tests)
+    langs: Array.from(ctx.DB_I18N.langs, (l) => String(l.code)),   // the prompt languages
     /* bytes: a Uint8Array or Buffer; copied into the realm (some readers check `instanceof ArrayBuffer`) */
     prepare(bytes, fileName, options) {
       const inner = newBytes(bytes.length);
@@ -78,4 +92,10 @@ function create(opt) {
   };
 }
 
-module.exports = { create, scriptList };
+/* The version of the tool (package.json; in the bundle: ./bundle-data.cjs) */
+function version() {
+  if (EMBED) return EMBED.version;
+  return JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
+}
+
+module.exports = { create, scriptList, fullScriptList, version, ROOT };

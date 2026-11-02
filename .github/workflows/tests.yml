@@ -2,6 +2,7 @@
 #   browser-and-servers  the page in headless Chrome (formats, relationships, profile, "Do not share data" canaries,
 #                        15 languages, the privacy demo) and the Python and Node.js servers; also checks that the
 #                        committed databrief.html is exactly what build.ps1 produces from the sources
+#   cli                  the command-line tool on Linux, Windows and macOS with Node 18, 22 and 24
 #   powershell           the PowerShell server, on Windows
 #   docker               both Docker images (amd64 and arm64 under emulation), Compose, the Raspberry Pi script and the
 #                        web server configuration files: on version tags and on demand (heavy)
@@ -41,6 +42,31 @@ jobs:
 
       - name: Server tests (Python and Node.js)
         run: bash tests/test_servers.sh
+
+  # The command-line tool (cli/): its tests on Linux, Windows and macOS with the oldest and the newest Node versions it supports.
+  # They need no browser: options, clipboard commands (with stand-ins), output folders, --review (fake editors), the one-file
+  # build (reproducible, the same bytes from CRLF sources) and real processes on the committed test files.
+  cli:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-latest]
+        node: ['18', '22', '24']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Reading core (the page's code in Node)
+        run: node tests/test_core.cjs
+      - name: Command-line tool
+        run: node tests/test_cli.cjs
+      - name: Build the one-file tool
+        run: node tools/build-cli.cjs
+      - name: Run it
+        run: node dist/databrief-cli.cjs tests/v14-fixtures/doc-fixtures/report.docx --no-copy --print --no-share
 
   powershell:
     runs-on: windows-latest

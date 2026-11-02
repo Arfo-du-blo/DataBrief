@@ -145,6 +145,32 @@ function same(name, page, mine) {
     await p.closeAll();
   }
 
+  /* ---------------------------------------------------------------- 2b. the whole tool (the built file, a real process) ---------- */
+  {
+    const cp = require('child_process');
+    const dist = path.join(os.tmpdir(), 'databrief-parity-cli-' + process.pid + '.cjs');
+    const b = cp.spawnSync(process.execPath, [path.join(__dirname, '..', 'tools', 'build-cli.cjs'), dist], { encoding: 'utf8' });
+    ok('the one-file tool is built', b.status === 0, b.stderr);
+    const proc = (file, extra) => { const r = cp.spawnSync(process.execPath, [dist, file, '--no-copy', '--print', '--quiet'].concat(extra), { encoding: 'utf8', maxBuffer: 1 << 28 }); return r.status === 0 ? { ok: true, md: r.stdout } : { ok: false, err: 'exit ' + r.status }; };
+    const WHOLE = ONLY ? [] : ['ventes.csv', 'workbook.xlsx', 'shop.sqlite', 'catalog.xml', 'page.html', 'shop.dacpac', 'report.docx', 'deck.pdf', 'tiny.parquet', 'people.avro', 'table.arrow'].filter((f) => fs.existsSync(path.join(FIX, f)));
+    for (const f of WHOLE.concat(ONLY ? [] : files.filter((x) => /\.(sav|dbf|mdb|accdb|duckdb|geojson|gpkg|ipynb)$/.test(x)).slice(0, 8))) {
+      const full = path.join(FIX, f);
+      const p = await open('?mode=inline');
+      await load(p, full);
+      const page = await result(p);
+      await p.closeAll();
+      const mine = proc(full, []);
+      ok('the built tool equals the page: ' + f + ' · inline', page.ok === mine.ok && (!page.ok || page.md === mine.md), page.ok && mine.ok ? firstDiff(page.md, mine.md) : (page.err || '') + ' / ' + (mine.err || ''));
+      const p2 = await open('?share=no');
+      await load(p2, full);
+      const page2 = await result(p2);
+      await p2.closeAll();
+      const mine2 = proc(full, ['--no-share']);
+      ok('the built tool equals the page: ' + f + ' · do not share, level 1', page2.ok === mine2.ok && (!page2.ok || page2.md === mine2.md), page2.ok && mine2.ok ? firstDiff(page2.md, mine2.md) : '');
+    }
+    try { fs.unlinkSync(dist); } catch (e) { /* the temp folder is cleaned by the system */ }
+  }
+
   /* ---------------------------------------------------------------- 3. awkward HTML and XML ---------- */
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'databrief-parity-'));
   const H = (body) => '<!doctype html><html><head><meta charset="utf-8"><title>t</title></head><body>' + body + '</body></html>';

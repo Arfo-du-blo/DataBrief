@@ -32,6 +32,9 @@ echo
 echo "=== Command-line tool core (Node: the page's reading code in a realm, src/core.js, cli/dom-shim.js)"
 node "$HERE/test_core.cjs" | grep -v '^PASS'
 echo
+echo "=== Command-line tool (Node: options, clipboard, files, --review, the one-file build, real processes on the test files)"
+node "$HERE/test_cli.cjs" | grep -v '^PASS'
+echo
 "$E/venv/bin/python" "$HERE/make_fixtures.py" "$E/fixtures"
 node "$HERE/run_tests.cjs" "$HERE/../databrief.html" "$E/fixtures" "$E/out"
 echo

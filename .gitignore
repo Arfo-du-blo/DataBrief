@@ -21,3 +21,6 @@ Thumbs.db
 
 # Private plans (never committed)
 plans/
+
+# The built command-line tool (tools/build-cli.cjs; attached to releases)
+dist/

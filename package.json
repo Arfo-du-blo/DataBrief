@@ -1,0 +1,20 @@
+{
+  "name": "databrief",
+  "version": "1.5.0",
+  "description": "Turns a data file into a prompt for an AI, offline, with a \"Do not share data\" mode: the command-line tool of DataBrief",
+  "license": "GPL-3.0-or-later",
+  "author": "Arfo",
+  "homepage": "https://github.com/Arfo-du-blo/DataBrief",
+  "repository": { "type": "git", "url": "git+https://github.com/Arfo-du-blo/DataBrief.git" },
+  "bugs": { "url": "https://github.com/Arfo-du-blo/DataBrief/issues" },
+  "keywords": ["llm", "prompt", "data", "privacy", "csv", "parquet", "sqlite", "excel", "cli"],
+  "private": true,
+  "bin": { "databrief": "dist/databrief-cli.cjs" },
+  "files": ["dist/databrief-cli.cjs", "README.md", "LICENSE", "THIRD-PARTY-NOTICES.md"],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "node tools/build-cli.cjs",
+    "prepack": "node tools/build-cli.cjs",
+    "test": "node tests/test_core.cjs && node tests/test_cli.cjs"
+  }
+}
