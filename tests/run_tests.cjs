@@ -482,6 +482,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       { f: 'csvgz.csv.gz' },   // the section is named after the file inside the gzip: the file name too
       { f: 'geojson.geojson' }, { f: 'gpkg.gpkg' },   // coordinates are records; layer and column names are names
       { f: 'ipynb.ipynb', txt: true },   // code and outputs never (they hold values); Markdown is free text; the table's columns are names
+      { f: 'avro.avro', txt: true }, { f: 'arrow.arrow', txt: true }, { f: 'feather.feather', txt: true },   // record doc and writer metadata are free text; the record name is a name
     ];
     const checks = [];
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
@@ -566,7 +567,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     {
       const p = await newPage();
       ok(await p.evaluate(() => document.getElementById('nsOn').offsetParent === null), '8: switch must not be visible before a file is read');
-      ok(await p.evaluate(() => document.getElementById('chips').children.length === 24 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
+      ok(await p.evaluate(() => document.getElementById('chips').children.length === 26 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
       const r0 = await load(p, F('confidential.csv'));
       ok(r0.md.includes('CONFIDENTIAL_CUSTOMER_74291') && await p.evaluate(() => document.getElementById('nsOn').offsetParent !== null && !document.getElementById('nsOn').checked), '8: after loading: data included, switch visible and off');
       const order = await p.evaluate(() => ['secSummary', 'secShare', 'secOutput'].map((id) => document.getElementById(id).getBoundingClientRect().top));
@@ -671,7 +672,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
     const page = await newPage();
     const chips = await page.$$eval('#chips button.chip', (els) => els.length);
-    if (chips !== 24) checks.push('expected 24 clickable formats, got ' + chips);
+    if (chips !== 26) checks.push('expected 26 clickable formats, got ' + chips);
     for (let i = 0; i < chips; i++) {
       await page.evaluate((n) => document.querySelectorAll('#chips button.chip')[n].click(), i); await wait(60);
       const r = await page.evaluate(() => ({
@@ -685,12 +686,12 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     // every card in every language, with the guide link
     const miss = await page.evaluate(() => {
       const I = window.DB_I18N, out = [];
-      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump', 'Dbf', 'Duckdb', 'Access', 'Dacpac', 'Geojson', 'Gpkg', 'Ipynb']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
+      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump', 'Dbf', 'Duckdb', 'Access', 'Dacpac', 'Geojson', 'Gpkg', 'Ipynb', 'Avro', 'Arrow']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
       return out;
     });
     if (miss.length) checks.push('missing card texts: ' + miss.join(','));
     // the guides the cards link to exist in the repository
-    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump', 'dbf', 'duckdb', 'access', 'dacpac', 'geodata', 'notebook']) {
+    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump', 'dbf', 'duckdb', 'access', 'dacpac', 'geodata', 'notebook', 'avro', 'arrow']) {
       if (!fs.existsSync(path.join(path.dirname(htmlPath), 'docs', 'formats', g + '.md'))) checks.push('guide docs/formats/' + g + '.md is missing');
     }
     // "what was found"
@@ -699,7 +700,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     if (found !== 'Found: 7 sections · 16 columns · 5 relationships (0 declared, 5 inferred)') checks.push('found line: ' + found);
     await page.close();
     if (checks.length) fail('format cards', checks.join(' | '));
-    else pass('format cards', '24 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
+    else pass('format cards', '26 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
   }
 
   // ---------- export helper (commands to export a database) ----------
@@ -876,6 +877,69 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     await p.close();
     if (checks.length) fail('notebooks', checks.join(' | '));
     else pass('notebooks', 'executed notebooks: data frames as sections (pandas, MultiIndex, Styler, Polars), cells as context; no-share keeps cell kinds and table links, never code or outputs');
+  }
+
+  // ---------- Avro, Arrow IPC and Feather (real files written by fastavro and pyarrow, tests/v14-fixtures) ----------
+  {
+    const checks = [];
+    const bad = (m) => checks.push(m);
+    const wait = (ms) => new Promise((res) => setTimeout(res, ms || 300));
+    const docOf = (p) => p.evaluate(() => {
+      const d = window.DataBrief.getState().doc;
+      return d && { key: d.formatKey, name: d.formatName, rows: d.sections.map((s) => s.rows.length).join(','), cols: d.sections[0].columns.map((c) => c.name + ':' + c.type).join(',') };
+    });
+    // Avro: every codec, the same document
+    let first = null;
+    for (const f of ['customers-null.avro', 'customers-deflate.avro', 'customers-snappy.avro', 'customers-zstandard.avro']) {
+      const p = await newPage();
+      const r = await load(p, F(f));
+      const d = r.ok && await docOf(p);
+      if (!d || d.key !== 'avro' || d.name !== 'Apache Avro' || d.rows !== '4') bad(f + ': ' + JSON.stringify(d || r.err));
+      else if (!first) {
+        first = d;
+        if (!/^id:integer,name:text,country:text,signup:date,notes:text,balance:decimal,/.test(d.cols)) bad('Avro column types: ' + d.cols);
+        // the column table: name, kind, value labels, not null, Avro type (address.zip holds "1000": its kind is integer, its declared type string)
+        for (const s of ['| Column | Type | Value labels | Not null | Avro type |', '| `balance` | decimal |  | yes | decimal(9,2) |', '| `address.zip` | integer |  |  | nullable string |',
+          'PT, CN, FR, IE', '**Record type (schema name):** shop.Customer', '**Description (table comment):** one customer', '| 10.50 |', '2025-01-01 09:30:00'])
+          if (!r.md.includes(s)) bad('Avro prompt lacks: ' + JSON.stringify(s));
+        // "Do not share data": the record name is a name, its doc free text, the enum symbols labels
+        await p.click('#nsOn'); await wait(500);
+        let ns = await p.evaluate(() => window.DataBrief.getMarkdown());
+        if (!ns.includes('shop.Customer') || ns.includes('one customer') || ns.includes('Ana Lima') || ns.includes('10.50')) bad('Avro no-share level 1: names kept, doc and values out');
+        await p.evaluate(() => document.querySelector('[data-sw="names"]').click()); await wait();
+        ns = await p.evaluate(() => window.DataBrief.getMarkdown());
+        if (ns.includes('shop.Customer') || ns.includes('`address.zip`')) bad('Avro no-share, names off: the record and field names must go');
+        await p.evaluate(() => localStorage.clear());
+      } else if (d.cols !== first.cols) bad(f + ': another codec, other columns: ' + d.cols);
+      await p.close();
+    }
+    // Arrow IPC file and stream, Feather v2 (lz4, zstd, none) and v1
+    const ARROW = [['orders.arrow', 'Apache Arrow IPC file'], ['orders.arrows', 'Apache Arrow IPC stream'], ['orders-v2-lz4.feather', 'Feather v2 (Apache Arrow IPC file)'],
+      ['orders-v2-zstd.feather', 'Feather v2 (Apache Arrow IPC file)'], ['orders-v2-uncompressed.feather', 'Feather v2 (Apache Arrow IPC file)'], ['orders-v1.feather', 'Feather v1']];
+    for (const [f, name] of ARROW) {
+      const p = await newPage();
+      const r = await load(p, F(f));
+      const d = r.ok && await docOf(p);
+      if (!d || d.key !== 'arrow' || d.name !== name || d.rows !== '4') { bad(f + ': ' + JSON.stringify(d || r.err)); await p.close(); continue; }
+      if (f === 'orders.arrow') {
+        for (const s of ['| Arrow type |', '| `total` | decimal | decimal128(9,2) |', '| `status` | text | dictionary<string> |', 'timestamp[ms, Europe/Paris] (values in UTC)',
+          '`shipping.carrier`', '**Record batches:** 2', '`source`: shop', '| 19.90 |', '| refunded |']) if (!r.md.includes(s)) bad('Arrow prompt lacks: ' + JSON.stringify(s));
+      }
+      if (f === 'orders-v1.feather' && d.cols !== 'id:integer,customer_id:integer,note:text') bad('Feather v1 columns: ' + d.cols);
+      await p.close();
+    }
+    // damaged files: a clear message
+    const pad = (n) => Buffer.alloc(n);
+    for (const [name, bytes] of [['broken.arrow', Buffer.concat([Buffer.from('ARROW1', 'latin1'), pad(2), pad(100)])], ['broken.feather', Buffer.concat([Buffer.from('FEA1', 'latin1'), pad(100), Buffer.from('FEA1', 'latin1')])],
+      ['broken.avro', Buffer.concat([Buffer.from('Obj', 'latin1'), Buffer.from([1]), Buffer.from('\x04\x16avro.schema', 'latin1'), pad(40)])]]) {
+      fs.writeFileSync(path.join(outDir, name), bytes);
+      const p = await newPage();
+      const r = await load(p, path.join(outDir, name));
+      if (r.ok || !r.err.includes('may be damaged')) bad(name + ': expected the damaged-file message, got ' + JSON.stringify(r.ok ? 'a result' : r.err));
+      await p.close();
+    }
+    if (checks.length) fail('Avro and Arrow', checks.join(' | '));
+    else pass('Avro and Arrow', 'Avro (4 codecs), Arrow IPC file and stream, Feather v1 and v2 (lz4, zstd): types, decimals, dictionaries, time zones, structs, metadata; no-share names and doc; damaged files refused');
   }
 
   // ---------- SQL dumps and PostgreSQL archives (real dumps of tests/sql-fixtures) ----------
@@ -1205,10 +1269,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     const SAMPLES = [
       ['duckdb', Buffer.concat([pad(8), ascii('DUCK'), pad(200)]), 'DuckDB database'],
       ['hdf5', Buffer.concat([Buffer.from([0x89]), ascii('HDF\r\n'), Buffer.from([0x1a, 0x0a]), pad(100)]), 'HDF5 file'],
-      ['arrow', Buffer.concat([ascii('ARROW1'), pad(2), pad(100)]), 'Apache Arrow'],
-      ['feather', Buffer.concat([ascii('FEA1'), pad(100)]), 'Apache Arrow'],
       ['orc', Buffer.concat([ascii('ORC'), Buffer.from([0x01, 0x02, 0x00, 0x03]), pad(100)]), 'Apache ORC'],
-      ['avro', Buffer.concat([ascii('Obj'), Buffer.from([1]), ascii('\x04\x16avro.schema'), pad(40)]), 'Apache Avro'],
       ['pdf', ascii('%PDF-1.7\n%\xe2\xe3\xcf\xd3\n1 0 obj\n<< >>\nendobj\n'), 'PDF document'],
       ['bak', Buffer.concat([ascii('TAPE'), pad(100)]), 'SQL Server backup'],
       ['dmp', Buffer.concat([Buffer.from([0x03, 0x00]), ascii('EXPORT:V19.00.00\nUSCOTT\nRTABLES\n'), pad(100)]), 'Oracle export'],
@@ -1303,7 +1364,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     if (miss.length) bad('missing texts: ' + miss.join(','));
     await p.close();
     if (checks.length) fail('unreadable formats and gzip', checks.join(' | '));
-    else pass('unreadable formats and gzip', '9 known formats refused with advice (by content, any name), no false alarm on text, gzip read, damaged and nested gzip refused, 15 languages');
+    else pass('unreadable formats and gzip', '6 known formats refused with advice (by content, any name), no false alarm on text, gzip read, damaged and nested gzip refused, 15 languages');
   }
 
   // ---------- "Do not share data": the same promise in all 15 languages, and the strings are really translated ----------

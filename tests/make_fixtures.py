@@ -487,6 +487,12 @@ shutil.copy(os.path.join(_v14, "geo-fixtures", "places.geojson"), P("places_as.j
 shutil.copy(os.path.join(_v14, "canary", "CONFIDENTIAL_FILE_geojson.geojson"), Q("geojson", "geojson"))
 shutil.copy(os.path.join(_v14, "canary", "CONFIDENTIAL_FILE_gpkg.gpkg"), Q("gpkg", "gpkg"))
 
+# --- Avro, Arrow IPC and Feather (v1.4): REAL files written by fastavro and pyarrow (tests/make_v14_fixtures.sh), and their canaries
+for _f in sorted(os.listdir(os.path.join(_v14, "arrow-fixtures"))):
+    shutil.copy(os.path.join(_v14, "arrow-fixtures", _f), P(_f))
+for _k in ("avro", "arrow", "feather"):
+    shutil.copy(os.path.join(_v14, "canary", "CONFIDENTIAL_FILE_" + _k + "." + _k), Q(_k, _k))
+
 # --- Jupyter notebooks (v1.4): executed by a real kernel (tests/make_v14_fixtures.sh), their canary, one saved as .json,
 #     and one without any table output (written here: Markdown, code, printed text only)
 for _f in ("analysis.ipynb", "shapes.ipynb"):

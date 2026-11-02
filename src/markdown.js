@@ -89,7 +89,7 @@
 
   const META_COLS = [
     ['label', 'cLabel'], ['values', 'cValues'], ['measure', 'cMeasure'], ['format', 'cFormat'], ['missing', 'cMissing'],
-    ['sqlType', 'cSql'], ['key', 'cKey'], ['notNull', 'cNotNull'], ['generated', 'cGenerated'], ['parquetType', 'cParquet'], ['geometry', 'cGeometry'], ['dtype', 'cDtype'],
+    ['sqlType', 'cSql'], ['key', 'cKey'], ['notNull', 'cNotNull'], ['generated', 'cGenerated'], ['parquetType', 'cParquet'], ['geometry', 'cGeometry'], ['dtype', 'cDtype'], ['avroType', 'cAvro'], ['arrowType', 'cArrow'],
   ];
   const TYPE_KEYS = {
     integer: 'tInteger', decimal: 'tDecimal', date: 'tDate', datetime: 'tDatetime', time: 'tTime',
@@ -578,8 +578,10 @@
           const meta = {};
           for (const [k, v] of Object.entries(c.meta)) if (sw.labels || (k !== 'label' && k !== 'values')) meta[k] = v;
           // Struct field names are names too: when names are not shared, the type without them is used
-          if (!sw.names && meta.parquetTypeAnon) meta.parquetType = meta.parquetTypeAnon;
-          delete meta.parquetTypeAnon;
+          for (const k of ['parquetType', 'avroType', 'arrowType']) {
+            if (!sw.names && meta[k + 'Anon']) meta[k] = meta[k + 'Anon'];
+            delete meta[k + 'Anon'];
+          }
           // A type name chosen by people (a PostgreSQL enum or domain) is a name: replaced when names are not shared
           if (!sw.names && meta.sqlTypeAnon) meta.sqlType = meta.sqlTypeAnon;
           delete meta.sqlTypeAnon;

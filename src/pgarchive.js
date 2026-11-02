@@ -166,6 +166,7 @@
     return out;
   }
   DB.pgStreamed = streamed;   // for the tests
+  DB.lz4Frames = lz4Frames;   // also the LZ4 codec of Arrow IPC (arrow.js)
   function decompress(algo, bytes) {
     switch (algo) {
       case 0: return bytes;

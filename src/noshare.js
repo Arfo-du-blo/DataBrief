@@ -18,7 +18,7 @@
   const FILE_META = new Set(['mExternal']);
   // Facts computed from the records (where the data lies, how many features of each kind): never in "Do not share data"
   const DATA_META = new Set(['mExtent', 'mGeomTypes']);   // names of other files (COPY FROM a file, linked tables): hidden with the file name too
-  const NAME_META = new Set(['mViews', 'mSkipped', 'mNames', 'mRoot', 'mWeight', 'mEmbedded', 'mExternal', 'mMemo']);
+  const NAME_META = new Set(['mViews', 'mSkipped', 'mNames', 'mRoot', 'mWeight', 'mEmbedded', 'mExternal', 'mMemo', 'mAvroRecord']);
   const copy = (v) => (v == null ? v : JSON.parse(JSON.stringify(v)));
   const baseOf = (name) => (name || 'data').replace(/\.[^.]+$/, '') || 'data';
   // Excel defined names: keep only references to cells ("Sheet!$A$1:$B$9"), not constants (="Smith" is a value).

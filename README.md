@@ -627,6 +627,8 @@ how to export it, and its limits.
 | Web | HTML (**every** `<table>` on the page) | [HTML tables](docs/formats/html.md) |
 | Statistics | SPSS `.sav` and `.zsav` | [SPSS](docs/formats/spss.md) |
 | Data engineering | Parquet | [Parquet](docs/formats/parquet.md) |
+| | **Avro** (`.avro` data files: deflate, snappy or Zstandard) | [Avro](docs/formats/avro.md) |
+| | **Arrow / Feather** (`.arrow`, `.arrows` stream, `.feather` v1 and v2: LZ4 or Zstandard) | [Arrow and Feather](docs/formats/arrow.md) |
 | Databases | SQLite (`.db`, `.sqlite`, `.sqlite3`; **all tables**) | [SQLite](docs/formats/sqlite.md) |
 | | **SQL dumps** (`.sql`: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite, ClickHouse; read as text, never executed) | [SQL dumps](docs/formats/sql.md) |
 | | **PostgreSQL archives** (`pg_dump -Fc` and `-Ft`, gzip, lz4 or zstd) | [PostgreSQL archives](docs/formats/pgdump.md) |
@@ -655,6 +657,8 @@ When a file holds several sheets or tables, each one becomes its own section, an
 | Jupyter notebook | the **data frames** of the stored outputs (named index, MultiIndex, Polars and R column types, the true size of a shortened table), and every cell in order: Markdown, code, printed text, errors, the language |
 | SQLite | types, primary keys (in order), **foreign keys** (composite, with `ON DELETE`), unique constraints, indexes, `CREATE TABLE`, views with their SQL, **relationships**, generated columns, exact 64-bit integers |
 | Parquet | the **type of every nested field** (`STRUCT`, `LIST`, `MAP`), required fields, decimals, timestamp units, pandas metadata, row groups, compression |
+| Avro | the **type of every field** from the schema (enums with their symbols, decimals, dates, timestamps, nullable fields, arrays, maps), nested records flattened, the record name and its documentation, the writer's metadata, the compression |
+| Arrow / Feather | the **Arrow type** of every column (decimals, dictionaries, timestamps with their time zone, lists), structs flattened, record batches, the schema metadata (pandas, Polars) |
 | Excel / ODS | sheet names, hidden sheets, cell comments, **merged cells, hidden rows and columns, defined names**, the number of formulas (those without a stored result are counted, not lost) |
 | JSON / XML / YAML | the original path of each flattened field; XML attributes; YAML documents |
 | CSV / TSV / HTML | the detected type of each column; table captions and merged cells for HTML |
@@ -699,7 +703,7 @@ both, and lets you catch a deliberately tampered copy in the act:
 ## Limits
 
 - Encrypted or password-protected files (Excel, SQLite, Access) cannot be read: save a copy without the password first.
-- Files DataBrief recognises but cannot read (a DuckDB database, HDF5, Arrow / Feather, ORC, Avro, PDF, a SQL Server `.bak`, an Oracle `.dmp`) are
+- Files DataBrief recognises but cannot read (a DuckDB database, HDF5, ORC, PDF, a SQL Server `.bak`, an Oracle `.dmp`) are
   recognised by their content, whatever their name, and answered with what to do instead. `.gz` files (`dump.sql.gz`, `data.csv.gz`) are unpacked and read.
 - SQL dumps are read up to 250,000 rows per table (the counts stay exact). A `.gz` file, a zipped DuckDB export or one
   table of a PostgreSQL archive larger than 1 GB once decompressed is not read (the table is named as skipped). PostgreSQL's directory format (`pg_dump -Fd`)
@@ -741,6 +745,8 @@ src/
   access.js                   the Access reader (wraps the vendored mdb-reader; tools/build-mdb-reader.sh rebuilds it)
   geo.js                      GeoJSON, and the geometries of a GeoPackage (WKB): summarised, never copied whole
   notebook.js                 Jupyter notebooks: the tables of the stored outputs (a small HTML table reader), the cells as context
+  avro.js                     the Avro reader (original code: container, schema, codecs, logical types)
+  arrow.js                    Arrow IPC and Feather v2 (with the vendored flechette), Feather v1 (original code)
   relationships.js            declared and inferred relationships between sections
   profile.js                  the data profile (statistics of every column; on by default, can be switched off)
   noshare.js                  "Do not share data": the record-free copy of a file
@@ -764,7 +770,7 @@ examples/tampered/            the privacy demo: tampered copies + receiver.py (n
 .github/workflows/            pages.yml (GitHub Pages), release.yml (release + Docker images), tests.yml (tests on every push)
 .gitlab-ci.yml                the same for GitLab: Pages, release, Docker images (Container Registry)
 vendor/                       third-party libraries and their licenses
-tools/                        build-mdb-reader.sh: rebuilds vendor/mdb-reader.min.js from its sources
+tools/                        build-mdb-reader.sh, build-flechette.sh: rebuild vendor/mdb-reader.min.js and vendor/flechette.min.js
 tests/                        test suites; *-fixtures/ hold real files written by each engine's own tools
 ```
 

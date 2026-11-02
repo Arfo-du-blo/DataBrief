@@ -33,13 +33,15 @@
     { key: 'geojson', label: 'GeoJSON', exts: ['geojson'] },
     { key: 'gpkg', label: 'GeoPackage', exts: ['gpkg'] },
     { key: 'ipynb', label: 'Jupyter', exts: ['ipynb'] },
+    { key: 'avro', label: 'Avro', exts: ['avro'] },
+    { key: 'arrow', label: 'Arrow', exts: ['arrow', 'arrows', 'feather', 'ipc'] },
   ];
   const FORMAT_NAMES = {
     csv: 'CSV', tsv: 'TSV', txt: 'TXT (CSV)', xlsx: 'Excel (XLSX)', xlsm: 'Excel (XLSM)',
     xls: 'Excel 97-2003 (XLS)', ods: 'OpenDocument (ODS)', json: 'JSON', ndjson: 'NDJSON / JSON Lines',
     xml: 'XML', yaml: 'YAML', html: 'HTML', sav: 'SPSS Statistics (.sav)', zsav: 'SPSS Statistics (.zsav)',
     parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)', dbf: 'dBase / FoxPro (DBF)', duckdb: 'DuckDB export (zip)', access: 'Microsoft Access', dacpac: 'SQL Server data-tier package',
-    geojson: 'GeoJSON', gpkg: 'GeoPackage', ipynb: 'Jupyter notebook',
+    geojson: 'GeoJSON', gpkg: 'GeoPackage', ipynb: 'Jupyter notebook', avro: 'Apache Avro', arrow: 'Apache Arrow',
   };
   DB.ACCEPT = DB.FORMATS.flatMap((f) => f.exts.map((e) => '.' + e)).concat(['.gz']).join(','); // .gz: a compressed file of any of these
 
@@ -50,6 +52,8 @@
     const s = (a, b) => String.fromCharCode.apply(null, u8.subarray(a, b));
     if (u8.length >= 16 && s(0, 15) === 'SQLite format 3') return 'sqlite';
     if (u8.length >= 4 && s(0, 4) === 'PAR1') return 'parquet';
+    if (DB.isAvro && DB.isAvro(u8)) return 'avro';
+    if (DB.arrowKind && ['file', 'feather1'].includes(DB.arrowKind(u8, ''))) return 'arrow';
     if (u8.length >= 4 && (s(0, 4) === '$FL2' || s(0, 4) === '$FL3')) return 'sav';
     if (u8.length >= 8 && u8[0] === 0xd0 && u8[1] === 0xcf && u8[2] === 0x11 && u8[3] === 0xe0) return 'xls';
     if (u8.length >= 4 && u8[0] === 0x50 && u8[1] === 0x4b && u8[2] === 0x03 && u8[3] === 0x04) return 'zip';
@@ -451,6 +455,17 @@
     if (/^time\b|^timetz|^time\(/.test(t)) return 'time';
     return 'text';
   }
+  /* An Avro or Arrow type (long, nullable date, timestamp[ms], decimal128(9,2), list<...>) -> a column type */
+  function typeFromDeclared(t) {
+    t = String(t || '').replace(/^nullable /, '');
+    if (/^(bool|boolean)$/.test(t)) return 'boolean';
+    if (/^(int|long|u?int\d+)$/.test(t)) return 'integer';
+    if (/^(float|double|float\d+|decimal)/.test(t)) return 'decimal';
+    if (/^(date|date32|date64)$/.test(t)) return 'date';
+    if (/^(timestamp|local-timestamp)/.test(t)) return 'datetime';
+    if (/^time/.test(t)) return 'time';
+    return 'text';
+  }
   function sqlDocument(r, lead) {
     const info = r.info;
     const meta = [['mDialect', r.dialectName]].concat(lead || []);
@@ -651,6 +666,29 @@
     } catch (e) { return String(raw).replace(/\s+/g, ' ').slice(0, 300); }
   }
 
+  /* Key/value metadata a writer adds to the file (Parquet, Arrow, Avro): pandas' summarised, the rest cut. Free text and names
+   * ("Do not share data": mEmbedded). */
+  function embeddedMeta(pairs) {
+    const kv = [];
+    for (const [key, value] of pairs.slice(0, 40)) {
+      if (key === 'ARROW:schema') continue; // the Arrow schema is binary: the column types already say it
+      const val = String(value == null ? '' : value);
+      if (key === 'pandas') kv.push('`pandas`: ' + pandasSummary(val));
+      else kv.push('`' + key + '`: ' + val.replace(/\s+/g, ' ').slice(0, /spark/.test(key) ? 600 : 300));
+    }
+    return kv.length ? ['mEmbedded', kv.join('; ')] : null;
+  }
+
+  /* Apache Arrow IPC file or stream, Feather v1 / v2 (arrow.js) */
+  function parseArrowFile(u8, ext, fileName) {
+    const kind = DB.arrowKind(u8, ext);
+    if (!kind) throw new UserError('errCorrupt', { ext: '.' + ext });
+    const res = DB.parseArrow(u8, kind, { maxRows: DB.SQL_MAX_ROWS, ext: '.' + ext });
+    res.sections[0].name = baseOf(fileName);
+    if (kind === 'file' && ext === 'feather') res.formatName = 'Feather v2 (Apache Arrow IPC file)';
+    return res;
+  }
+
   async function parseParquet(buf, ext, name) {
     const H = window.hyparquet;
     const ab = buf instanceof ArrayBuffer ? buf : buf.buffer;
@@ -707,14 +745,8 @@
       const codecs = Array.from(new Set(groups.flatMap((g) => (g.columns || []).map((c) => c.meta_data && c.meta_data.codec).filter(Boolean))));
       if (codecs.length) fileMeta.push(['mCodec', codecs.join(', ')]);
     }
-    const kv = [];
-    for (const x of (metadata.key_value_metadata || [])) {
-      if (!x || !x.key || x.key === 'ARROW:schema') continue; // the Arrow schema is binary: the schema above already says it
-      const val = String(x.value == null ? '' : x.value);
-      if (x.key === 'pandas') kv.push('`pandas`: ' + pandasSummary(val));
-      else kv.push('`' + x.key + '`: ' + val.replace(/\s+/g, ' ').slice(0, /spark/.test(x.key) ? 600 : 300));
-    }
-    if (kv.length) fileMeta.push(['mEmbedded', kv.join('; ')]);
+    const emb = embeddedMeta((metadata.key_value_metadata || []).filter((x) => x && x.key).map((x) => [x.key, x.value]));
+    if (emb) fileMeta.push(emb);
     const notes = { isoDates: flat.flags.isoDates };
     if (flat.flags.flattened) notes.flattened = true;
     if (flat.flags.arrays) notes.arrays = true;
@@ -727,9 +759,7 @@
     const binary = u8.subarray(0, 512).includes(0);   // a text file that merely starts with the same letters is not one of these
     if (u8.length >= 12 && s(8, 12) === 'DUCK' && binary) return 'Duckdb';
     if (u8.length >= 8 && u8[0] === 0x89 && s(1, 4) === 'HDF' && u8[4] === 0x0d && u8[5] === 0x0a && u8[6] === 0x1a && u8[7] === 0x0a) return 'Hdf5';
-    if (u8.length >= 8 && (s(0, 6) === 'ARROW1' || (s(0, 4) === 'FEA1' && binary))) return 'Arrow';
     if (u8.length >= 8 && s(0, 3) === 'ORC' && binary) return 'Orc';
-    if (u8.length >= 8 && s(0, 3) === 'Obj' && u8[3] === 1) return 'Avro';
     if (u8.length >= 8 && s(0, 5) === '%PDF-') return 'Pdf';
     if (u8.length >= 64 && s(0, 4) === 'TAPE' && binary) return 'MssqlBak';
     if (u8.length >= 64 && /EXPORT:V\d/.test(s(0, 64)) && binary) return 'OracleDmp';
@@ -785,7 +815,7 @@
       if (kind === 'geojson') kind = 'json';                // read as JSON, recognised as GeoJSON by its content
       if (kind === 'gpkg') kind = 'sqlite';                 // a GeoPackage is a SQLite file
       if (kind === 'ipynb') kind = 'json';                  // a notebook is a JSON file
-      if (['xlsx', 'xlsm', 'xls', 'ods', 'sqlite', 'parquet', 'sav', 'duckdb', 'access', 'dacpac'].includes(kind)) {
+      if (['xlsx', 'xlsm', 'xls', 'ods', 'sqlite', 'parquet', 'sav', 'duckdb', 'access', 'dacpac', 'avro'].includes(kind) || (kind === 'arrow' && !DB.arrowKind(u8, ext))) {
         // Binary format expected but the content does not match: try as text.
         const sample = DB.decodeText(u8.subarray(0, 4096)).text.trim();
         if (/^</.test(sample)) kind = /<table/i.test(sample) || /^<!doctype html|^<html/i.test(sample) ? 'html' : 'xml';
@@ -816,16 +846,20 @@
       case 'dbf': res = DB.parseDbf(u8, { maxRows: DB.SQL_MAX_ROWS }); res.sections[0].name = baseOf(fileName); break;
       case 'parquet': res = await parseParquet(buf, ext, fileName); break;
       case 'sav': res = DB.parseSav(buf); res.sections[0].name = baseOf(fileName); break;
+      case 'avro': res = DB.parseAvro(u8, { maxRows: DB.SQL_MAX_ROWS }); res.sections[0].name = baseOf(fileName); break;
+      case 'arrow': res = parseArrowFile(u8, ext, fileName); break;
       default: throw new UserError('errUnsupported', { ext: '.' + ext });
     }
     if (res.geojson) kind = 'geojson';
     if (res.gpkg) kind = 'gpkg';
     if (res.ipynb) kind = 'ipynb';
+    // metadata the writer added (Avro, Arrow), shown like Parquet's
+    if (res.embedded) { const emb = embeddedMeta(res.embedded); if (emb) res.fileMeta.push(emb); delete res.embedded; }
     const formatKey = kind === 'sav' && ext === 'zsav' ? 'zsav' : kind;
     const sectionKind = ['xlsx', 'xlsm', 'xls', 'ods'].includes(kind) ? 'sheets'
       : ['html', 'sqlite', 'sql', 'pgdump', 'duckdb', 'access', 'dacpac', 'gpkg', 'ipynb'].includes(kind) ? 'tables' : 'records';
     return finalize(Object.assign(res, {
-      fileName, fileSize: u8.length, formatKey, formatName: FORMAT_NAMES[formatKey] || kind.toUpperCase(), sectionKind,
+      fileName, fileSize: u8.length, formatKey, formatName: res.formatName || FORMAT_NAMES[formatKey] || kind.toUpperCase(), sectionKind,
     }));
   };
 
@@ -836,6 +870,8 @@
       s.columns.forEach((c, i) => { c.type = c.meta && c.meta.geometry ? 'geometry' : DB.detectColumnType(s.rows, i); });   // coordinates: never categories
       // A dump of the structure only (or whose data is in other files): no row was read, the SQL type tells the kind
       if (fromSql && !s.rows.length) s.columns.forEach((c) => { c.type = typeFromSql(c.meta && c.meta.sqlType); });
+      // an Avro or Arrow file with a schema and no row: the declared type tells the kind
+      if (!s.rows.length && s.columns.some((c) => c.meta && (c.meta.avroType || c.meta.arrowType))) s.columns.forEach((c) => { c.type = typeFromDeclared(c.meta.avroType || c.meta.arrowType); });
       // The rows read can be fewer than the rows of the table (a large dump): the true count is kept
       s.totalRows = typeof s.rowsTotal === 'number' && s.rowsTotal > s.rows.length ? s.rowsTotal : s.rows.length;
       // A guessed header over columns that are all text may well be the first record (a file without header row)
