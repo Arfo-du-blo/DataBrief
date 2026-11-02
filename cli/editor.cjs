@@ -10,7 +10,8 @@ const TERMINAL = new Set(['vi', 'vim', 'nvim', 'nano', 'pico', 'micro', 'hx', 'h
 // Editors that return at once unless asked to wait: the flag that makes them wait
 const WAIT_FLAG = { code: '--wait', 'code-insiders': '--wait', codium: '--wait', cursor: '--wait', subl: '--wait', atom: '--wait', gedit: '--wait', kate: '--block', zed: '--wait' };
 // Programs that wait without being asked
-const WAITS = new Set(['notepad', 'notepad.exe', ...TERMINAL]);
+// (not Notepad: the tabbed Notepad of Windows 11 hands the file to an open window and returns at once)
+const WAITS = new Set(TERMINAL);
 
 /* "code --wait" -> ['code', '--wait']; quotes group words; a backslash is kept as it is (Windows paths) */
 function splitCommand(s) {
@@ -52,6 +53,11 @@ function choose(named, env) {
     const b = baseOf(c.cmd);
     const args = c.args.slice();
     if (WAIT_FLAG[b] && !args.some((a) => /^(-w|--wait|--block)$/.test(a))) args.unshift(WAIT_FLAG[b]);
+    // The prompt holds text from the file (the last rows, the file name): editors that obey settings written in a file must
+    // not here. Vim and Neovim: no modelines for this buffer (set before it is read, so a vimrc cannot turn them back on);
+    // Emacs: no file-local variables. ("vi" may be a vi that knows no --cmd: it is left as it is.)
+    if (['vim', 'nvim', 'gvim', 'mvim', 'vimx'].includes(b)) args.unshift('--cmd', 'au BufReadPre * setlocal nomodeline');
+    if (b === 'emacs' || b === 'emacsclient') args.unshift('--eval', '(setq enable-local-variables nil)');
     return { chosen: { label: c.label, exe, args, name: b, waits: WAITS.has(b) || !!WAIT_FLAG[b] || (b === 'open' && args.includes('-W')) }, skipped };
   }
   return null;
@@ -72,7 +78,8 @@ async function edit(file, named, env) {
     if (CMD_UNSAFE.test(file) || CMD_UNSAFE.test(chosen.args.join(' '))) return { ok: false, error: 'The prompt\'s path holds a character that cmd.exe would read (' + file + '): use a simpler --out folder, or an editor that is not a .cmd file' };
     const q = (s) => '"' + s + '"';
     args = ['/d', '/s', '/c', '"' + [q(exe)].concat(chosen.args.map(q), [q(file)]).join(' ') + '"'];
-    exe = env.vars.ComSpec || 'cmd.exe';
+    // a full path: a bare "cmd.exe" would be looked for in the current folder first
+    exe = env.vars.ComSpec || ((env.vars.SystemRoot || env.vars.windir || 'C:\\Windows') + '\\System32\\cmd.exe');
     opts.windowsVerbatimArguments = true;
   }
   const t0 = env.nowMs();

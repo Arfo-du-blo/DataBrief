@@ -18,8 +18,8 @@
    * parsed as markup), external entities are never loaded and read as nothing, attribute defaults (ATTLIST) are filled in.
    * xmldom does none of it, so this pass does it before xmldom parses: the declarations are read, the subset removed, the
    * references replaced in the text. Limits: an entity that refers to itself, an expansion over AMPLIFY times the file
-   * (plus 1 MB), parameter entities (%name;) and conditional sections give an error (a <parsererror>). */
-  const AMPLIFY = 10;
+   * (plus 100 kB: browsers refuse a few hundred kB out of a small file, accept tens of kB), parameter entities (%name;) and conditional sections give an error (a <parsererror>). */
+  const AMPLIFY = 10, ALLOWANCE = 100 * 1024;
   const PREDEF = { lt: 1, gt: 1, amp: 1, quot: 1, apos: 1 };
   const NAME = /^[A-Za-z_:][\w.:\u00b7\u00c0-\uffff-]*/;
   class XmlError extends Error {}
@@ -28,11 +28,22 @@
     if (!(c > 0 && c <= 0x10ffff)) throw new XmlError('bad character reference ' + m);
     return String.fromCodePoint(c);
   });
-  // -> { start, end, decls } of the internal subset, or null when there is none
+  // -> { start, end, decls } of the internal subset, or null when there is none. Scanned by hand, in one pass (a regular
+  // expression here backtracked for minutes on "<!DOCTYPE" followed by many spaces or quotes).
   function findSubset(text) {
-    const m = /<!DOCTYPE\s+[^[>"']*(?:(?:"[^"]*"|'[^']*')[^[>"']*)*\[/.exec(text.slice(0, 1 << 20));
-    if (!m) return null;
-    const start = m.index + m[0].length;
+    const lim = Math.min(text.length, 1 << 20);
+    const p = text.indexOf('<!DOCTYPE');
+    if (p < 0 || p >= lim) return null;
+    let k = p + 9, quote = '';
+    for (; k < lim; k++) {
+      const ch = text[k];
+      if (quote) { if (ch === quote) quote = ''; continue; }
+      if (ch === '"' || ch === "'") { quote = ch; continue; }
+      if (ch === '[') break;
+      if (ch === '>') return null;
+    }
+    if (k >= lim) return null;
+    const start = k + 1;
     let i = start, q = '';
     for (; i < text.length; i++) {
       const ch = text[i];
@@ -44,6 +55,23 @@
     const close = /^\]\s*>/.exec(text.slice(i, i + 200));
     if (!close) throw new XmlError('unclosed DOCTYPE');
     return { start, end: i, after: i + close[0].length, body: text.slice(start, i) };
+  }
+  // The tokens of an ATTLIST declaration: { v, quoted } for "..." / '...', { v, group } for ( ... ), { v } otherwise
+  function attTokens(s) {
+    const out = [];
+    let i = 0;
+    const n = s.length;
+    while (i < n) {
+      const ch = s[i];
+      if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') { i++; continue; }
+      if (ch === '"' || ch === "'") { const e = s.indexOf(ch, i + 1); if (e < 0) throw new XmlError('bad ATTLIST'); out.push({ v: s.slice(i + 1, e), quoted: true }); i = e + 1; continue; }
+      if (ch === '(') { const e = s.indexOf(')', i + 1); if (e < 0) throw new XmlError('bad ATTLIST'); out.push({ v: s.slice(i, e + 1), group: true }); i = e + 1; continue; }
+      let j = i;
+      while (j < n && !/[\s"'(]/.test(s[j])) j++;
+      out.push({ v: s.slice(i, j) });
+      i = j;
+    }
+    return out;
   }
   function readDecls(body) {
     const ents = new Map(), atts = new Map();
@@ -69,36 +97,56 @@
         } else throw new XmlError('bad entity declaration');
         if (!ents.has(n[0])) ents.set(n[0], ent);      // the first declaration wins
       } else if (m[1] === 'ATTLIST') {
-        const t = /^\s*([^\s]+)\s+([\s\S]*)$/.exec(m[2]);
-        if (!t) continue;
-        const list = atts.get(t[1]) || new Map();
-        const defRe = /([^\s()]+)\s+(\([^)]*\)|NOTATION\s*\([^)]*\)|[A-Z]+)\s+(#REQUIRED|#IMPLIED|(?:#FIXED\s+)?("[^"]*"|'[^']*'))/g;
-        let a;
-        while ((a = defRe.exec(t[2]))) {
-          if (list.has(a[1]) || !a[4]) { if (!list.has(a[1])) list.set(a[1], null); continue; }
-          let v = charRefs(a[4].slice(1, -1));
-          if (a[2] !== 'CDATA') v = v.replace(/\s+/g, ' ').trim();
-          list.set(a[1], v);
+        // read by hand, token by token (a regular expression here backtracked for minutes on a long name)
+        const tok = attTokens(m[2]);
+        if (!tok.length) throw new XmlError('bad ATTLIST');
+        const el = tok[0].v;
+        const list = atts.get(el) || new Map();
+        let k = 1;
+        while (k < tok.length) {
+          const name = tok[k++], type = tok[k++];
+          if (!name || !type || name.quoted || name.group || type.quoted) throw new XmlError('bad ATTLIST');
+          let typeName = type.v;
+          if (typeName === 'NOTATION') { const g = tok[k++]; if (!g || !g.group) throw new XmlError('bad ATTLIST'); typeName = 'NOTATION'; }
+          else if (type.group) typeName = 'ENUM';
+          let d = tok[k++];
+          if (!d) throw new XmlError('bad ATTLIST');
+          let value = null;
+          if (d.v === '#FIXED') { d = tok[k++]; if (!d || !d.quoted) throw new XmlError('bad ATTLIST'); value = d.v; }
+          else if (d.quoted) value = d.v;
+          else if (d.v !== '#REQUIRED' && d.v !== '#IMPLIED') throw new XmlError('bad ATTLIST');
+          if (list.has(name.v)) continue;               // the first definition wins
+          if (value === null) { list.set(name.v, null); continue; }
+          let v = charRefs(value);
+          if (typeName !== 'CDATA') v = v.replace(/\s+/g, ' ').trim();
+          list.set(name.v, v);
         }
-        atts.set(t[1], list);
+        atts.set(el, list);
       }
     }
     return { ents, atts };
   }
   // Replaces the entity references of the document text (not in comments, CDATA or processing instructions)
+  // The work is counted, not only the output: every reference costs its name, every expansion its length (an entity that
+  // expands to nothing, used a billion times, is work too), and each entity is expanded once (memo, per context).
   function expand(text, ents, limit) {
     let out = '', total = 0;
+    const memo = [new Map(), new Map()];   // [in content, in an attribute]
+    const cost = (k) => { total += k; if (total > limit) throw new XmlError('entities expand too much'); };
     const replace = (name, inAttr, stack) => {
+      cost(name.length + 2);
       if (PREDEF[name]) return '&' + name + ';';
       const e = ents.get(name);
       if (!e) return '&' + name + ';';                // undefined: left for the parser, which reports it
       if (e.unparsed) throw new XmlError('reference to an unparsed entity');
       if (e.external) { if (inAttr) throw new XmlError('external entity in an attribute'); return ''; }
+      const cache = memo[inAttr ? 1 : 0];
+      if (cache.has(name)) { const c = cache.get(name); cost(c.length); return c; }
       if (stack.includes(name)) throw new XmlError('entity refers to itself: ' + name);
       const r = e.text.replace(/&([A-Za-z_:][\w.:\u00b7\u00c0-\uffff-]*);/g, (m, n) => replace(n, inAttr, stack.concat(name)));
       if (inAttr && r.includes('<')) throw new XmlError('"<" in an attribute value');
-      total += r.length;
-      if (total > limit) throw new XmlError('entities expand too much');
+      cache.set(name, r);
+      cost(r.length);
       return r;
     };
     let i = 0, inTag = false, q = '';
@@ -149,7 +197,7 @@
     if (!s) return { text, atts: null };
     const { ents, atts } = readDecls(s.body);
     const doc = text.slice(0, s.start - 1).replace(/\s*$/, '') + '>' + text.slice(s.after);
-    return { text: ents.size ? expand(doc, ents, AMPLIFY * text.length + (1 << 20)) : doc, atts: atts.size ? atts : null };
+    return { text: ents.size ? expand(doc, ents, AMPLIFY * text.length + ALLOWANCE) : doc, atts: atts.size ? atts : null };
   }
 
   /* ---------- XML ---------- */
@@ -211,11 +259,25 @@
     const m = /^[\t\n\f\r ]*(\+?)(\d+)/.exec(v);
     return m ? Number(m[2]) : null;
   }
-  function clone(n, parent) {
-    const c = Object.assign({}, n, { parentNode: parent || null });
-    if (n.attrs) c.attrs = n.attrs.map((a) => Object.assign({}, a));
-    if (n.childNodes) c.childNodes = n.childNodes.map((x) => clone(x, c));
-    return c;
+  // A deep copy, without recursion (a cell can be thousands of levels deep)
+  function clone(n0, parent0) {
+    const copyOne = (n, parent) => {
+      const c = Object.assign({}, n, { parentNode: parent || null });
+      if (n.attrs) c.attrs = n.attrs.map((a) => Object.assign({}, a));
+      if (n.childNodes) c.childNodes = [];
+      return c;
+    };
+    const root = copyOne(n0, parent0);
+    const stack = [[n0, root]];
+    while (stack.length) {
+      const [src, dst] = stack.pop();
+      for (const x of src.childNodes || []) {
+        const c = copyOne(x, dst);
+        dst.childNodes.push(c);
+        if (x.childNodes && x.childNodes.length) stack.push([x, c]);
+      }
+    }
+    return root;
   }
 
   class Node0 {
@@ -282,7 +344,30 @@
     get colSpan() { const v = nonNegative(this.getAttribute('colspan')); return v === null ? 1 : Math.min(Math.max(v, 1), 1000); }
   }
 
+  /* parse5 slows down with the square of the nesting depth (minutes for 200,000 nested <div>); browsers flatten the tree at a
+   * depth of 512, parse5 does not. The depth is estimated first, in one pass: past MAX_DEPTH the file is refused (the page,
+   * in a browser, would read it: a known difference, for files no tool writes). Elements HTML closes by itself (p, li, td,
+   * tr ...) and void elements are not counted, nor text inside script, style, textarea and title. */
+  const MAX_DEPTH = 5000;
+  const VOID = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr', 'keygen', 'frame', 'basefont', 'bgsound', 'image']);
+  const SELF_CLOSING = new Set(['p', 'li', 'td', 'th', 'tr', 'dt', 'dd', 'option', 'optgroup', 'thead', 'tbody', 'tfoot', 'colgroup', 'caption', 'rb', 'rt', 'rtc', 'rp', 'html', 'head', 'body']);
+  const RAW = new Set(['script', 'style', 'textarea', 'title', 'xmp', 'iframe', 'noembed', 'noframes', 'plaintext']);
+  function htmlDepth(text) {
+    const lower = text.length > 20000000 ? null : text.toLowerCase();
+    const re = /<(\/?)([a-zA-Z][a-zA-Z0-9-]*)[^>]*>/g;
+    let depth = 0, max = 0, m;
+    while ((m = re.exec(text))) {
+      const tag = m[2].toLowerCase();
+      if (VOID.has(tag) || SELF_CLOSING.has(tag)) continue;
+      if (m[1]) { if (depth > 0) depth--; continue; }
+      if (m[0].endsWith('/>')) continue;
+      if (RAW.has(tag) && lower) { const e = lower.indexOf('</' + tag, re.lastIndex); if (e < 0) break; re.lastIndex = e; continue; }
+      if (++depth > max) { max = depth; if (max > MAX_DEPTH) return max; }
+    }
+    return max;
+  }
   function htmlDocument(text) {
+    if (htmlDepth(text) > MAX_DEPTH) throw new Error('the HTML is nested more than ' + MAX_DEPTH + ' levels deep (the command-line tool does not read it)');
     // DOMParser documents have scripting disabled: <noscript> content is parsed as markup, as in browsers
     return wrap(window.parse5.parse(text, { scriptingEnabled: false }));
   }

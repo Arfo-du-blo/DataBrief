@@ -162,7 +162,7 @@ async function pool(items, n, fn) { const q = items.slice(); await Promise.all(n
     const b = await tool([broken, '--no-share', '--json', '--no-copy']);
     const shared = await tool([broken, '--no-copy', '--print']);
     ok('an unreadable file in "Do not share data": nothing of its content in the error (standard error, JSON); with the data shared the detail is given (control)',
-      a.code === 1 && b.code === 1 && !/CONFIDENTI/.test(a.out + a.err + b.out + b.err) && /damaged/.test(a.err) && JSON.parse(b.out).ok === false && /CONFIDENTI/.test(shared.err), a.err + ' / ' + b.out.slice(0, 200) + ' / ' + shared.err);
+      a.code === 1 && b.code === 1 && !/CONFIDENTI/.test(a.out + a.err + b.out + b.err) && /damaged/.test(a.err) && JSON.parse(b.out).ok === false && /CONFIDENTI|Unexpected token C in JSON/.test(shared.err), a.err + ' / ' + b.out.slice(0, 200) + ' / ' + shared.err);
   }
   ok('no network: no run of the tool used a network API (guard on net, tls, dgram, dns, http, https, http2, fetch, WebSocket)', !bad.some((b) => /network use/.test(b)));
   ok('programs: none with --no-copy, at most the clipboard tool otherwise, never a shell' + (WIN ? '' : ' (' + spawnsSeen + ' clipboard calls)'), !bad.some((b) => /started|shell/.test(b)) && (WIN || spawnsSeen > 0));
@@ -243,6 +243,11 @@ async function pool(items, n, fn) { const q = items.slice(); await Promise.all(n
     // (a regular expression's .exec( is not a program)
     const found = src.filter(([, s]) => /\bshell\s*:\s*true|(^|[^.\w])exec(Sync)?\s*\(|\.exec(Sync)?\s*\(\s*['"`]/m.test(s)).map(([f]) => f);
     ok('the code: no shell option, no exec / execSync in cli/ (programs get their arguments as a list)', found.length === 0, found.join(', '));
+    // invisible characters that change the reading direction, written as they are in the code, make it read differently from
+    // what it does ("Trojan source"): they must be written as \u escapes
+    const BIDI = new RegExp('[' + String.fromCharCode(0x200e, 0x200f) + String.fromCharCode(0x202a) + '-' + String.fromCharCode(0x202e) + String.fromCharCode(0x2066) + '-' + String.fromCharCode(0x2069) + ']');
+    const withBidi = src.concat([['src/core.js', fs.readFileSync(path.join(ROOT, 'src', 'core.js'), 'utf8')]]).filter(([, s]) => BIDI.test(s)).map(([f]) => f);
+    ok('the code: no invisible direction characters written as they are in cli/ and src/core.js (escapes only)', withBidi.length === 0, withBidi.join(', '));
     const spawns = src.flatMap(([f, s]) => (s.match(/spawnSync\s*\([^)]*\)/g) || []).map((m) => f + ': ' + m));
     ok('the code: every program is started with spawnSync (no other way)', src.every(([, s]) => !/\b(spawn|execFile|fork)\s*\(/.test(s.replace(/spawnSync\s*\(/g, ''))), spawns.join(' | '));
   }

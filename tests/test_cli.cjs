@@ -252,7 +252,7 @@ async function go(args, over, content) {
     const dir = path.join(env.cwd, 'databrief', 'people_2026-11-02_14-35-07');
     const initial = (await realm.prepare(Buffer.from(csvText), 'people.csv', {})).md;
     ok('--review: initial_prompt.md is the original, prompt.md is the edited copy', code === 0 && fs.readFileSync(path.join(dir, 'initial_prompt.md'), 'utf8') === initial && fs.readFileSync(path.join(dir, 'prompt.md'), 'utf8') === initial + '\nEDITED BY THE USER\n');
-    ok('--review: vim is tried first, on prompt.md, with the terminal', env.calls[0].exe === '/usr/bin/vim' && env.calls[0].args.join() === path.join(dir, 'prompt.md') && env.calls[0].opt.stdio === 'inherit');
+    ok('--review: vim is tried first, on prompt.md (modelines off), with the terminal', env.calls[0].exe === '/usr/bin/vim' && env.calls[0].args.join('|') === '--cmd|au BufReadPre * setlocal nomodeline|' + path.join(dir, 'prompt.md') && env.calls[0].opt.stdio === 'inherit', env.calls[0].args.join('|'));
     ok('--review: the clipboard gets the EDITED prompt', clipText(env)[0] === initial + '\nEDITED BY THE USER\n' && /Reviewed in vim: your edits are used\./.test(env.stderr.text) && /Wrote 2 files/.test(env.stderr.text), env.stderr.text);
     ok('--review: nothing is printed, the tool does not wait for Enter after an editor that waits', env.stdout.text === '' && env.state.enters === 0);
 
@@ -283,7 +283,7 @@ async function go(args, over, content) {
 
     env = mkEnv(mk({}));
     code = await main.run([env.file('people.csv', csvText), '--review'], env);
-    ok('--review: no editor at all: exit 2, the files are kept and said', code === 2 && /No text editor was found/.test(env.stderr.text) && /prompt\.md and initial_prompt\.md are in /.test(env.stderr.text) && env.calls.length === 0);
+    ok('--review: no editor at all: exit 3 (not delivered as asked), the files are kept and said, nothing copied', code === 3 && /No text editor was found/.test(env.stderr.text) && /prompt\.md and initial_prompt\.md are in /.test(env.stderr.text) && env.calls.length === 0);
 
     env = mkEnv(mk({ code: '/usr/bin/code' }, { vars: { PATH: '/bin', EDITOR: 'code' } }));
     env.spawnSync = (exe, args, opt) => { env.calls.push({ exe, args, opt }); return { status: 0 }; };
@@ -303,7 +303,7 @@ async function go(args, over, content) {
     env = mkEnv(mk({ vim: '/usr/bin/vim' }));
     env.spawnSync = (exe, args, opt) => { env.calls.push({ exe, args, opt }); return { error: new Error('spawn EACCES') }; };
     code = await main.run([env.file('people.csv', csvText), '--review'], env);
-    ok('--review: an editor that cannot start: exit 2', code === 2 && /Could not start vim: spawn EACCES/.test(env.stderr.text));
+    ok('--review: an editor that cannot start: exit 3, nothing copied', code === 3 && clipText(env).length === 0 && /Could not start vim: spawn EACCES/.test(env.stderr.text));
 
     env = mkEnv(mk({ vim: '/usr/bin/vim' }));
     env.spawnSync = (exe, args, opt) => { env.calls.push({ exe, args, opt }); fs.writeFileSync(args[args.length - 1], '  \n'); return { status: 0 }; };
@@ -363,10 +363,88 @@ async function go(args, over, content) {
     fs.writeFileSync(path.join(bin, 'myed'), '#!/bin/sh\n'); fs.chmodSync(path.join(bin, 'myed'), 0o755);
     fs.writeFileSync(path.join(bin, 'plain'), 'x'); fs.chmodSync(path.join(bin, 'plain'), 0o644);
     const win = process.platform === 'win32';
-    ok('which: finds an executable in PATH, and by path', main.which('myed', { PATH: '/nope' + path.delimiter + bin }, win ? 'linux' : process.platform, fs, path) === path.join(bin, 'myed') && main.which(path.join(bin, 'myed'), {}, process.platform, fs, path) !== null);
+    ok('which: finds an executable in PATH, and by path', main.which('myed', { PATH: '/nope' + path.delimiter + bin }, win ? 'linux' : process.platform, fs, path) === path.join(bin, 'myed') && main.which(path.join(bin, 'myed'), {}, win ? 'linux' : process.platform, fs, path) !== null);
     ok('which: not a file that is not executable, not a missing one', win || (main.which('plain', { PATH: bin }, process.platform, fs, path) === null && main.which('nothere', { PATH: bin }, process.platform, fs, path) === null));
     fs.writeFileSync(path.join(bin, 'tool.CMD'), '');
     ok('which, Windows: PATHEXT is tried', main.which('tool', { PATH: bin, PATHEXT: '.COM;.EXE;.CMD' }, 'win32', fs, path) === path.join(bin, 'tool.CMD'));
+  }
+
+  /* ---------------------------------------------------------------- 5b. findings of the stage 33 review ---------- */
+  {
+    // CSV names in "Do not share data" follow the prompt's rules: keys that look like values, labels (captions), the file name
+    const keyed = JSON.stringify({ 'alice@example.org': [{ a: 1, b: CANARY }], 'bob@example.org': [{ a: 2 }], '2024-01-05': [{ x: 1 }] });
+    const kEnv = mkEnv(), kEnv2 = mkEnv();
+    const kCode = await main.run([kEnv.file('keyed.json', keyed), '--no-share=3', '--no-copy', '--csv', '--print'], kEnv);
+    await main.run([kEnv2.file('keyed.json', keyed), '--no-share=3', '--no-copy', '--csv', '--json'], kEnv2);
+    const kTree = tree(path.join(kEnv.cwd, 'databrief')).join();
+    ok('review: keys that are data (e-mails, dates) do not reach the CSV names, the summary or the JSON in no-share', kCode === 0 && !/alice|bob@|2024-01-05/.test(kEnv.stderr.text + kEnv.stdout.text + kEnv2.stdout.text + kTree) && /key/.test(kTree), kEnv.stderr.text + kTree);
+    const kShared = mkEnv();
+    await main.run([kShared.file('keyed.json', keyed), '--no-copy', '--csv', '--quiet'], kShared);
+    ok('review: with the data shared, the CSV names keep the keys (control)', /alice@example\.org/.test(tree(path.join(kShared.cwd, 'databrief')).join()));
+    let r, j;
+    const html = '<table><caption>SECRET caption one</caption><tr><th>a</th></tr><tr><td>1</td></tr></table><table summary="SECRET summary two"><tr><th>b</th></tr><tr><td>2</td></tr></table>';
+    const hEnv = mkEnv();
+    await main.run([hEnv.file('two.html', html), '--no-share', '--hide=labels', '--no-copy', '--csv', '--print'], hEnv);
+    ok('review: --hide=labels keeps table captions out of the CSV names and the summary', !/SECRET/.test(hEnv.stderr.text + hEnv.stdout.text + tree(hEnv.cwd).join()) && /table_1/.test(tree(hEnv.cwd).join()), hEnv.stderr.text);
+    const plain = mkEnv();
+    await main.run([plain.file('two.html', html), '--no-share', '--no-copy', '--csv', '--print'], plain);
+    ok('review: captions are labels, shown by default (control)', /SECRET caption one/.test(tree(plain.cwd).join()));
+    // level 3: the page's warning, and the summary says summaries are real values
+    r = await go(['FILE', '--no-share=3', '--no-copy', '--print']);
+    j = JSON.parse((await go(['FILE', '--no-share=3', '--no-copy', '--json'])).out);
+    ok('review: level 3 says that summaries can include real values (summary, warning, JSON warnings)', /holds no record \(Do not share data, level 3\), but its summaries can include real values/.test(r.err) && /Warning: .*real/i.test(r.err) && j.warnings.some((w) => /real/i.test(w)), r.err);
+    ok('review: levels 1 and 2 keep "holds NO data" and no warning', /holds NO data \(Do not share data, level 2\)/.test((await go(['FILE', '--no-share=2', '--no-copy', '--print'])).err) && !/Warning/.test((await go(['FILE', '--no-share=2', '--no-copy', '--print'])).err));
+    // --hide=file: the name stays out of the error messages too
+    const e1 = mkEnv();
+    await main.run([e1.file('q3.Acquisition-Zeta', 'x'), '--no-share', '--hide=file', '--print'], e1);
+    const e2 = mkEnv();
+    await main.run([path.join(e2.cwd, 'SECRETNAME.csv'), '--no-share', '--hide=file', '--print'], e2);
+    ok('review: --hide=file, error messages do not show the name or an unknown extension', !/Acquisition|Zeta/i.test(e1.stderr.text) && /not supported/.test(e1.stderr.text) && !/SECRETNAME/.test(e2.stderr.text) && /File not found: the file/.test(e2.stderr.text), e1.stderr.text + e2.stderr.text);
+    // the prompt names the data files exactly as they are written (double spaces, accents)
+    const sp = mkEnv();
+    await main.run([sp.file('my  données.csv', csvText), '--no-copy', '--csv', '--mode', 'files', '--print'], sp);
+    const written = tree(path.join(sp.cwd, 'databrief')).filter((x) => /\.csv$/.test(x)).map((x) => x.split('/').pop());
+    ok('review: the data file is written under the very name the prompt gives it', written.length === 1 && sp.stdout.text.includes('`' + written[0] + '`') && written[0] === 'my  données.csv', written.join() + ' / ' + (sp.stdout.text.match(/`[^`]*\.csv`/) || [''])[0]);
+    ok('review: data file names: only what a disk refuses or what misleads is changed', outfiles.fileName('a  b é.csv') === 'a  b é.csv' && outfiles.fileName('CON.csv') === '_CON.csv' && outfiles.fileName('x\u202e.csv') === 'x_.csv' && outfiles.fileName('end. .') === 'end');
+    // --mode files without --csv
+    const mf = await go(['FILE', '--mode', 'files', '--no-copy', '--print']);
+    ok('review: --mode files without --csv warns that the CSV files the prompt mentions were not written', /Warning: --mode files: the prompt asks the AI to load CSV files; add --csv/.test(mf.err) && !/Warning: --mode files/.test((await go(['FILE', '--mode', 'files', '--csv', '--no-copy'])).err));
+    // Notepad does not count as an editor that waits (Windows 11 returns at once): the Enter wait applies
+    const np = editor.choose(null, { platform: 'win32', vars: {}, which: (n) => (n === 'notepad' ? 'C:\\Windows\\notepad.exe' : null) });
+    ok('review: Notepad gets the "press Enter" wait when it returns at once', np.chosen.label === 'notepad' && np.chosen.waits === false);
+    // a folder that cannot be written: the clipboard still gets the prompt, exit 3, said
+    const roFs = Object.assign({}, fs, { mkdirSync: () => { const e = new Error('EACCES: permission denied'); e.code = 'EACCES'; throw e; } });
+    const ro = await go(['FILE', '--csv'], { fs: roFs });
+    ok('review: the files cannot be written: the prompt is still copied, exit 3, the failure said', ro.code === 3 && clipText(ro.env).length === 1 && /No file was written: Cannot create the folder/.test(ro.err) && /the files were not written/.test(ro.err), ro.code + ' ' + ro.err);
+    // --out is checked before the file is read
+    let readCalled = false;
+    const spyFs = Object.assign({}, fs, { readFileSync: (...a) => { readCalled = true; return fs.readFileSync(...a); } });
+    const early = await go(['FILE', '--out', path.join(tmpRoot, 'no', 'such')], { fs: spyFs });
+    ok('review: an --out folder that does not exist is refused before the file is read', early.code === 2 && !readCalled && /does not exist/.test(early.err));
+    // --json on a terminal: C1 controls and direction overrides escaped
+    const c1 = 'col\nA' + String.fromCharCode(0x9b) + '31m' + String.fromCharCode(0x202e) + 'B\n';
+    const jt = await go(['FILE', '--no-copy', '--json'], { stdoutIsTTY: true }, c1);
+    const jp = await go(['FILE', '--no-copy', '--json'], {}, c1);
+    ok('review: --json on a terminal escapes C1 controls and direction overrides (the same JSON value); a pipe gets them as they are', !/[\u0080-\u009f\u202a-\u202e]/.test(jt.out) && /\\u009b/.test(jt.out) && JSON.parse(jt.out).prompt === JSON.parse(jp.out).prompt && /[\u009b]/.test(jp.out));
+    // security review: vim / neovim without modelines, emacs without file-local variables (the prompt holds text of the file)
+    const ed = (name) => editor.choose(name, { platform: 'linux', vars: {}, which: (n) => (n === name ? '/usr/bin/' + name : null) }).chosen.args.join(' ');
+    ok('review: vim and nvim open the prompt with modelines off, emacs with file-local variables off; nano unchanged', ed('vim') === '--cmd au BufReadPre * setlocal nomodeline' && ed('nvim') === '--cmd au BufReadPre * setlocal nomodeline' && ed('emacs') === '--eval (setq enable-local-variables nil)' && ed('nano') === '', [ed('vim'), ed('emacs'), ed('nano')].join(' | '));
+    // cmd.exe by its full path when ComSpec is not set (a bare name is looked for in the current folder first)
+    const cmdCalls = [];
+    await editor.edit('C:\\w\\prompt.md', null, { platform: 'win32', vars: { SystemRoot: 'C:\\WINDOWS', EDITOR: 'code' }, which: (n) => (n === 'code' ? 'C:\\vs\\code.cmd' : null), spawnSync: (e) => { cmdCalls.push(e); return { status: 0 }; }, nowMs: () => 0, say() {}, waitEnter: async () => {} });
+    ok('review: without ComSpec, cmd.exe is started by its full path', cmdCalls[0] === 'C:\\WINDOWS\\System32\\cmd.exe', cmdCalls[0]);
+    // the path checked is the one read: a regular file at stat time but a pipe once opened is refused
+    const swapFs = Object.assign({}, fs, { fstatSync: (fd) => Object.assign(fs.fstatSync(fd), { isFile: () => false }) });
+    const sw = await go(['FILE', '--no-copy', '--print'], { fs: swapFs });
+    ok('review: the file is checked again through the open descriptor (a swapped-in pipe is refused)', sw.code === 1 && /not a regular file/.test(sw.err) && sw.out === '');
+    // direction marks (LRM, RLM, ALM) do not reach the terminal either
+    const marks = 'rl' + String.fromCharCode(0x200f) + 'm' + String.fromCharCode(0x061c) + '.csv';
+    const lm = mkEnv();
+    await main.run([path.join(lm.cwd, marks), '--print'], lm);
+    ok('review: direction marks in a name do not reach standard error', /File not found/.test(lm.stderr.text) && !/[\u061c\u200e\u200f]/.test(lm.stderr.text), JSON.stringify(lm.stderr.text));
+    // options the page does not have in "Do not share data": said, not silently dropped
+    const ig = await go(['FILE', '--no-share', '--mode', 'files', '--layout', 'csv', '--no-profile', '--no-copy', '--print']);
+    ok('review: --mode, --layout, --no-profile with --no-share are said to be ignored', /Note: --mode, --layout, --no-profile are ignored with --no-share/.test(ig.err), ig.err);
   }
 
   /* ---------------------------------------------------------------- 6. real processes ---------- */
@@ -376,7 +454,7 @@ async function go(args, over, content) {
     const b1 = path.join(build, 'one.cjs'), b2 = path.join(build, 'two.cjs');
     const cleanEnv = Object.assign({}, process.env);
     delete cleanEnv.DATABRIEF_ROOT;
-    const run = (file, args, opt) => cp.spawnSync(process.execPath, [file].concat(args), Object.assign({ encoding: 'utf8', maxBuffer: 1 << 28, env: cleanEnv }, opt || {}));
+    const run = (file, args, opt) => cp.spawnSync(process.execPath, [file].concat(args), Object.assign({ encoding: 'utf8', maxBuffer: 1 << 28, timeout: 180000, env: cleanEnv }, opt || {}));
     const bb = cp.spawnSync(process.execPath, [path.join(ROOT, 'tools', 'build-cli.cjs'), b1], { encoding: 'utf8' });
     const bc = cp.spawnSync(process.execPath, [path.join(ROOT, 'tools', 'build-cli.cjs'), b2], { encoding: 'utf8' });
     ok('build: the one-file tool is built (' + (bb.stdout || bb.stderr).trim().slice(-90) + ')', bb.status === 0 && fs.statSync(b1).size > 3e6, bb.stderr);
@@ -425,7 +503,7 @@ async function go(args, over, content) {
         const f = queue.shift();
         for (const extra of [[], ['--no-share=2']]) {
           const expect = await realm.prepare(fs.readFileSync(f), path.basename(f), extra.length ? { share: 'no', level: 2 } : {}).then((r) => ({ md: r.md }), (e) => ({ err: realm.errorInfo(e, extra.length > 0).key }));
-          const r = await new Promise((resolve) => cp.execFile(process.execPath, [b1, f, '--no-copy', '--print', '--quiet'].concat(extra), { encoding: 'utf8', maxBuffer: 1 << 28 }, (e, so, se) => resolve({ code: e ? e.code : 0, so, se })));
+          const r = await new Promise((resolve) => cp.execFile(process.execPath, [b1, f, '--no-copy', '--print', '--quiet'].concat(extra), { encoding: 'utf8', maxBuffer: 1 << 28, timeout: 180000 }, (e, so, se) => resolve({ code: e ? e.code : 0, so, se })));
           done++;
           const good = expect.md !== undefined ? r.code === 0 && r.so === expect.md : r.code === 1 && r.se.includes('databrief:');
           if (!good) { diff++; if (!firstBad) firstBad = path.basename(f) + ' ' + extra.join(' ') + ' code ' + r.code + ' ' + (r.se || '').slice(0, 150); }
@@ -439,6 +517,14 @@ async function go(args, over, content) {
       const a = run(path.join(CLI, 'databrief.cjs'), [f, '--no-copy', '--print', '--quiet']), b = run(b1, [f, '--no-copy', '--print', '--quiet']);
       ok('source tree and built file give the same prompt: ' + path.basename(f), a.status === b.status && a.stdout === b.stdout && a.status === 0, a.stderr + b.stderr);
     }
+    // an error nobody caught (here a rejected promise from a preloaded script): in "Do not share data" only its kind is shown
+    {
+      const pre = path.join(tmpRoot, 'reject.cjs');
+      fs.writeFileSync(pre, "Promise.reject(new TypeError('CANARY_CRASH_DETAIL from the file'));\n");
+      const viaNode = (extra) => cp.spawnSync(process.execPath, ['--require', pre, path.join(CLI, 'databrief.cjs'), '--version'].concat(extra), { encoding: 'utf8', timeout: 60000, env: cleanEnv });
+      const hidden = viaNode(['--no-share']), shown = viaNode([]);
+      ok('an uncaught error in "Do not share data": its kind only, exit 1; otherwise its message (control)', hidden.status === 1 && /unexpected error \(TypeError\)/.test(hidden.stderr) && !/CANARY/.test(hidden.stderr) && /CANARY_CRASH_DETAIL/.test(shown.stderr), hidden.stderr + ' / ' + shown.stderr);
+    }
     // a long prompt on a pipe is not cut
     let big = 'id,text,value\n';
     for (let i = 0; i < 120000; i++) big += i + ',a fairly long text value number ' + i + ' with words,' + (i * 1.5) + '\n';
@@ -448,7 +534,7 @@ async function go(args, over, content) {
     ok('a prompt of several MB on a pipe arrives whole (' + (p1.stdout.length / 1048576).toFixed(1) + ' MB)', p1.status === 0 && p1.stdout.length > 4e6 && p1.stdout.endsWith('\n') && JSON.parse(p2.stdout).prompt === p1.stdout, p1.stdout.length + ' / ' + p2.stdout.length);
     // a real run writing files
     const w = tmp();
-    const r = cp.spawnSync(process.execPath, [b1, bigFile, '--no-copy', '--csv', '--out', w, '--no-share'], { encoding: 'utf8', cwd: w, env: cleanEnv });
+    const r = cp.spawnSync(process.execPath, [b1, bigFile, '--no-copy', '--csv', '--out', w, '--no-share'], { encoding: 'utf8', cwd: w, env: cleanEnv, timeout: 180000 });
     const out = tree(w);
     ok('a real run: --csv --out --no-share writes the folder, the summary says what was done', r.status === 0 && out.length === 2 && out.some((x) => /\/prompt\.md$/.test(x)) && out.some((x) => /\/big\.csv$/.test(x)) && /holds NO data/.test(r.stderr) && /Wrote 2 files in /.test(r.stderr) && r.stdout === '', r.stderr);
     // Node too old: the entry file checks the version before it loads anything (a text check: an old Node is not at hand)

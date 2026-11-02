@@ -11797,6 +11797,34 @@ window.DB.DBF_CODEPAGES = {
     return t('statMin') + ': ' + s.min + ' · ' + t('statMax') + ': ' + s.max;
   }
 
+  /* The names "Do not share data" shows (the prompt, and the command-line tool for anything else it shows): neutral names when
+   * the real ones are not to be shared, and for names that may be data themselves: a guessed header over all-text columns
+   * (maybe the first record), keys of JSON / XML / YAML that look like values (an e-mail, a number, an identifier, a date), a
+   * section named after the file, a table named by its caption. (GeoJSON properties are flattened JSON; notebook column names
+   * come from pivots and crosstabs, often values.) sw: the switches, already merged with DB.NS_DEFAULTS.
+   * -> { secMap: real section name -> shown, colMap: section \u0001 column -> shown, replacedAsData } */
+  DB.noShareNames = function (ns, sw, L) {
+    const TREE = ['json', 'ndjson', 'yaml', 'xml', 'geojson', 'ipynb'].includes(ns.formatKey);
+    const looksLikeValue = (seg) => /@|^\d+$|^[0-9a-f]{8}-[0-9a-f]{4}-|^\d{4}-\d{2}-\d{2}/i.test(seg) || seg.length > 40;
+    let replacedAsData = false;
+    const secMap = new Map(), colMap = new Map();
+    ns.sections.forEach((s, i) => {
+      let name = s.name;
+      if (!sw.names || (s.nameIsText && !sw.labels)) name = 'table_' + (i + 1);
+      else if (s.fromFile && !sw.file) name = DB.tp(L, 'nsDataset') + (ns.sections.length > 1 ? '_' + (i + 1) : '');
+      else if (TREE && name.split('.').some(looksLikeValue)) { name = name.split('.').map((x) => (looksLikeValue(x) ? 'key' : x)).join('.'); replacedAsData = true; }
+      secMap.set(s.name, name);
+      s.columns.forEach((c, j) => {
+        let col = c.name;
+        if (!sw.names) col = 'column_' + (j + 1);
+        else if (s.headerWeak) { col = 'column_' + (j + 1); replacedAsData = true; }
+        else if (TREE && col.split('.').some(looksLikeValue)) { col = col.split('.').map((x) => (looksLikeValue(x) ? 'key' : x)).join('.'); replacedAsData = true; }
+        colMap.set(s.name + '\u0001' + c.name, col);
+      });
+    });
+    return { secMap, colMap, replacedAsData };
+  };
+
   DB.buildNoShareParts = function (ns, opts) {
     const L = opts.lang;
     const t = (k, v) => DB.tp(L, k, v);
@@ -11809,28 +11837,9 @@ window.DB.DBF_CODEPAGES = {
     const say = (key, vars) => b.say(key, vars);
     const line = (prefix, key, vars) => { b.lock(prefix); say(key, vars); b.lock('\n'); };
 
-    // Neutral names when the real ones are not to be shared, and for names that may be data themselves:
-    // a guessed header over all-text columns (maybe the first record), keys of JSON / XML / YAML that look like
-    // values (an e-mail, a number, an identifier, a date), a section named after the file, a table named by its caption.
-    // (GeoJSON properties are flattened JSON; notebook column names come from pivots and crosstabs, often values)
-    const TREE = ['json', 'ndjson', 'yaml', 'xml', 'geojson', 'ipynb'].includes(ns.formatKey);
-    const looksLikeValue = (seg) => /@|^\d+$|^[0-9a-f]{8}-[0-9a-f]{4}-|^\d{4}-\d{2}-\d{2}/i.test(seg) || seg.length > 40;
-    let replacedAsData = false;
-    const secMap = new Map(), colMap = new Map();
-    ns.sections.forEach((s, i) => {
-      let name = s.name;
-      if (!sw.names || (s.nameIsText && !sw.labels)) name = 'table_' + (i + 1);
-      else if (s.fromFile && !sw.file) name = t('nsDataset') + (ns.sections.length > 1 ? '_' + (i + 1) : '');
-      else if (TREE && name.split('.').some(looksLikeValue)) { name = name.split('.').map((x) => (looksLikeValue(x) ? 'key' : x)).join('.'); replacedAsData = true; }
-      secMap.set(s.name, name);
-      s.columns.forEach((c, j) => {
-        let col = c.name;
-        if (!sw.names) col = 'column_' + (j + 1);
-        else if (s.headerWeak) { col = 'column_' + (j + 1); replacedAsData = true; }
-        else if (TREE && col.split('.').some(looksLikeValue)) { col = col.split('.').map((x) => (looksLikeValue(x) ? 'key' : x)).join('.'); replacedAsData = true; }
-        colMap.set(s.name + '\u0001' + c.name, col);
-      });
-    });
+    const names = DB.noShareNames(ns, sw, L);
+    const secMap = names.secMap, colMap = names.colMap;
+    const replacedAsData = names.replacedAsData;
     const S = (n) => (secMap.has(n) ? secMap.get(n) : sw.names ? n : '?');
     const C = (sec, col) => { const k = sec + '\u0001' + col; return colMap.has(k) ? colMap.get(k) : sw.names ? col : '?'; };
 

@@ -14,7 +14,9 @@
  *   result: { md, tokens, shared, fileName, formatName, files, large }
  *     shared  true when the prompt contains data (false in "Do not share data")
  *     files   [{ name, text }]: the data files (CSV), only with options.csv; in "Do not share data" too (the user asked for
- *             them, on their computer), the prompt still holds no record
+ *             them, on their computer), the prompt still holds no record, and their NAMES follow the prompt's rules
+ *             (DB.noShareNames): hidden names, labels and file name, keys that look like values
+ *     level3  "Do not share data" at level 3: summaries (a minimum, a maximum, categories) are real values
  *     large   { tokens, limit } when the full prompt is over the page's warning size (inline mode), else null
  *
  * DB.errorInfo(error, noShare, uiLang) -> { key, message, detail }: the page's error text; no technical detail in
@@ -38,8 +40,26 @@
     if (noShare) {
       // "Do not share data": the prompt is built from the record-free copy only (the parsed rows are dropped)
       const ns = DB.makeNoShareSource(doc, o.level);
+      const sections = doc.sections.length;
       doc = null;
-      const parts = DB.buildNoShareParts(ns, { lang: o.lang, overrides: {}, level: o.level, sw: Object.assign({}, DB.NS_DEFAULTS, o.sw || {}) });
+      const sw = Object.assign({}, DB.NS_DEFAULTS, o.sw || {});
+      if (out.files.length) {
+        // The data files' names are shown (and printed by the tool): they follow the prompt's rules for names (hidden
+        // names, labels, the file name, keys that look like values), never the raw ones
+        const shown = DB.noShareNames(ns, Object.assign({}, sw, sw.names ? {} : { sql: false }), o.lang).secMap;
+        const fileBase = sw.file ? (out.fileName || 'data').replace(/\.[^.]+$/, '') : DB.tp(o.lang, 'nsDataset');
+        const used = new Set();
+        out.files.forEach((f, i) => {
+          const s = ns.sections[i];
+          let n = sections === 1 ? DB.safeName(fileBase) + '.csv'
+            : String(i + 1).padStart(2, '0') + '_' + DB.safeName(s && ns.sections.length === sections ? shown.get(s.name) : 'table_' + (i + 1)) + '.csv';
+          while (used.has(n)) n = n.replace(/\.csv$/, '_.csv');
+          used.add(n);
+          f.name = n;
+        });
+      }
+      out.level3 = o.level === 3;
+      const parts = DB.buildNoShareParts(ns, { lang: o.lang, overrides: {}, level: o.level, sw });
       out.md = DB.joinParts(parts);
       out.tokens = DB.estimateTokens(out.md);
       return out;

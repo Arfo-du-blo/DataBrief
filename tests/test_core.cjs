@@ -158,11 +158,33 @@ const errOf = async (fn) => { try { await fn(); return null; } catch (e) { retur
     const t0 = Date.now();
     const bomb = await realm.prepare(Buffer.from(laughs), 'laughs.xml', {}).catch((e) => ({ md: 'error ' + (e.key || e.message) }));
     ok('xml: entities that expand a billion times are not expanded (fast, small)', Date.now() - t0 < 3000 && bomb.md.length < 20000, (Date.now() - t0) + ' ms, ' + bomb.md.length + ' chars');
-    // the cap: 10 times the file plus 1 MB. 10 MB out of a small file is refused, 30 kB is read.
+    // the cap: 10 times the file plus 100 kB (as browsers: the 300 kB "laughs" file is refused, 10 kB is read). 10 MB is refused.
     const amp = (levels) => { let s = '<?xml version="1.0"?><!DOCTYPE r [<!ENTITY a "abcdefghij">'; let p = 'a'; for (let k = 1; k <= levels; k++) { s += '<!ENTITY e' + k + ' "' + ('&' + p + ';').repeat(10) + '">'; p = 'e' + k; } return s + ']><r><i>&' + p + ';</i><i>2</i></r>'; };
     const big = await realm.prepare(Buffer.from(amp(6)), 'amp6.xml', {}).then(() => 'read', (e) => realm.errorInfo(e, false).key);
     const small = await realm.prepare(Buffer.from(amp(3)), 'amp3.xml', {}).then((r) => r.md.includes('abcdefghij'.repeat(1000)) ? 'read' : 'read, not expanded', (e) => realm.errorInfo(e, false).key);
     ok('xml: an expansion over the cap is refused (10 MB from 1 kB), a small one is read', big === 'errGeneric' && small === 'read', big + ' / ' + small);
+    // stage 33 review: work that produces no text is counted too (entities that expand to nothing, nested), and the DOCTYPE
+    // and ATTLIST scans take linear time (they used regular expressions that backtracked for minutes)
+    const timed = async (name, xml, maxMs) => {
+      const t = Date.now();
+      const r = await realm.prepare(Buffer.from(xml), name, {}).then(() => 'read', (e) => realm.errorInfo(e, false).key);
+      return { ms: Date.now() - t, r };
+    };
+    let empty = '<?xml version="1.0"?><!DOCTYPE r [<!ENTITY e0 "">';
+    for (let k = 1; k <= 12; k++) empty += '<!ENTITY e' + k + ' "' + ('&e' + (k - 1) + ';').repeat(10) + '">';
+    empty += ']><r><a>1</a><a>&e12;</a></r>';
+    const t1 = await timed('empty.xml', empty);
+    ok('xml: nested entities that expand to nothing (a billion-laughs of empty text) take no time (' + t1.ms + ' ms, ' + t1.r + ')', t1.ms < 3000);
+    const t2 = await timed('spaces.xml', '<!DOCTYPE' + ' '.repeat(400000) + 'x>');
+    const t3 = await timed('quotes.xml', '<!DOCTYPE r "'.repeat(60000));
+    const t4 = await timed('attlist.xml', '<!DOCTYPE r [<!ATTLIST r ' + 'a'.repeat(400000) + '>]><r/>');
+    ok('xml: a DOCTYPE with 400,000 spaces, 60,000 quotes, an ATTLIST with a 400,000-character name: each read or refused at once (' + [t2.ms, t3.ms, t4.ms].join(' / ') + ' ms)', t2.ms < 3000 && t3.ms < 3000 && t4.ms < 3000);
+    const deep = '<table><tr><th>c</th></tr><tr><td>' + '<div>'.repeat(200000) + 'x</td></tr></table>';
+    const t5 = await (async () => { const t = Date.now(); const r = await realm.prepare(Buffer.from(deep), 'deep.html', {}).then(() => 'read', (e) => realm.errorInfo(e, false).key); return { ms: Date.now() - t, r }; })();
+    ok('html: 200,000 nested elements: refused at once (parse5 would take minutes; ' + t5.ms + ' ms)', t5.ms < 5000 && t5.r === 'errGeneric', t5.r);
+    const cellDeep = '<table><tr><th>c</th></tr><tr><td>' + '<span>'.repeat(4900) + 'deep value' + '</span>'.repeat(4900) + '</td></tr></table>';
+    const r6 = await realm.prepare(Buffer.from(cellDeep), 'cell.html', {}).then((x) => x.md, (e) => 'error ' + realm.errorInfo(e, false).key);
+    ok('html: a cell 4,900 levels deep is read (the copy of a cell does not recurse)', /deep value/.test(r6), r6.slice(0, 120));
     const xml2 = (s) => new ctx.DOMParser().parseFromString(s, 'application/xml');
     ok('xml: an entity that refers to itself is an error, not a hang', xml2('<!DOCTYPE r [<!ENTITY a "&b;"><!ENTITY b "&a;">]><r>&a;</r>').getElementsByTagName('parsererror').length === 1);
     const dflt = xml2('<!DOCTYPE r [<!ATTLIST i k CDATA "d">]><r><i/><i k="x"/></r>').getElementsByTagName('i');

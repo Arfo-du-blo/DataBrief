@@ -10,7 +10,7 @@ const RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;
  * name could look like another: "rtl<U+202E>gnp.csv" shows as "rtlvsc.png"), nothing Windows refuses, never empty */
 function cleanName(s, max) {
   let n = String(s == null ? '' : s).normalize('NFC')
-    .replace(/[\\/:*?"<>|\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]+/g, '_').replace(/\s+/g, ' ').trim();
+    .replace(/[\\/:*?"<>|\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]+/g, '_').replace(/\s+/g, ' ').trim();
   n = n.replace(/^\.+/, '').replace(/[. ]+$/, '');
   if (RESERVED.test(n)) n = '_' + n;
   if (n.length > (max || 100)) {
@@ -28,12 +28,14 @@ function stamp(d) {
 
 class OutError extends Error {}
 
-/* The base folder -> { dir, note } where note says that a relative path was placed under ./databrief */
-function baseFolder(out, env) {
+/* The base folder -> { dir, note } where note says that a relative path was placed under ./databrief.
+ * opt.check: only check (nothing is created), before the file is read. */
+function baseFolder(out, env, opt) {
   const { fs, path } = env;
+  const check = !!(opt && opt.check);
   if (out === undefined || out === null || out === true) {
     const dir = path.join(env.cwd, 'databrief');
-    ensureDir(dir, env);
+    if (!check) ensureDir(dir, env);
     return { dir, note: '' };
   }
   const given = String(out);
@@ -49,7 +51,7 @@ function baseFolder(out, env) {
   const parts = given.split(/[\\/]+/).filter((p) => p && p !== '.');
   if (parts.includes('..')) throw new OutError('A relative --out stays under ./databrief: "..": not allowed (give an absolute path to write elsewhere)');
   const dir = path.join(env.cwd, 'databrief', ...parts);
-  ensureDir(dir, env);
+  if (!check) ensureDir(dir, env);
   return { dir, note: 'The relative --out ' + given + ' was placed under ./databrief: ' + dir };
 }
 
@@ -69,11 +71,22 @@ function newFolder(base, fileName, env) {
   throw new OutError('Cannot find a free folder name in ' + base);
 }
 
-/* Names of the data files: clean, unique (also on case-insensitive disks), never one of the tool's own files */
+/* A data file's name as the prompt gives it (the page already took out separators and the C0 controls, DB.safeName), changed
+ * only for what a disk refuses or what could fool the eye: C1 controls, direction overrides, Windows device names, trailing
+ * dots and spaces, a leading dot, more than 120 characters. Spaces and accents stay: the prompt names the file exactly. */
+function fileName(s) {
+  let n = String(s == null ? '' : s).replace(/[\\/:*?"<>|\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '_');
+  n = n.replace(/^\.+/, '').replace(/[. ]+$/, '');
+  if (RESERVED.test(n)) n = '_' + n;
+  if (n.length > 120) { const m = /(\.[A-Za-z0-9]{1,8})$/.exec(n); const ext = m ? m[1] : ''; n = n.slice(0, 120 - ext.length) + ext; }
+  return n || 'data.csv';
+}
+
+/* Names of the data files: as the prompt gives them (fileName), unique also on case-insensitive disks, never the tool's own */
 function dataNames(files) {
   const used = new Set(['prompt.md', 'initial_prompt.md']);
   return files.map((f) => {
-    let n = cleanName(f.name, 120);
+    let n = fileName(f.name);
     if (!/\.csv$/i.test(n)) n += '.csv';
     const m = /^(.*?)(\.csv)$/i.exec(n);
     let cand = n, k = 2;
@@ -89,4 +102,4 @@ function write(dir, name, text, env) {
   return file;
 }
 
-module.exports = { cleanName, stamp, baseFolder, newFolder, dataNames, write, OutError };
+module.exports = { cleanName, fileName, stamp, baseFolder, newFolder, dataNames, write, OutError };
