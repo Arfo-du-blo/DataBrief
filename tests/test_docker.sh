@@ -100,8 +100,8 @@ check "Apache vhost (httpd -t)" 'docker run --rm -v "$ROOT/deploy/apache/databri
 # ---- syntax of the other files
 check "IIS web.config is valid XML" '"$PY" -c "import xml.etree.ElementTree as E; E.parse(\"$ROOT/deploy/iis/web.config\")"'
 check "Kubernetes manifest parses (3 objects)" '[ "$("$PY" -c "import yaml; print(len([d for d in yaml.safe_load_all(open(\"$ROOT/deploy/kubernetes/databrief.yaml\")) if d]))")" = "3" ]'
-check "GitHub workflows parse" '"$PY" -c "import yaml; [yaml.safe_load(open(\"$ROOT/.github/workflows/\" + f)) for f in (\"pages.yml\", \"release.yml\")]"'
-check "GitLab CI file parses (5 jobs)" '[ "$("$PY" -c "import yaml; d = yaml.safe_load(open(\"$ROOT/.gitlab-ci.yml\")); print(len([k for k, v in d.items() if isinstance(v, dict) and \"script\" in v]))")" = "5" ]'
+check "GitHub workflows parse" '"$PY" -c "import yaml; [yaml.safe_load(open(\"$ROOT/.github/workflows/\" + f)) for f in (\"pages.yml\", \"release.yml\", \"tests.yml\")]"'
+check "GitLab CI file parses (6 jobs)" '[ "$("$PY" -c "import yaml; d = yaml.safe_load(open(\"$ROOT/.gitlab-ci.yml\")); print(len([k for k, v in d.items() if isinstance(v, dict) and \"script\" in v]))")" = "6" ]'
 
 echo
 echo "$PASS passed, $FAIL failed"
