@@ -213,6 +213,35 @@ def notebook():
     return "nbformat " + nbformat.__version__ + ", nbclient " + nbclient.__version__ + ", pandas " + __import__("pandas").__version__
 
 
+# ---------------------------------------------------------------- notebook outputs of other shapes (stage 19) ----------
+def notebook_shapes():
+    """The HTML that pandas, the pandas Styler and Polars really write: a named index, a MultiIndex on rows and on columns,
+    a frame too wide for pandas (columns shortened), two frames shown with display() in one cell, an image, stderr,
+    and a code cell added AFTER the run (never executed)."""
+    import nbformat
+    from nbclient import NotebookClient
+    import polars
+    nb = nbformat.v4.new_notebook()
+    src = [
+        ("md", "## Shapes of outputs\nWritten by `make_sources.py`."),
+        ("code", "import pandas as pd\nsales = pd.DataFrame({'region': ['North', 'North', 'South', 'South'], 'year': [2023, 2024, 2023, 2024],\n"
+                 "                      'amount': [10.5, 12.0, 7.25, 9.0], 'qty': [3, 4, 2, 5]})\nby_region = sales.set_index('region')\nby_region"),
+        ("code", "pivot = sales.pivot_table(index='region', columns='year', values=['amount', 'qty'], aggfunc='sum')\npivot"),
+        ("code", "two_levels = sales.set_index(['region', 'year'])\ntwo_levels"),
+        ("code", "wide = pd.DataFrame([[i * j for j in range(30)] for i in range(3)], columns=[f'c{j}' for j in range(30)])\nwide"),
+        ("code", "first = sales.head(1)\nsecond = sales.tail(1)\ndisplay(first)\ndisplay(second)"),
+        ("code", "sales.style.format(precision=1)"),
+        ("code", "import polars as pl\npl_sales = pl.DataFrame({'region': ['North', 'South'], 'amount': [22.5, 16.25]})\npl_sales"),
+        ("code", "import base64, sys\nfrom IPython.display import Image\nprint('careful: small sample', file=sys.stderr)\n"
+                 "Image(data=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='))"),
+    ]
+    nb.cells = [nbformat.v4.new_markdown_cell(c[1]) if c[0] == "md" else nbformat.v4.new_code_cell(c[1]) for c in src]
+    NotebookClient(nb, timeout=120, kernel_name="python3", allow_errors=True).execute()
+    nb.cells.append(nbformat.v4.new_code_cell("sales.describe()"))   # added after the run: never executed
+    nbformat.write(nb, P("ipynb-fixtures", "shapes.ipynb"))
+    return "nbformat " + nbformat.__version__ + ", pandas " + __import__("pandas").__version__ + ", polars " + polars.__version__
+
+
 # ---------------------------------------------------------------- geodata sources (GDAL writes the real files) ----------
 def geo_sources():
     rows = [
@@ -234,8 +263,11 @@ def geo_sources():
 
 
 VERS = {}
-for fn in (avro, arrow, docx_files, pptx_files, notebook, geo_sources):
-    VERS[fn.__name__] = fn()
+ALL = (avro, arrow, docx_files, pptx_files, notebook, notebook_shapes, geo_sources)
+ONLY = sys.argv[2].split(",") if len(sys.argv) > 2 and sys.argv[2] else None   # make_v14_fixtures.sh ONLY=...
+for fn in ALL:
+    if ONLY is None or fn.__name__ in ONLY:
+        VERS[fn.__name__] = fn()
 with open(P(".python-versions.txt"), "w") as f:
     f.write("\n".join(f"{k}: {v}" for k, v in VERS.items()) + "\n")
 print("python fixtures written")

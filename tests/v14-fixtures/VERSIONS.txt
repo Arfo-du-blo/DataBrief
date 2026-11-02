@@ -6,6 +6,7 @@ arrow: pyarrow 26.0.0
 docx_files: python-docx 1.2.0
 pptx_files: python-pptx 1.0.2
 notebook: nbformat 5.11.1, nbclient 0.11.0, pandas 3.1.0
+notebook_shapes: nbformat 5.11.1, pandas 3.1.0, polars 2.1.0
 geo_sources: sources
 LibreOffice: LibreOffice 25.2.3.2 520(Build:2)
 GDAL: GDAL 3.13.3 "Iowa City", released 2026/08/13

@@ -27,17 +27,30 @@ note() { echo "== $*"; }
 fail() { echo "FAIL $*" >&2; FAILED=$((FAILED + 1)); }
 U="$(id -u):$(id -g)"
 
-rm -rf "$OUT"/{arrow-fixtures,doc-fixtures,ipynb-fixtures,geo-fixtures,geo-src,canary} "$OUT/VERSIONS.txt" "$OUT/.python-versions.txt"
+# ONLY=notebook_shapes (names of functions in make_sources.py, comma-separated): only the Python step for those, the other
+# files are kept and their line in VERSIONS.txt is replaced
+ONLY="${ONLY:-}"
+[ -z "$ONLY" ] && rm -rf "$OUT"/{arrow-fixtures,doc-fixtures,ipynb-fixtures,geo-fixtures,geo-src,canary} "$OUT/VERSIONS.txt" "$OUT/.python-versions.txt"
 
 note "Python libraries (Avro, Arrow, Feather, docx, pptx, executed notebook)"
 docker run --rm --name db-v14fix-py -v "$OUT:/work" python:3.12-slim sh -c '
   set -e
   pip install -q --root-user-action=ignore --disable-pip-version-check fastavro cramjam backports.zstd pyarrow python-docx python-pptx \
-      nbformat nbclient ipykernel pandas >/dev/null
+      nbformat nbclient ipykernel pandas polars jinja2 >/dev/null
   python -m ipykernel install --user >/dev/null
-  python /work/make_sources.py /work
+  python /work/make_sources.py /work "'"$ONLY"'"
   chown -R '"$U"' /work
 ' || fail "python step"
+if [ -n "$ONLY" ]; then
+  # only these functions: their lines of VERSIONS.txt are replaced, the other files and lines stay as they were
+  while IFS= read -r line; do
+    key="${line%%:*}"; grep -v "^$key: " "$OUT/VERSIONS.txt" > "$OUT/.v" || true
+    { sed -n '1,/^geo_sources: /{/^geo_sources: /!p}' "$OUT/.v"; echo "$line"; sed -n '/^geo_sources: /,$p' "$OUT/.v"; } > "$OUT/VERSIONS.txt"
+  done < "$OUT/.python-versions.txt"
+  rm -f "$OUT/.v" "$OUT/.python-versions.txt"
+  [ "$FAILED" -eq 0 ] && echo "generated: $ONLY" || echo "$FAILED step(s) failed"
+  exit $FAILED
+fi
 
 note "LibreOffice (OpenDocument, PDF, LibreOffice-written docx / pptx)"
 docker run --rm --name db-v14fix-lo -v "$OUT:/work" debian:stable-slim sh -c '

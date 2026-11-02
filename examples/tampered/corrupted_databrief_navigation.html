@@ -3944,6 +3944,233 @@ window.DB_I18N = {
   for (const [lang, vals] of Object.entries(U)) UK.forEach((k, i) => { window.DB_I18N.ui[lang][k] = vals[i]; });
 })();
 </script>
+<script>/* DataBrief - translations for Jupyter notebooks. GPL-3.0-or-later.
+ * Prompt order: nbTitle, nbIntro, nbIntroNs, nbCounts, nbCell, nbCode, nbRaw, nbNotRun, nbTable, nbTableCut, nbError, nbImage,
+ *   nbOther, nbPrinted, nbStderr, nbText, nbMoreLines, nbMoreCells, nbWithheld, nbShortened, nbProfPartial, nbMCode, mKernel, mNbformat, nbColsCut, cDtype.
+ * UI order: fcIpynbReads, fcIpynbBest, fcIpynbGood */
+'use strict';
+(function () {
+  const PK = ['nbTitle', 'nbIntro', 'nbIntroNs', 'nbCounts', 'nbCell', 'nbCode', 'nbRaw', 'nbNotRun', 'nbTable', 'nbTableCut', 'nbError', 'nbImage',
+    'nbOther', 'nbPrinted', 'nbStderr', 'nbText', 'nbMoreLines', 'nbMoreCells', 'nbWithheld', 'nbShortened', 'nbProfPartial', 'nbMCode', 'mKernel', 'mNbformat', 'nbColsCut', 'cDtype'];
+  const UK = ['fcIpynbReads', 'fcIpynbBest', 'fcIpynbGood'];
+  const P = {
+    en: ["Notebook contents",
+      "The cells of the notebook, in order, as stored in the file (nothing was run). The tables found in the outputs are the sections described below; the code, the text and the other outputs are given for context.",
+      "The cells of the notebook, in order: their kind and the tables they produced (the sections below). Code and outputs are not shared.",
+      "{n} cells: {code} code, {md} Markdown, {raw} other", "Cell {n}", "code", "raw text", "not run",
+      "Output: table, section {n}", "Output: a table not read (only the first {n} tables of a notebook are read)", "Error",
+      "Output: image ({mime}), not read", "Output not read ({mime})", "Printed output", "Messages (stderr)", "Output (text)",
+      "… {n} more lines not shown", "… {n} more cells not shown", "not shared",
+      "**Tables from a notebook:** they are the outputs stored when the notebook was last run. Long tables were shortened by the notebook itself: only their first and last rows are in the file (the row counts give the true size).",
+      "Some tables were shortened by the notebook: their statistics describe only the rows stored in the file, not all rows.",
+      "The notebook's code and the outputs of its cells (printed text, values, error messages), apart from the structure of its tables.",
+      "Language", "Notebook format (nbformat)", "{a} of {b} columns stored", "Type in the notebook"],
+    fr: ["Contenu du notebook",
+      "Les cellules du notebook, dans l'ordre, telles qu'enregistrées dans le fichier (rien n'a été exécuté). Les tableaux trouvés dans les sorties sont les sections décrites plus bas ; le code, le texte et les autres sorties sont donnés pour le contexte.",
+      "Les cellules du notebook, dans l'ordre : leur type et les tableaux qu'elles ont produits (les sections plus bas). Le code et les sorties ne sont pas partagés.",
+      "{n} cellules : {code} de code, {md} Markdown, {raw} autres", "Cellule {n}", "code", "texte brut", "non exécutée",
+      "Sortie : tableau, section {n}", "Sortie : un tableau non lu (seuls les {n} premiers tableaux d'un notebook sont lus)", "Erreur",
+      "Sortie : image ({mime}), non lue", "Sortie non lue ({mime})", "Sortie affichée", "Messages (stderr)", "Sortie (texte)",
+      "… {n} lignes de plus non affichées", "… {n} cellules de plus non affichées", "non partagé",
+      "**Tableaux d'un notebook :** ce sont les sorties enregistrées lors de la dernière exécution du notebook. Les longs tableaux ont été raccourcis par le notebook lui-même : seules leurs premières et dernières lignes sont dans le fichier (le nombre de lignes indique la taille réelle).",
+      "Certains tableaux ont été raccourcis par le notebook : leurs statistiques ne décrivent que les lignes enregistrées dans le fichier, pas toutes les lignes.",
+      "Le code du notebook et les sorties de ses cellules (texte affiché, valeurs, messages d'erreur), en dehors de la structure de ses tableaux.",
+      "Langage", "Format du notebook (nbformat)", "{a} colonnes enregistrées sur {b}", "Type dans le notebook"],
+    es: ["Contenido del notebook",
+      "Las celdas del notebook, en orden, tal como están guardadas en el archivo (no se ejecutó nada). Las tablas encontradas en las salidas son las secciones descritas más abajo; el código, el texto y las demás salidas se dan como contexto.",
+      "Las celdas del notebook, en orden: su tipo y las tablas que produjeron (las secciones de más abajo). El código y las salidas no se comparten.",
+      "{n} celdas: {code} de código, {md} Markdown, {raw} otras", "Celda {n}", "código", "texto sin formato", "no ejecutada",
+      "Salida: tabla, sección {n}", "Salida: una tabla no leída (solo se leen las {n} primeras tablas de un notebook)", "Error",
+      "Salida: imagen ({mime}), no leída", "Salida no leída ({mime})", "Salida impresa", "Mensajes (stderr)", "Salida (texto)",
+      "… {n} líneas más no mostradas", "… {n} celdas más no mostradas", "no compartido",
+      "**Tablas de un notebook:** son las salidas guardadas en la última ejecución del notebook. Las tablas largas las acortó el propio notebook: solo sus primeras y últimas filas están en el archivo (el número de filas indica el tamaño real).",
+      "Algunas tablas fueron acortadas por el notebook: sus estadísticas describen solo las filas guardadas en el archivo, no todas las filas.",
+      "El código del notebook y las salidas de sus celdas (texto impreso, valores, mensajes de error), salvo la estructura de sus tablas.",
+      "Lenguaje", "Formato del notebook (nbformat)", "{a} de {b} columnas guardadas", "Tipo en el notebook"],
+    de: ["Inhalt des Notebooks",
+      "Die Zellen des Notebooks in ihrer Reihenfolge, so wie sie in der Datei gespeichert sind (nichts wurde ausgeführt). Die in den Ausgaben gefundenen Tabellen sind die unten beschriebenen Abschnitte; Code, Text und die übrigen Ausgaben dienen als Kontext.",
+      "Die Zellen des Notebooks in ihrer Reihenfolge: ihre Art und die Tabellen, die sie erzeugt haben (die Abschnitte unten). Code und Ausgaben werden nicht geteilt.",
+      "{n} Zellen: {code} Code, {md} Markdown, {raw} andere", "Zelle {n}", "Code", "Rohtext", "nicht ausgeführt",
+      "Ausgabe: Tabelle, Abschnitt {n}", "Ausgabe: eine nicht gelesene Tabelle (nur die ersten {n} Tabellen eines Notebooks werden gelesen)", "Fehler",
+      "Ausgabe: Bild ({mime}), nicht gelesen", "Ausgabe nicht gelesen ({mime})", "Gedruckte Ausgabe", "Meldungen (stderr)", "Ausgabe (Text)",
+      "… {n} weitere Zeilen nicht angezeigt", "… {n} weitere Zellen nicht angezeigt", "nicht geteilt",
+      "**Tabellen aus einem Notebook:** Es sind die Ausgaben, die beim letzten Ausführen des Notebooks gespeichert wurden. Lange Tabellen hat das Notebook selbst gekürzt: Nur ihre ersten und letzten Zeilen stehen in der Datei (die Zeilenzahlen geben die wahre Größe an).",
+      "Einige Tabellen wurden vom Notebook gekürzt: Ihre Statistiken beschreiben nur die in der Datei gespeicherten Zeilen, nicht alle Zeilen.",
+      "Der Code des Notebooks und die Ausgaben seiner Zellen (gedruckter Text, Werte, Fehlermeldungen), abgesehen von der Struktur seiner Tabellen.",
+      "Sprache", "Notebook-Format (nbformat)", "{a} von {b} Spalten gespeichert", "Typ im Notebook"],
+    it: ["Contenuto del notebook",
+      "Le celle del notebook, in ordine, come sono salvate nel file (non è stato eseguito nulla). Le tabelle trovate negli output sono le sezioni descritte più sotto; il codice, il testo e gli altri output sono forniti come contesto.",
+      "Le celle del notebook, in ordine: il loro tipo e le tabelle che hanno prodotto (le sezioni più sotto). Il codice e gli output non sono condivisi.",
+      "{n} celle: {code} di codice, {md} Markdown, {raw} altre", "Cella {n}", "codice", "testo semplice", "non eseguita",
+      "Output: tabella, sezione {n}", "Output: una tabella non letta (si leggono solo le prime {n} tabelle di un notebook)", "Errore",
+      "Output: immagine ({mime}), non letta", "Output non letto ({mime})", "Output stampato", "Messaggi (stderr)", "Output (testo)",
+      "… altre {n} righe non mostrate", "… altre {n} celle non mostrate", "non condiviso",
+      "**Tabelle di un notebook:** sono gli output salvati nell'ultima esecuzione del notebook. Le tabelle lunghe sono state accorciate dal notebook stesso: nel file ci sono solo le prime e le ultime righe (il numero di righe indica la dimensione reale).",
+      "Alcune tabelle sono state accorciate dal notebook: le loro statistiche descrivono solo le righe salvate nel file, non tutte le righe.",
+      "Il codice del notebook e gli output delle sue celle (testo stampato, valori, messaggi di errore), a parte la struttura delle sue tabelle.",
+      "Linguaggio", "Formato del notebook (nbformat)", "{a} colonne salvate su {b}", "Tipo nel notebook"],
+    pt: ["Conteúdo do notebook",
+      "As células do notebook, em ordem, como estão salvas no arquivo (nada foi executado). As tabelas encontradas nas saídas são as seções descritas abaixo; o código, o texto e as demais saídas são dados como contexto.",
+      "As células do notebook, em ordem: o seu tipo e as tabelas que produziram (as seções abaixo). O código e as saídas não são compartilhados.",
+      "{n} células: {code} de código, {md} Markdown, {raw} outras", "Célula {n}", "código", "texto bruto", "não executada",
+      "Saída: tabela, seção {n}", "Saída: uma tabela não lida (só as {n} primeiras tabelas de um notebook são lidas)", "Erro",
+      "Saída: imagem ({mime}), não lida", "Saída não lida ({mime})", "Saída impressa", "Mensagens (stderr)", "Saída (texto)",
+      "… mais {n} linhas não mostradas", "… mais {n} células não mostradas", "não compartilhado",
+      "**Tabelas de um notebook:** são as saídas salvas na última execução do notebook. As tabelas longas foram encurtadas pelo próprio notebook: só as primeiras e as últimas linhas estão no arquivo (o número de linhas indica o tamanho real).",
+      "Algumas tabelas foram encurtadas pelo notebook: as suas estatísticas descrevem só as linhas salvas no arquivo, não todas as linhas.",
+      "O código do notebook e as saídas das suas células (texto impresso, valores, mensagens de erro), exceto a estrutura das suas tabelas.",
+      "Linguagem", "Formato do notebook (nbformat)", "{a} de {b} colunas salvas", "Tipo no notebook"],
+    nl: ["Inhoud van het notebook",
+      "De cellen van het notebook, op volgorde, zoals ze in het bestand zijn opgeslagen (er is niets uitgevoerd). De tabellen in de uitvoer zijn de secties die hieronder worden beschreven; de code, de tekst en de overige uitvoer worden als context gegeven.",
+      "De cellen van het notebook, op volgorde: hun soort en de tabellen die ze hebben opgeleverd (de secties hieronder). Code en uitvoer worden niet gedeeld.",
+      "{n} cellen: {code} code, {md} Markdown, {raw} overige", "Cel {n}", "code", "platte tekst", "niet uitgevoerd",
+      "Uitvoer: tabel, sectie {n}", "Uitvoer: een niet gelezen tabel (alleen de eerste {n} tabellen van een notebook worden gelezen)", "Fout",
+      "Uitvoer: afbeelding ({mime}), niet gelezen", "Uitvoer niet gelezen ({mime})", "Afgedrukte uitvoer", "Meldingen (stderr)", "Uitvoer (tekst)",
+      "… nog {n} regels niet getoond", "… nog {n} cellen niet getoond", "niet gedeeld",
+      "**Tabellen uit een notebook:** het is de uitvoer die bij de laatste uitvoering van het notebook is opgeslagen. Lange tabellen zijn door het notebook zelf ingekort: alleen hun eerste en laatste rijen staan in het bestand (het aantal rijen geeft de echte grootte).",
+      "Sommige tabellen zijn door het notebook ingekort: hun statistieken beschrijven alleen de rijen die in het bestand zijn opgeslagen, niet alle rijen.",
+      "De code van het notebook en de uitvoer van de cellen (afgedrukte tekst, waarden, foutmeldingen), behalve de structuur van de tabellen.",
+      "Taal", "Notebookformaat (nbformat)", "{a} van {b} kolommen opgeslagen", "Type in het notebook"],
+    pl: ["Zawartość notatnika",
+      "Komórki notatnika w kolejności, tak jak zapisano je w pliku (nic nie zostało uruchomione). Tabele znalezione w wynikach to sekcje opisane niżej; kod, tekst i pozostałe wyniki podano jako kontekst.",
+      "Komórki notatnika w kolejności: ich rodzaj i tabele, które utworzyły (sekcje niżej). Kod i wyniki nie są udostępniane.",
+      "Komórki: {n} ({code} z kodem, {md} Markdown, {raw} inne)", "Komórka {n}", "kod", "surowy tekst", "nieuruchomiona",
+      "Wynik: tabela, sekcja {n}", "Wynik: tabela nieodczytana (odczytywane są tylko pierwsze tabele notatnika: {n})", "Błąd",
+      "Wynik: obraz ({mime}), nieodczytany", "Wynik nieodczytany ({mime})", "Wydrukowany wynik", "Komunikaty (stderr)", "Wynik (tekst)",
+      "… pominięto wiersze: {n}", "… pominięto komórki: {n}", "nieudostępnione",
+      "**Tabele z notatnika:** to wyniki zapisane przy ostatnim uruchomieniu notatnika. Długie tabele skrócił sam notatnik: w pliku są tylko ich pierwsze i ostatnie wiersze (liczba wierszy podaje rzeczywisty rozmiar).",
+      "Niektóre tabele zostały skrócone przez notatnik: ich statystyki opisują tylko wiersze zapisane w pliku, a nie wszystkie wiersze.",
+      "Kod notatnika i wyniki jego komórek (wydrukowany tekst, wartości, komunikaty o błędach), z wyjątkiem struktury jego tabel.",
+      "Język", "Format notatnika (nbformat)", "zapisane kolumny: {a} z {b}", "Typ w notatniku"],
+    ru: ["Содержимое блокнота",
+      "Ячейки блокнота по порядку, как они сохранены в файле (ничего не запускалось). Таблицы, найденные в выводе, — это разделы, описанные ниже; код, текст и прочий вывод даны для контекста.",
+      "Ячейки блокнота по порядку: их тип и таблицы, которые они создали (разделы ниже). Код и вывод не передаются.",
+      "Ячеек: {n} (код: {code}, Markdown: {md}, прочие: {raw})", "Ячейка {n}", "код", "простой текст", "не запускалась",
+      "Вывод: таблица, раздел {n}", "Вывод: таблица не прочитана (читаются только первые таблицы блокнота: {n})", "Ошибка",
+      "Вывод: изображение ({mime}), не прочитано", "Вывод не прочитан ({mime})", "Печатный вывод", "Сообщения (stderr)", "Вывод (текст)",
+      "… не показано строк: {n}", "… не показано ячеек: {n}", "не передаётся",
+      "**Таблицы из блокнота:** это вывод, сохранённый при последнем запуске блокнота. Длинные таблицы сократил сам блокнот: в файле только их первые и последние строки (количество строк показывает настоящий размер).",
+      "Некоторые таблицы сокращены блокнотом: их статистика описывает только строки, сохранённые в файле, а не все строки.",
+      "Код блокнота и вывод его ячеек (напечатанный текст, значения, сообщения об ошибках), кроме структуры его таблиц.",
+      "Язык", "Формат блокнота (nbformat)", "сохранено столбцов: {a} из {b}", "Тип в блокноте"],
+    tr: ["Not defteri içeriği",
+      "Not defterinin hücreleri, dosyada kaydedildikleri sırayla (hiçbir şey çalıştırılmadı). Çıktılarda bulunan tablolar aşağıda açıklanan bölümlerdir; kod, metin ve diğer çıktılar bağlam için verilmiştir.",
+      "Not defterinin hücreleri sırayla: türleri ve ürettikleri tablolar (aşağıdaki bölümler). Kod ve çıktılar paylaşılmaz.",
+      "{n} hücre: {code} kod, {md} Markdown, {raw} diğer", "Hücre {n}", "kod", "ham metin", "çalıştırılmadı",
+      "Çıktı: tablo, bölüm {n}", "Çıktı: okunmayan bir tablo (bir not defterinin yalnızca ilk {n} tablosu okunur)", "Hata",
+      "Çıktı: görüntü ({mime}), okunmadı", "Okunmayan çıktı ({mime})", "Yazdırılan çıktı", "Mesajlar (stderr)", "Çıktı (metin)",
+      "… gösterilmeyen {n} satır daha", "… gösterilmeyen {n} hücre daha", "paylaşılmadı",
+      "**Bir not defterindeki tablolar:** not defteri son çalıştırıldığında kaydedilen çıktılardır. Uzun tabloları not defterinin kendisi kısaltmıştır: dosyada yalnızca ilk ve son satırları vardır (satır sayıları gerçek boyutu verir).",
+      "Bazı tablolar not defteri tarafından kısaltıldı: istatistikleri tüm satırları değil, yalnızca dosyada kayıtlı satırları açıklar.",
+      "Not defterinin kodu ve hücrelerinin çıktıları (yazdırılan metin, değerler, hata mesajları); tablolarının yapısı hariç.",
+      "Dil", "Not defteri biçimi (nbformat)", "{b} sütunun {a} tanesi kayıtlı", "Not defterindeki tür"],
+    zh: ["笔记本内容",
+      "笔记本的单元格，按文件中保存的顺序列出（未运行任何内容）。输出中找到的表格就是下文描述的各个部分；代码、文本和其他输出仅作为背景信息。",
+      "笔记本的单元格，按顺序列出：它们的类型以及生成的表格（下文各部分）。代码和输出不共享。",
+      "{n} 个单元格：代码 {code} 个，Markdown {md} 个，其他 {raw} 个", "单元格 {n}", "代码", "原始文本", "未运行",
+      "输出：表格，第 {n} 部分", "输出：未读取的表格（每个笔记本只读取前 {n} 个表格）", "错误",
+      "输出：图像（{mime}），未读取", "未读取的输出（{mime}）", "打印输出", "消息（stderr）", "输出（文本）",
+      "… 另有 {n} 行未显示", "… 另有 {n} 个单元格未显示", "不共享",
+      "**来自笔记本的表格：**它们是笔记本最后一次运行时保存的输出。长表格已被笔记本本身截短：文件中只有其开头和结尾的行（行数给出真实大小）。",
+      "有些表格被笔记本截短了：其统计只描述文件中保存的行，而不是全部行。",
+      "笔记本的代码及其单元格的输出（打印文本、值、错误信息），表格结构除外。",
+      "语言", "笔记本格式（nbformat）", "保存了 {b} 列中的 {a} 列", "笔记本中的类型"],
+    ja: ["ノートブックの内容",
+      "ノートブックのセルを、ファイルに保存された順に示します（何も実行していません）。出力にあった表は下で説明するセクションです。コード、テキスト、その他の出力は文脈として示します。",
+      "ノートブックのセルを順に示します：種類と、作成された表（下のセクション）。コードと出力は共有しません。",
+      "セル {n} 個：コード {code}、Markdown {md}、その他 {raw}", "セル {n}", "コード", "生テキスト", "未実行",
+      "出力：表、セクション {n}", "出力：読み込まなかった表（ノートブックごとに最初の {n} 個の表だけを読み込みます）", "エラー",
+      "出力：画像（{mime}）、読み込みなし", "読み込まなかった出力（{mime}）", "印字出力", "メッセージ（stderr）", "出力（テキスト）",
+      "… ほかに {n} 行（非表示）", "… ほかに {n} セル（非表示）", "共有しない",
+      "**ノートブックの表：**ノートブックを最後に実行したときに保存された出力です。長い表はノートブック自体が短くしています。ファイルには最初と最後の行だけがあります（行数が本当の大きさを示します）。",
+      "一部の表はノートブックによって短縮されています。その統計はファイルに保存された行だけを表し、すべての行ではありません。",
+      "ノートブックのコードとセルの出力（印字テキスト、値、エラーメッセージ）。表の構造は除きます。",
+      "言語", "ノートブック形式（nbformat）", "{b} 列のうち {a} 列を保存", "ノートブック上の型"],
+    ko: ["노트북 내용",
+      "파일에 저장된 순서대로 나열한 노트북의 셀입니다(아무것도 실행하지 않았습니다). 출력에서 찾은 표는 아래에 설명된 섹션이며, 코드와 텍스트, 그 밖의 출력은 맥락으로 제공합니다.",
+      "노트북의 셀을 순서대로 나열합니다: 셀 종류와 셀이 만든 표(아래 섹션). 코드와 출력은 공유하지 않습니다.",
+      "셀 {n}개: 코드 {code}, Markdown {md}, 기타 {raw}", "셀 {n}", "코드", "원시 텍스트", "실행 안 됨",
+      "출력: 표, 섹션 {n}", "출력: 읽지 않은 표(노트북마다 처음 {n}개의 표만 읽음)", "오류",
+      "출력: 이미지({mime}), 읽지 않음", "읽지 않은 출력({mime})", "인쇄 출력", "메시지(stderr)", "출력(텍스트)",
+      "… 표시하지 않은 줄 {n}개 더", "… 표시하지 않은 셀 {n}개 더", "공유 안 함",
+      "**노트북의 표:** 노트북을 마지막으로 실행할 때 저장된 출력입니다. 긴 표는 노트북이 직접 줄였기 때문에 파일에는 처음과 마지막 행만 있습니다(행 수가 실제 크기를 알려 줍니다).",
+      "일부 표는 노트북이 줄였습니다: 그 통계는 모든 행이 아니라 파일에 저장된 행만 설명합니다.",
+      "노트북의 코드와 셀 출력(인쇄된 텍스트, 값, 오류 메시지). 표의 구조는 제외합니다.",
+      "언어", "노트북 형식(nbformat)", "{b}개 열 중 {a}개 저장됨", "노트북의 유형"],
+    hi: ["नोटबुक की सामग्री",
+      "नोटबुक की सेल, उसी क्रम में जिसमें वे फ़ाइल में सहेजी गई हैं (कुछ भी चलाया नहीं गया)। आउटपुट में मिली तालिकाएँ नीचे बताए गए अनुभाग हैं; कोड, टेक्स्ट और बाकी आउटपुट संदर्भ के लिए दिए गए हैं।",
+      "नोटबुक की सेल क्रम से: उनका प्रकार और उनसे बनी तालिकाएँ (नीचे के अनुभाग)। कोड और आउटपुट साझा नहीं किए जाते।",
+      "{n} सेल: {code} कोड, {md} Markdown, {raw} अन्य", "सेल {n}", "कोड", "कच्चा टेक्स्ट", "नहीं चलाई गई",
+      "आउटपुट: तालिका, अनुभाग {n}", "आउटपुट: बिना पढ़ी तालिका (एक नोटबुक की केवल पहली {n} तालिकाएँ पढ़ी जाती हैं)", "त्रुटि",
+      "आउटपुट: छवि ({mime}), पढ़ी नहीं गई", "बिना पढ़ा आउटपुट ({mime})", "प्रिंट किया गया आउटपुट", "संदेश (stderr)", "आउटपुट (टेक्स्ट)",
+      "… {n} और पंक्तियाँ नहीं दिखाई गईं", "… {n} और सेल नहीं दिखाई गईं", "साझा नहीं",
+      "**नोटबुक की तालिकाएँ:** ये वे आउटपुट हैं जो नोटबुक के पिछली बार चलने पर सहेजे गए थे। लंबी तालिकाओं को नोटबुक ने ख़ुद छोटा किया है: फ़ाइल में केवल उनकी शुरुआती और आख़िरी पंक्तियाँ हैं (पंक्तियों की संख्या असली आकार बताती है)।",
+      "कुछ तालिकाएँ नोटबुक ने छोटी कर दी हैं: उनके आँकड़े सभी पंक्तियों का नहीं, केवल फ़ाइल में सहेजी गई पंक्तियों का वर्णन करते हैं।",
+      "नोटबुक का कोड और उसकी सेल के आउटपुट (प्रिंट किया गया टेक्स्ट, मान, त्रुटि संदेश), उसकी तालिकाओं की संरचना को छोड़कर।",
+      "भाषा", "नोटबुक फ़ॉर्मैट (nbformat)", "{b} में से {a} कॉलम सहेजे गए", "नोटबुक में प्रकार"],
+    ar: ["محتوى الدفتر",
+      "خلايا الدفتر بترتيبها كما هي محفوظة في الملف (لم يُشغَّل أي شيء). الجداول الموجودة في المخرجات هي الأقسام الموصوفة أدناه؛ أما الشيفرة والنص والمخرجات الأخرى فتُعطى للسياق.",
+      "خلايا الدفتر بترتيبها: نوعها والجداول التي أنتجتها (الأقسام أدناه). لا تُشارَك الشيفرة ولا المخرجات.",
+      "عدد الخلايا {n}: شيفرة {code}، وMarkdown ‏{md}، وأخرى {raw}", "الخلية {n}", "شيفرة", "نص خام", "لم تُشغَّل",
+      "المخرج: جدول، القسم {n}", "المخرج: جدول لم يُقرأ (لا يُقرأ من الدفتر إلا أول {n} جدول)", "خطأ",
+      "المخرج: صورة ({mime})، لم تُقرأ", "مخرج لم يُقرأ ({mime})", "المخرج المطبوع", "رسائل (stderr)", "المخرج (نص)",
+      "… {n} سطرًا إضافيًا غير معروض", "… {n} خلية إضافية غير معروضة", "غير مُشارَك",
+      "**جداول من دفتر:** هي المخرجات المحفوظة عند آخر تشغيل للدفتر. اختصر الدفترُ نفسه الجداولَ الطويلة: لا يوجد في الملف إلا صفوفها الأولى والأخيرة (عدد الصفوف يبيّن الحجم الحقيقي).",
+      "اختصر الدفتر بعض الجداول: إحصاءاتها تصف الصفوف المحفوظة في الملف فقط، لا كل الصفوف.",
+      "شيفرة الدفتر ومخرجات خلاياه (النص المطبوع، القيم، رسائل الخطأ)، باستثناء بنية جداوله.",
+      "اللغة", "صيغة الدفتر (nbformat)", "{a} من {b} عمودًا محفوظة", "النوع في الدفتر"],
+  };
+  const U = {
+    en: ["The tables in the stored outputs (pandas, Polars or R data frames) as sections, with their true size when the notebook shortened them; and every cell in order, for context: Markdown, code, printed text, errors. Nothing is run.",
+      "The .ipynb file after a full run (Run All, then save), so that the outputs are stored in it. For all the rows, export the data frame itself (df.to_parquet or df.to_csv) and give that file.",
+      "Only what the notebook stored is read: a long table holds only its first and last rows. Images and charts are listed, not read. In \"Do not share data\" mode, code and outputs are never included."],
+    fr: ["Les tableaux des sorties enregistrées (data frames pandas, Polars ou R) en sections, avec leur taille réelle quand le notebook les a raccourcis ; et chaque cellule dans l'ordre, pour le contexte : Markdown, code, texte affiché, erreurs. Rien n'est exécuté.",
+      "Le fichier .ipynb après une exécution complète (Run All, puis enregistrer), pour que les sorties y soient enregistrées. Pour toutes les lignes, exportez le data frame lui-même (df.to_parquet ou df.to_csv) et donnez ce fichier.",
+      "Seul ce que le notebook a enregistré est lu : un long tableau ne contient que ses premières et dernières lignes. Les images et graphiques sont signalés, pas lus. En mode « Ne pas partager les données », le code et les sorties ne sont jamais inclus."],
+    es: ["Las tablas de las salidas guardadas (data frames de pandas, Polars o R) como secciones, con su tamaño real cuando el notebook las acortó; y cada celda en orden, como contexto: Markdown, código, texto impreso, errores. No se ejecuta nada.",
+      "El archivo .ipynb tras una ejecución completa (Run All y luego guardar), para que las salidas queden guardadas en él. Para tener todas las filas, exporta el propio data frame (df.to_parquet o df.to_csv) y usa ese archivo.",
+      "Solo se lee lo que el notebook guardó: una tabla larga contiene solo sus primeras y últimas filas. Las imágenes y gráficos se señalan, no se leen. En el modo «No compartir los datos», el código y las salidas nunca se incluyen."],
+    de: ["Die Tabellen in den gespeicherten Ausgaben (Data Frames von pandas, Polars oder R) als Abschnitte, mit ihrer wahren Größe, wenn das Notebook sie gekürzt hat; dazu jede Zelle in ihrer Reihenfolge als Kontext: Markdown, Code, gedruckter Text, Fehler. Nichts wird ausgeführt.",
+      "Die .ipynb-Datei nach einem vollständigen Lauf (Run All, dann speichern), damit die Ausgaben darin gespeichert sind. Für alle Zeilen den Data Frame selbst exportieren (df.to_parquet oder df.to_csv) und diese Datei verwenden.",
+      "Gelesen wird nur, was das Notebook gespeichert hat: Eine lange Tabelle enthält nur ihre ersten und letzten Zeilen. Bilder und Diagramme werden genannt, nicht gelesen. Im Modus „Daten nicht teilen“ sind Code und Ausgaben nie enthalten."],
+    it: ["Le tabelle negli output salvati (data frame di pandas, Polars o R) come sezioni, con la loro dimensione reale quando il notebook le ha accorciate; e ogni cella in ordine, come contesto: Markdown, codice, testo stampato, errori. Non viene eseguito nulla.",
+      "Il file .ipynb dopo un'esecuzione completa (Run All, poi salva), così che gli output vi siano salvati. Per avere tutte le righe, esporta il data frame stesso (df.to_parquet o df.to_csv) e usa quel file.",
+      "Si legge solo ciò che il notebook ha salvato: una tabella lunga contiene solo le prime e le ultime righe. Immagini e grafici sono segnalati, non letti. In modalità «Non condividere i dati», il codice e gli output non sono mai inclusi."],
+    pt: ["As tabelas das saídas salvas (data frames do pandas, Polars ou R) como seções, com o seu tamanho real quando o notebook as encurtou; e cada célula em ordem, como contexto: Markdown, código, texto impresso, erros. Nada é executado.",
+      "O arquivo .ipynb depois de uma execução completa (Run All e depois salvar), para que as saídas fiquem salvas nele. Para todas as linhas, exporte o próprio data frame (df.to_parquet ou df.to_csv) e use esse arquivo.",
+      "Só é lido o que o notebook salvou: uma tabela longa contém apenas as primeiras e as últimas linhas. Imagens e gráficos são indicados, não lidos. No modo \"Não compartilhar os dados\", o código e as saídas nunca são incluídos."],
+    nl: ["De tabellen in de opgeslagen uitvoer (data frames van pandas, Polars of R) als secties, met hun echte grootte als het notebook ze heeft ingekort; en elke cel op volgorde, als context: Markdown, code, afgedrukte tekst, fouten. Er wordt niets uitgevoerd.",
+      "Het .ipynb-bestand na een volledige uitvoering (Run All, daarna opslaan), zodat de uitvoer erin is opgeslagen. Voor alle rijen: exporteer het data frame zelf (df.to_parquet of df.to_csv) en gebruik dat bestand.",
+      "Alleen wat het notebook heeft opgeslagen wordt gelezen: een lange tabel bevat alleen de eerste en laatste rijen. Afbeeldingen en grafieken worden vermeld, niet gelezen. In de modus 'Gegevens niet delen' worden code en uitvoer nooit opgenomen."],
+    pl: ["Tabele z zapisanych wyników (ramki danych pandas, Polars lub R) jako sekcje, z rzeczywistym rozmiarem, gdy notatnik je skrócił; oraz każda komórka po kolei, jako kontekst: Markdown, kod, wydrukowany tekst, błędy. Nic nie jest uruchamiane.",
+      "Plik .ipynb po pełnym uruchomieniu (Run All, a potem zapisz), aby wyniki zostały w nim zapisane. Aby mieć wszystkie wiersze, wyeksportuj samą ramkę danych (df.to_parquet lub df.to_csv) i użyj tego pliku.",
+      "Odczytywane jest tylko to, co notatnik zapisał: długa tabela zawiera tylko pierwsze i ostatnie wiersze. Obrazy i wykresy są wymieniane, ale nie odczytywane. W trybie „Nie udostępniaj danych” kod i wyniki nigdy nie są dołączane."],
+    ru: ["Таблицы из сохранённого вывода (датафреймы pandas, Polars или R) как разделы, с настоящим размером, если блокнот их сократил; и каждая ячейка по порядку для контекста: Markdown, код, напечатанный текст, ошибки. Ничего не запускается.",
+      "Файл .ipynb после полного запуска (Run All, затем сохранить), чтобы вывод был сохранён в нём. Чтобы получить все строки, экспортируйте сам датафрейм (df.to_parquet или df.to_csv) и используйте этот файл.",
+      "Читается только то, что сохранил блокнот: в длинной таблице есть лишь первые и последние строки. Изображения и графики перечисляются, но не читаются. В режиме «Не передавать данные» код и вывод никогда не включаются."],
+    tr: ["Kaydedilmiş çıktılardaki tablolar (pandas, Polars veya R veri çerçeveleri) bölümler olarak, not defteri kısalttıysa gerçek boyutlarıyla; ve bağlam için her hücre sırayla: Markdown, kod, yazdırılan metin, hatalar. Hiçbir şey çalıştırılmaz.",
+      "Tam bir çalıştırmadan sonra (Run All, ardından kaydet) .ipynb dosyası; böylece çıktılar dosyada kayıtlı olur. Tüm satırlar için veri çerçevesinin kendisini dışa aktarın (df.to_parquet veya df.to_csv) ve o dosyayı kullanın.",
+      "Yalnızca not defterinin kaydettiği okunur: uzun bir tabloda yalnızca ilk ve son satırlar bulunur. Görüntüler ve grafikler listelenir, okunmaz. \"Verileri paylaşma\" modunda kod ve çıktılar asla eklenmez."],
+    zh: ["已保存输出中的表格（pandas、Polars 或 R 的数据框）作为各个部分，若笔记本将其截短，则给出真实大小；以及按顺序列出的每个单元格，作为背景：Markdown、代码、打印文本、错误。不会运行任何内容。",
+      "完整运行后的 .ipynb 文件（Run All 后保存），这样输出才会保存在文件中。如需全部行，请导出数据框本身（df.to_parquet 或 df.to_csv）并使用该文件。",
+      "只读取笔记本保存的内容：长表格只有开头和结尾的行。图像和图表只会列出，不会读取。在“不共享数据”模式下，代码和输出永远不会包含在内。"],
+    ja: ["保存された出力にある表（pandas、Polars、R のデータフレーム）をセクションとして、ノートブックが短縮した場合は本当の大きさとともに読み込みます。さらに文脈として、すべてのセルを順に示します：Markdown、コード、印字テキスト、エラー。何も実行しません。",
+      "すべて実行した後（Run All のあと保存）の .ipynb ファイル。こうすると出力がファイルに保存されます。すべての行が必要なら、データフレーム自体をエクスポート（df.to_parquet または df.to_csv）してそのファイルを使ってください。",
+      "ノートブックが保存した内容だけを読み込みます。長い表には最初と最後の行しかありません。画像やグラフは一覧に載せるだけで読み込みません。「データを共有しない」モードでは、コードと出力は決して含まれません。"],
+    ko: ["저장된 출력의 표(pandas, Polars 또는 R 데이터 프레임)를 섹션으로 읽고, 노트북이 줄인 경우 실제 크기도 함께 제공합니다. 맥락으로 모든 셀을 순서대로 보여 줍니다: Markdown, 코드, 인쇄된 텍스트, 오류. 아무것도 실행하지 않습니다.",
+      "전체 실행(Run All 후 저장)을 마친 .ipynb 파일. 그래야 출력이 파일에 저장됩니다. 모든 행이 필요하면 데이터 프레임 자체를 내보내고(df.to_parquet 또는 df.to_csv) 그 파일을 사용하세요.",
+      "노트북이 저장한 내용만 읽습니다: 긴 표에는 처음과 마지막 행만 있습니다. 이미지와 차트는 목록에만 표시하고 읽지 않습니다. '데이터 공유 안 함' 모드에서는 코드와 출력이 절대 포함되지 않습니다."],
+    hi: ["सहेजे गए आउटपुट की तालिकाएँ (pandas, Polars या R के डेटा फ़्रेम) अनुभागों के रूप में, और अगर नोटबुक ने उन्हें छोटा किया हो तो उनका असली आकार; साथ ही संदर्भ के लिए हर सेल क्रम से: Markdown, कोड, प्रिंट किया गया टेक्स्ट, त्रुटियाँ। कुछ भी चलाया नहीं जाता।",
+      "पूरा चलाने के बाद (Run All, फिर सेव) की .ipynb फ़ाइल, ताकि आउटपुट उसमें सहेजे रहें। सभी पंक्तियों के लिए डेटा फ़्रेम को ही एक्सपोर्ट करें (df.to_parquet या df.to_csv) और वह फ़ाइल दें।",
+      "केवल वही पढ़ा जाता है जो नोटबुक ने सहेजा है: लंबी तालिका में केवल शुरुआती और आख़िरी पंक्तियाँ होती हैं। छवियाँ और चार्ट सूचीबद्ध होते हैं, पढ़े नहीं जाते। \"डेटा साझा न करें\" मोड में कोड और आउटपुट कभी शामिल नहीं होते।"],
+    ar: ["الجداول الموجودة في المخرجات المحفوظة (إطارات بيانات pandas أو Polars أو R) كأقسام، مع حجمها الحقيقي إذا اختصرها الدفتر؛ وكل خلية بترتيبها للسياق: Markdown والشيفرة والنص المطبوع والأخطاء. لا يُشغَّل أي شيء.",
+      "ملف ‎.ipynb بعد تشغيل كامل (Run All ثم الحفظ) لكي تُحفظ المخرجات فيه. للحصول على كل الصفوف، صدِّر إطار البيانات نفسه (df.to_parquet أو df.to_csv) واستخدم ذلك الملف.",
+      "لا يُقرأ إلا ما حفظه الدفتر: الجدول الطويل لا يحتوي إلا على صفوفه الأولى والأخيرة. تُذكر الصور والرسوم البيانية ولا تُقرأ. في وضع «عدم مشاركة البيانات» لا تُضمَّن الشيفرة ولا المخرجات أبدًا."],
+  };
+  for (const [lang, vals] of Object.entries(P)) PK.forEach((k, i) => { window.DB_I18N.prompt[lang][k] = vals[i]; });
+  for (const [lang, vals] of Object.entries(U)) UK.forEach((k, i) => { window.DB_I18N.ui[lang][k] = vals[i]; });
+})();
+</script>
 <script>/* DataBrief - translations for the SQL Server data-tier package (.dacpac / .bacpac) card. GPL-3.0-or-later.
  * UI order: fcDacpacReads, fcDacpacBest, fcDacpacGood */
 'use strict';
@@ -4688,16 +4915,31 @@ window.DB_I18N = {
       };
     });
     const views = (doc.views || []).map((v) => ({ name: v.name, sql: v.sql }));
+    // A notebook: the kind of each cell and of each output, which section a table became. Code and outputs (printed text,
+    // values, error messages) can hold records: never copied. Markdown and raw cells are free text (shown only when allowed).
+    // An error keeps its class name only when it is one (ZeroDivisionError), never its message.
+    const nb = doc.contents && doc.contents.kind === 'notebook' ? doc.contents : null;
+    const contents = nb ? {
+      kind: 'notebook', language: nb.language, counts: copy(nb.counts), cellsCut: nb.cellsCut, maxTables: nb.maxTables,
+      cells: nb.cells.map((c) => ({
+        n: c.n, type: c.type, exec: c.exec, source: c.type === 'code' ? null : c.source, more: c.type === 'code' ? 0 : c.more,
+        outputs: c.outputs.map((o) => (o.kind === 'table' ? { kind: 'table', sec: o.sec, colsCut: copy(o.colsCut) }
+          : o.kind === 'error' ? { kind: 'error', ename: /^[A-Za-z_][\w.]{0,80}$/.test(o.ename) ? o.ename : '' }
+            : o.kind === 'image' || o.kind === 'other' ? { kind: o.kind, mime: o.mime }
+              : { kind: o.kind, stderr: !!o.stderr })),
+      })),
+    } : null;
     const fileMeta = (doc.fileMeta || [])
       .map(([key, value]) => ({ key, value: key === 'mNames' ? keepRanges(String(value)) : String(value), freeText: FREE_TEXT_META.has(key), names: NAME_META.has(key), files: FILE_META.has(key), data: DATA_META.has(key) }))
       .filter((m) => m.value !== '');
     return {
       level, fileName: doc.fileName, fileSize: doc.fileSize, formatName: doc.formatName, formatKey: doc.formatKey, sectionKind: doc.sectionKind,
-      sections, views, fileMeta, relationships: relationshipsFor(doc.relationships, level),
+      sections, views, fileMeta, contents, relationships: relationshipsFor(doc.relationships, level),
       hadInferred: (doc.relationships || []).some((r) => r.source === 'inferred'),
       hasLabels: sections.some((s) => s.caption || s.columns.some((c) => c.meta.label || c.meta.values)),
       hasSql: views.length > 0 || sections.some((s) => s.constraints && s.constraints.ddl),
-      hasFreeText: sections.some((s) => s.comments.length || s.description) || fileMeta.some((m) => m.freeText),
+      hasFreeText: sections.some((s) => s.comments.length || s.description) || fileMeta.some((m) => m.freeText) ||
+        !!(contents && contents.cells.some((c) => c.type !== 'code' && c.source)),
     };
   };
 
@@ -5890,6 +6132,390 @@ window.DB.DBF_CODEPAGES = {
     const fileMeta = [['mCrs', crs], ['mGeomTypes', Array.from(counts.entries()).map(([k, v]) => k + ': ' + v).join(', ')]];
     if (bbox) fileMeta.push(['mExtent', 'x ' + num(bbox[0]) + '…' + num(bbox[2]) + ', y ' + num(bbox[1]) + '…' + num(bbox[3])]);
     return { sections: [{ name, columns, rows: flat.rows }], fileMeta, notes };
+  };
+})();
+</script>
+<script>/* DataBrief - Jupyter notebooks (.ipynb). GPL-3.0-or-later.
+ *
+ * A notebook is read, never run: only what it stores is used.
+ *   - The tables in the stored outputs (pandas / Polars / R data frames shown as HTML, or the JSON "data resource"
+ *     pandas can add) become sections, like the tables of an HTML page. A table the notebook shortened itself
+ *     (pandas keeps the first and last rows) keeps its true size from the footer ("300 rows × 2 columns").
+ *   - The rest (Markdown, code, printed text, errors, images) is described in doc.contents, given to the AI for context.
+ * DB.isNotebook(tree), DB.notebookDoc(tree, baseName) -> { sections, fileMeta, notes, contents, ipynb: true },
+ * DB.htmlTables(html) -> [{ rows: [[{ v, th, rs, cs }]], head, caption }] (a small reader of HTML tables, without a DOM,
+ * linear in the size of the text). */
+'use strict';
+(function () {
+  const DB = window.DB;
+  const MAX_TABLES = 200;        // tables read per notebook (the others are listed, not read)
+  const MAX_CELLS = 400;         // cells described in the contents
+  const SRC_LINES = 60, SRC_CHARS = 4000, OUT_LINES = 30, OUT_CHARS = 2000;
+  const CONTENT_BUDGET = 200000; // characters of code and text in the contents, in all
+  const MAX_TAG = 2000;          // a "<" without ">" within this many characters is text
+
+  DB.isNotebook = (tree) => !!tree && typeof tree === 'object' && !Array.isArray(tree) && typeof tree.nbformat === 'number' &&
+    (Array.isArray(tree.cells) || (Array.isArray(tree.worksheets) && tree.worksheets.some((w) => w && Array.isArray(w.cells))));
+
+  /* ---------- HTML tables, without a DOM ---------- */
+  const ENT = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', times: '×', hellip: '…' };
+  const decodeEnt = (s) => (s.indexOf('&') < 0 ? s : s.replace(/&(#x[0-9a-f]{1,6}|#\d{1,7}|[a-z]{2,8});/gi, (m, e) => {
+    if (e[0] === '#') {
+      const n = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+      return n > 0 && n <= 0x10ffff && !(n >= 0xd800 && n <= 0xdfff) ? String.fromCodePoint(n) : m;
+    }
+    const v = ENT[e.toLowerCase()];
+    return v === undefined ? m : v;
+  }));
+  const attr = (attrs, name) => {
+    const m = new RegExp('(?:^|\\s)' + name + '\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\'|([^\\s>]+))', 'i').exec(attrs);
+    return m ? (m[1] !== undefined ? m[1] : m[2] !== undefined ? m[2] : m[3]) : null;
+  };
+  const span = (attrs, name) => { const n = parseInt(attr(attrs, name) || '1', 10); return n >= 1 ? Math.min(n, 1000) : 1; };
+  const cleanCell = (s) => s.split('\n').map((l) => l.replace(/[ \t\r\f\v\u00a0]+/g, ' ').trim()).filter(Boolean).join('\n');
+
+  DB.htmlTables = function (html, maxRows) {
+    const out = [];
+    const stack = [];                       // open tables (a table inside a table is read on its own; its parent is not)
+    let cur = null, cell = null, row = null, caption = null;
+    const n = html.length;
+    const closeCell = () => { if (cell) { cell.v = cleanCell(decodeEnt(cell.raw)); delete cell.raw; cell = null; } };
+    const closeRow = () => { closeCell(); row = null; };
+    const text = (s) => { if (cell) cell.raw += s; else if (caption !== null) caption += s; };
+    let i = 0;
+    while (i < n) {
+      const lt = html.indexOf('<', i);
+      if (lt < 0) { text(html.slice(i)); break; }
+      if (lt > i) text(html.slice(i, lt));
+      if (html.startsWith('<\!--', lt)) { const e = html.indexOf('-->', lt + 4); i = e < 0 ? n : e + 3; continue; }
+      // the end of the tag, outside quotes, within MAX_TAG characters
+      let j = lt + 1, q = '';
+      const lim = Math.min(n, lt + MAX_TAG);
+      for (; j < lim; j++) { const ch = html[j]; if (q) { if (ch === q) q = ''; } else if (ch === '"' || ch === "'") q = ch; else if (ch === '>') break; }
+      const m = j < lim && /^<(\/?)([a-zA-Z][\w:-]*)/.exec(html.slice(lt, Math.min(j, lt + 64)));
+      if (!m) { text('<'); i = lt + 1; continue; }
+      i = j + 1;
+      const close = m[1] === '/', tag = m[2].toLowerCase(), attrs = html.slice(lt + m[0].length, j);
+      if (!close && (tag === 'style' || tag === 'script' || tag === 'template')) {   // raw text: skipped
+        const e = html.toLowerCase().indexOf('</' + tag, i); i = e < 0 ? n : e; continue;
+      }
+      if (tag === 'table') {
+        if (!close) {
+          closeCell();
+          if (cur) cur.nested = true;
+          stack.push(cur = { rows: [], head: 0, part: '', caption: '', nested: false, cut: 0 });
+          row = null; caption = null;
+        } else if (cur) {
+          closeRow();
+          const t = stack.pop();
+          if (!t.nested) out.push({ rows: t.rows, head: t.head, caption: cleanCell(decodeEnt(t.caption)), cut: t.cut });
+          cur = stack[stack.length - 1] || null; row = null;
+          if (cur) cur.nested = true;
+        }
+        continue;
+      }
+      if (!cur) continue;
+      if (tag === 'caption') { if (!close) { closeCell(); caption = ''; } else if (caption !== null) { cur.caption += caption; caption = null; } continue; }
+      if (tag === 'thead' || tag === 'tbody' || tag === 'tfoot') { closeRow(); cur.part = close ? '' : tag; continue; }
+      if (tag === 'tr') {
+        closeRow();
+        if (!close) {
+          if (cur.part === 'thead' && cur.head === cur.rows.length) cur.head++;
+          if (maxRows && cur.rows.length >= maxRows + 10) { cur.cut++; continue; }
+          row = []; cur.rows.push(row);
+        }
+        continue;
+      }
+      if (tag === 'td' || tag === 'th') {
+        closeCell();
+        if (close) continue;
+        if (!row) {
+          if (cur.cut) continue;
+          row = []; cur.rows.push(row);
+          if (cur.part === 'thead' && cur.head === cur.rows.length - 1) cur.head++;
+        }
+        cell = { v: '', raw: '', th: tag === 'th', rs: span(attrs, 'rowspan'), cs: span(attrs, 'colspan') };
+        row.push(cell);
+        continue;
+      }
+      if (tag === 'br' && cell) { cell.raw += '\n'; continue; }
+      if (!close && (tag === 'p' || tag === 'div' || tag === 'li') && cell && cell.raw) cell.raw += '\n';
+    }
+    // unclosed tables (cut HTML): what was read is kept
+    while (stack.length) { closeRow(); const t = stack.pop(); if (!t.nested) out.unshift({ rows: t.rows, head: t.head, caption: cleanCell(decodeEnt(t.caption)), cut: t.cut }); }
+    return out;
+  };
+
+  /* A table of cells (with spans) into a grid of { v, th } */
+  function toGrid(rows) {
+    const grid = [];
+    rows.forEach((tr, r) => {
+      grid[r] = grid[r] || [];
+      let c = 0;
+      for (const cell of tr) {
+        while (grid[r][c] !== undefined) c++;
+        for (let a = 0; a < cell.rs && r + a < rows.length; a++) {
+          grid[r + a] = grid[r + a] || [];
+          for (let b = 0; b < cell.cs; b++) grid[r + a][c + b] = { v: cell.v, th: cell.th };
+        }
+        c += cell.cs;
+      }
+    });
+    for (let r = 0; r < rows.length; r++) { grid[r] = grid[r] || []; for (let c = 0; c < grid[r].length; c++) if (!grid[r][c]) grid[r][c] = { v: '', th: false }; }
+    return grid;
+  }
+
+  const DOTS = /^(\.\.\.|…)$/;
+  const MISSING = new Set(['NaN', 'NaT', '<NA>', 'None']);   // how pandas shows a missing value
+  const isTypeRow = (cells) => cells.some((c) => c.v) && cells.every((c) => !c.v || /^<[\w.:, ]+>$/.test(c.v));   // R: <dbl>, <chr>
+
+  /* One HTML table (as read by DB.htmlTables) -> { columns, rows, rowsTotal, shortened, dropped } or null */
+  function frameFromTable(t, outputHtml, single, maxRows) {
+    const grid = toGrid(t.rows);
+    if (!grid.length) return null;
+    let head = t.head;
+    if (!head) while (head < grid.length && head < 3 && grid[head].length && grid[head].every((c) => c.th)) head++;
+    let headRows = grid.slice(0, head), body = grid.slice(head);
+    // Polars writes the column types as a row of <td> in the head; R writes them as <dbl>, <chr> under the names
+    let types = null, polars = false;
+    const typesOf = (r) => r.map((c) => c.v.replace(/^<(.*)>$/, '$1'));
+    headRows = headRows.filter((r, idx) => {
+      if (idx === 0) return true;
+      if (r.every((c) => !c.th)) { types = typesOf(r); polars = true; return false; }
+      if (isTypeRow(r.slice(1)) || isTypeRow(r)) { types = typesOf(r); return false; }
+      return true;
+    });
+    if (body.length && isTypeRow(body[0])) { types = typesOf(body[0]); body = body.slice(1); }
+    if (!headRows.length && !body.length) return null;
+    // index columns: the <th> cells that start every row of the body
+    let k = body.length ? Infinity : 0;
+    for (const r of body) { let x = 0; while (x < r.length && r[x].th) x++; k = Math.min(k, x); if (!k) break; }
+    if (!isFinite(k)) k = 0;
+    const width = Math.max(0, ...headRows.map((r) => r.length), ...body.map((r) => r.length));
+    if (k >= width) k = 0;
+    // pandas: a last head row with the index names only (the other cells empty)
+    let indexNames = new Array(k).fill('');
+    if (k && headRows.length > 1) {
+      const last = headRows[headRows.length - 1];
+      if (last.slice(k).every((c) => !c.v) && last.slice(0, k).some((c) => c.v)) { indexNames = last.slice(0, k).map((c) => c.v); headRows = headRows.slice(0, -1); }
+    }
+    const names = [];
+    for (let c = 0; c < width; c++) {
+      const parts = [];
+      for (const r of headRows) { const v = (r[c] && r[c].v) || ''; if (v && parts[parts.length - 1] !== v) parts.push(v); }
+      names.push(c < k ? indexNames[c] || parts.join(' / ') : parts.join(' / '));
+    }
+    let rows = body.map((r) => { const o = new Array(width); for (let c = 0; c < width; c++) o[c] = r[c] ? r[c].v : ''; return o; });
+    // shortened by the notebook: a row of "..." between the first and the last rows, a column of "..." in the middle
+    let shortened = false;
+    const before = rows.length;
+    rows = rows.filter((r) => !r.slice(k).every((v) => DOTS.test(v)) || r.slice(k).every((v) => !v));
+    if (rows.length < before) shortened = true;
+    let keep = names.map((nm, c) => !(DOTS.test(nm) && rows.every((r) => !r[c] || DOTS.test(r[c]))));
+    if (keep.some((x) => !x)) shortened = true;
+    // an index of row numbers (0, 1, 2...) without a name says nothing: dropped
+    let dropIndex = false;
+    if (k === 1 && !names[0]) {
+      let prev = -1; dropIndex = rows.length > 0;
+      for (const r of rows) { if (!/^\d+$/.test(r[0]) || +r[0] <= prev) { dropIndex = false; break; } prev = +r[0]; }
+    }
+    if (dropIndex) keep[0] = false;
+    for (let c = 0; c < k; c++) if (keep[c] && !names[c]) names[c] = k > 1 ? 'index_' + (c + 1) : 'index';
+    const cols = [];
+    keep.forEach((x, c) => { if (x) cols.push(c); });
+    // Polars writes text in quotes ("North") and a missing value as null
+    const quoted = cols.map((c) => polars && types && types[c] === 'str');
+    rows = rows.map((r) => cols.map((c, x) => {
+      let v = r[c];
+      if (MISSING.has(v) || (polars && v === 'null')) return '';
+      if (quoted[x] && v.length >= 2 && v[0] === '"' && v[v.length - 1] === '"') v = v.slice(1, -1);
+      return v;
+    }));
+    const dtypes = cols.map((c) => (types && types[c] && /^[\w .:,()[\]<>-]{1,40}$/.test(types[c]) ? types[c] : ''));
+    if (maxRows && rows.length > maxRows) rows = rows.slice(0, maxRows);
+    // the true size, from what the library writes next to the table (only when the output holds this one table)
+    let rowsTotal = null;
+    const num = (s) => parseInt(s.replace(/[,_\s]/g, ''), 10);
+    const foot = single && (/(\d[\d,]*) rows × (\d[\d,]*) columns/.exec(outputHtml) || /shape:\s*\((\d[\d_]*),\s*(\d[\d_]*)\)/.exec(outputHtml));
+    const capm = /(?:data\.frame|tibble|data\.table|DataFrame)[^:]*:\s*(\d[\d,]*)\s*[×x]\s*(\d[\d,]*)/i.exec(t.caption || '');
+    if (foot) rowsTotal = num(foot[1]); else if (capm) rowsTotal = num(capm[1]);
+    if (rowsTotal !== null && rowsTotal > rows.length) shortened = true;
+    else rowsTotal = null;
+    if (t.cut) { shortened = true; rowsTotal = Math.max(rowsTotal || 0, rows.length + t.cut); }
+    const captionIsName = !!t.caption && !capm;
+    // columns: the library counts the data columns (not the index); a wide frame keeps only the first and last ones
+    const dataCols = cols.filter((c) => c >= k).length;
+    const colsTotal = foot ? num(foot[2]) : capm ? num(capm[2]) : null;
+    const colsCut = colsTotal !== null && colsTotal > dataCols ? { a: dataCols, b: colsTotal } : null;
+    if (colsCut) shortened = true;
+    return { names: cols.map((c) => names[c]), dtypes, rows, rowsTotal, shortened, colsCut, caption: captionIsName ? t.caption : '' };
+  }
+
+  /* pandas "application/vnd.dataresource+json" (Table Schema) */
+  function frameFromResource(res, maxRows) {
+    if (!res || typeof res !== 'object' || !res.schema || !Array.isArray(res.schema.fields) || !Array.isArray(res.data)) return null;
+    const fields = res.schema.fields.filter((f) => f && typeof f.name !== 'undefined').map((f) => String(f.name));
+    if (!fields.length) return null;
+    const pk = Array.isArray(res.schema.primaryKey) ? res.schema.primaryKey.map(String) : [];
+    const str = (v) => (v === null || v === undefined ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v));
+    let rows = res.data.slice(0, maxRows || res.data.length).map((d) => fields.map((f) => (d && typeof d === 'object' ? str(d[f]) : '')));
+    // the default index of pandas (0, 1, 2... named "index"): dropped
+    const ix = fields.indexOf('index');
+    let names = fields.slice();
+    if (ix >= 0 && pk.length === 1 && pk[0] === 'index' && rows.every((r, n) => r[ix] === String(n))) {
+      names.splice(ix, 1); rows = rows.map((r) => r.filter((_, c) => c !== ix));
+    }
+    return { names, rows, rowsTotal: res.data.length > rows.length ? res.data.length : null, shortened: res.data.length > rows.length, caption: '' };
+  }
+
+  /* ---------- the notebook ---------- */
+  const joinSrc = (x) => (Array.isArray(x) ? x.map((s) => (typeof s === 'string' ? s : '')).join('') : typeof x === 'string' ? x : '');
+  const ANSI = /\u001b\[[0-9;?]*[ -\/]*[@-~]/g;
+  /* At most maxLines lines and maxChars characters; "more": the lines not shown (in whole or in part) */
+  function cut(text, maxLines, maxChars) {
+    const s = text.replace(/\r\n?/g, '\n').replace(/\n+$/, '');
+    if (!s) return { text: '', more: 0 };
+    const lines = s.split('\n');
+    let kept = lines.length > maxLines ? lines.slice(0, maxLines).join('\n') : s;
+    if (kept.length > maxChars) kept = kept.slice(0, Math.max(0, maxChars));
+    if (kept.length === s.length) return { text: s, more: 0 };
+    const partial = !!kept && s[kept.length] !== '\n';
+    const keptLines = kept ? kept.split('\n').length : 0;
+    return { text: kept + (partial ? '…' : ''), more: Math.max(1, lines.length - keptLines + (partial ? 1 : 0)) };
+  }
+  const SIMPLE = /^[A-Za-z_][\w]*(\.[A-Za-z_]\w*)*(\(\s*\d{0,9}\s*\))?$/;    // customers, orders.head(2), df.describe()
+  function lastExpression(src) {
+    const lines = src.split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
+    const last = lines[lines.length - 1] || '';
+    return SIMPLE.test(last) && !/^(import|from|return|pass|print)\b/.test(last) ? last : '';
+  }
+  const displayed = (src) => {
+    const out = [];
+    const re = /(?:^|[^\w.])display\(\s*([A-Za-z_][\w.]*(?:\(\s*\d{0,9}\s*\))?)\s*\)/g;
+    let m;
+    while ((m = re.exec(src))) if (SIMPLE.test(m[1])) out.push(m[1]);
+    return out;
+  };
+  const MIME = /^[\w.+-]{1,40}\/[\w.+-]{1,60}$/;
+  const mimeOf = (m) => (MIME.test(m) ? m : 'unknown');
+
+  DB.notebookDoc = function (tree, baseName) {
+    if (!DB.isNotebook(tree)) return null;
+    const maxRows = DB.SQL_MAX_ROWS || 250000;
+    const v3 = !Array.isArray(tree.cells);
+    const rawCells = v3 ? [].concat(...tree.worksheets.filter((w) => w && Array.isArray(w.cells)).map((w) => w.cells)) : tree.cells;
+    const meta = tree.metadata && typeof tree.metadata === 'object' ? tree.metadata : {};
+    const li = meta.language_info && typeof meta.language_info === 'object' ? meta.language_info : {};
+    const ks = meta.kernelspec && typeof meta.kernelspec === 'object' ? meta.kernelspec : {};
+    const okWord = (s, re) => (typeof s === 'string' && re.test(s) ? s : '');
+    const language = (okWord(li.name, /^[\w.+#-]{1,30}$/) || okWord(ks.language, /^[\w.+#-]{1,30}$/) || okWord(meta.language, /^[\w.+#-]{1,30}$/)).toLowerCase();
+    const version = okWord(li.version, /^[\w.+-]{1,30}$/);
+    const sections = [], used = new Set();
+    const notes = {};
+    let budget = CONTENT_BUDGET, tablesSkipped = 0;
+    const counts = { cells: 0, code: 0, markdown: 0, raw: 0, run: 0, errors: 0, tables: 0 };
+    const cells = [];
+    let cellsCut = 0;
+    const take = (text, ml, mc) => {
+      if (budget <= 0) return { text: '', more: text ? text.replace(/\n+$/, '').split('\n').length : 0 };
+      const c = cut(text, ml, Math.min(mc, budget));
+      budget -= c.text.length;
+      return c;
+    };
+    const uniqueName = (n) => { let x = n, k = 2; while (used.has(x)) x = n + ' (' + k++ + ')'; used.add(x); return x; };
+
+    rawCells.forEach((cellIn, ci) => {
+      if (!cellIn || typeof cellIn !== 'object') return;
+      const type = cellIn.cell_type === 'code' ? 'code' : cellIn.cell_type === 'markdown' || cellIn.cell_type === 'heading' ? 'markdown' : 'raw';
+      counts.cells++; counts[type]++;
+      const n = ci + 1;
+      const srcFull = joinSrc(v3 && type === 'code' ? cellIn.input : cellIn.source).replace(ANSI, '');
+      const listed = cells.length < MAX_CELLS;
+      if (!listed) cellsCut++;
+      const cell = { n, type, exec: null, source: '', more: 0, outputs: [] };
+      const src = cellIn.cell_type === 'heading' ? '#'.repeat(Math.min(6, Math.max(1, +cellIn.level || 1))) + ' ' + srcFull : srcFull;   // nbformat 3
+      if (listed) { const c = take(src, SRC_LINES, SRC_CHARS); cell.source = c.text; cell.more = c.more; }
+      if (type === 'code') {
+        const ec = v3 ? cellIn.prompt_number : cellIn.execution_count;
+        if (typeof ec === 'number' && isFinite(ec)) cell.exec = ec;
+        const outs = Array.isArray(cellIn.outputs) ? cellIn.outputs : [];
+        if (outs.length || cell.exec !== null) counts.run++;
+        const expr = lastExpression(srcFull), shown = displayed(srcFull);
+        let tablesInCell = 0;
+        for (const o of outs) {
+          if (!o || typeof o !== 'object') continue;
+          const ot = o.output_type;
+          if (ot === 'stream') {
+            const c = listed ? take(joinSrc(o.text).replace(ANSI, ''), OUT_LINES, OUT_CHARS) : { text: '', more: 0 };
+            cell.outputs.push({ kind: 'stream', stderr: o.name === 'stderr', text: c.text, more: c.more });
+            continue;
+          }
+          if (ot === 'error' || ot === 'pyerr') {
+            counts.errors++;
+            const ename = typeof o.ename === 'string' ? o.ename.replace(ANSI, '').slice(0, 120) : '';
+            const evalue = typeof o.evalue === 'string' ? o.evalue.replace(ANSI, '').replace(/\s+/g, ' ').trim().slice(0, 300) : '';
+            cell.outputs.push({ kind: 'error', ename, evalue });
+            continue;
+          }
+          // execute_result / display_data (nbformat 4); pyout / display_data (nbformat 3: the mime types are short keys)
+          let data = o.data && typeof o.data === 'object' ? o.data : null;
+          if (v3) {
+            data = {};
+            const V3 = { html: 'text/html', text: 'text/plain', png: 'image/png', jpeg: 'image/jpeg', svg: 'image/svg+xml', latex: 'text/latex', json: 'application/json', javascript: 'application/javascript' };
+            for (const [key, mime] of Object.entries(V3)) if (o[key] !== undefined) data[mime] = o[key];
+          }
+          if (!data) continue;
+          const nameFor = () => {
+            const base = ot === 'execute_result' || ot === 'pyout' ? expr : shown[tablesInCell] || '';
+            return uniqueName(base || 'cell_' + n + (tablesInCell ? '_' + (tablesInCell + 1) : ''));
+          };
+          const addFrame = (f) => {
+            if (!f || !f.names.length) return false;
+            counts.tables++;
+            if (sections.length >= MAX_TABLES) { tablesSkipped++; cell.outputs.push({ kind: 'table', sec: -1 }); tablesInCell++; return true; }
+            const name = nameFor();
+            const sec = DB.gridToSection(f.rows, name, { headerRow: f.names });
+            // gridToSection drops empty rows: the stored rows are what the notebook kept
+            if (f.rowsTotal) sec.rowsTotal = f.rowsTotal;
+            if (f.shortened) notes.nbShortened = true;
+            if (f.caption) sec.caption = f.caption;   // a caption set by people (Styler.set_caption): a label
+            if (f.dtypes) f.dtypes.forEach((d, x) => { if (d && sec.columns[x]) sec.columns[x].meta.dtype = d; });   // Polars, R
+            sec.cell = n;
+            sections.push(sec);
+            cell.outputs.push({ kind: 'table', sec: sections.length - 1, colsCut: f.colsCut || null });
+            tablesInCell++;
+            return true;
+          };
+          let done = false;
+          const res = data['application/vnd.dataresource+json'];
+          if (res) done = addFrame(frameFromResource(typeof res === 'string' ? (() => { try { return JSON.parse(res); } catch (e) { return null; } })() : res, maxRows));
+          const html = joinSrc(data['text/html']);
+          if (!done && html && /<table/i.test(html)) {
+            const tables = DB.htmlTables(html, maxRows);
+            for (const t of tables) if (addFrame(frameFromTable(t, html, tables.length === 1, maxRows))) done = true;
+          }
+          if (done) continue;
+          const img = Object.keys(data).find((m) => /^image\//.test(m));
+          const txt = ['text/markdown', 'text/latex', 'text/plain'].find((m) => data[m] !== undefined);
+          if (txt) {
+            const c = listed ? take(joinSrc(data[txt]).replace(ANSI, ''), OUT_LINES, OUT_CHARS) : { text: '', more: 0 };
+            cell.outputs.push({ kind: 'text', mime: txt, text: c.text, more: c.more });
+            if (img) cell.outputs.push({ kind: 'image', mime: mimeOf(img) });
+          } else if (img) cell.outputs.push({ kind: 'image', mime: mimeOf(img) });
+          else { const m = Object.keys(data)[0]; if (m) cell.outputs.push({ kind: 'other', mime: mimeOf(m) }); }
+        }
+      }
+      if (listed) cells.push(cell);
+    });
+    const fileMeta = [];
+    if (language) fileMeta.push(['mKernel', language + (version ? ' ' + version : '')]);
+    const nbv = typeof tree.nbformat_minor === 'number' ? tree.nbformat + '.' + tree.nbformat_minor : String(tree.nbformat);
+    fileMeta.push(['mNbformat', nbv]);
+    if (tablesSkipped) notes.nbTablesCut = MAX_TABLES;
+    return {
+      sections, fileMeta, notes, ipynb: true,
+      contents: { kind: 'notebook', maxTables: MAX_TABLES, language: /^[a-z0-9+#-]{1,20}$/.test(language) ? language : '', counts, cells, cellsCut, budgetHit: budget <= 0 },
+    };
   };
 })();
 </script>
@@ -7497,13 +8123,14 @@ window.DB.DBF_CODEPAGES = {
     { key: 'dacpac', label: 'DACPAC', exts: ['dacpac', 'bacpac'] },
     { key: 'geojson', label: 'GeoJSON', exts: ['geojson'] },
     { key: 'gpkg', label: 'GeoPackage', exts: ['gpkg'] },
+    { key: 'ipynb', label: 'Jupyter', exts: ['ipynb'] },
   ];
   const FORMAT_NAMES = {
     csv: 'CSV', tsv: 'TSV', txt: 'TXT (CSV)', xlsx: 'Excel (XLSX)', xlsm: 'Excel (XLSM)',
     xls: 'Excel 97-2003 (XLS)', ods: 'OpenDocument (ODS)', json: 'JSON', ndjson: 'NDJSON / JSON Lines',
     xml: 'XML', yaml: 'YAML', html: 'HTML', sav: 'SPSS Statistics (.sav)', zsav: 'SPSS Statistics (.zsav)',
     parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)', dbf: 'dBase / FoxPro (DBF)', duckdb: 'DuckDB export (zip)', access: 'Microsoft Access', dacpac: 'SQL Server data-tier package',
-    geojson: 'GeoJSON', gpkg: 'GeoPackage',
+    geojson: 'GeoJSON', gpkg: 'GeoPackage', ipynb: 'Jupyter notebook',
   };
   DB.ACCEPT = DB.FORMATS.flatMap((f) => f.exts.map((e) => '.' + e)).concat(['.gz']).join(','); // .gz: a compressed file of any of these
 
@@ -7642,6 +8269,9 @@ window.DB.DBF_CODEPAGES = {
         try { tree = lines(); } catch (e2) { throw e; }
       }
     }
+    // A Jupyter notebook (also saved as .json): its stored outputs and cells, never run
+    const nb = DB.notebookDoc && DB.notebookDoc(tree, baseOf(name));
+    if (nb) return nb;
     const geo = DB.geoJsonDoc && DB.geoJsonDoc(tree, baseOf(name));
     if (geo) { geo.geojson = true; return geo; }
     return treeToDoc(tree, baseOf(name));
@@ -8245,6 +8875,7 @@ window.DB.DBF_CODEPAGES = {
       kind = f.key;
       if (kind === 'geojson') kind = 'json';                // read as JSON, recognised as GeoJSON by its content
       if (kind === 'gpkg') kind = 'sqlite';                 // a GeoPackage is a SQLite file
+      if (kind === 'ipynb') kind = 'json';                  // a notebook is a JSON file
       if (['xlsx', 'xlsm', 'xls', 'ods', 'sqlite', 'parquet', 'sav', 'duckdb', 'access', 'dacpac'].includes(kind)) {
         // Binary format expected but the content does not match: try as text.
         const sample = DB.decodeText(u8.subarray(0, 4096)).text.trim();
@@ -8280,9 +8911,10 @@ window.DB.DBF_CODEPAGES = {
     }
     if (res.geojson) kind = 'geojson';
     if (res.gpkg) kind = 'gpkg';
+    if (res.ipynb) kind = 'ipynb';
     const formatKey = kind === 'sav' && ext === 'zsav' ? 'zsav' : kind;
     const sectionKind = ['xlsx', 'xlsm', 'xls', 'ods'].includes(kind) ? 'sheets'
-      : ['html', 'sqlite', 'sql', 'pgdump', 'duckdb', 'access', 'dacpac', 'gpkg'].includes(kind) ? 'tables' : 'records';
+      : ['html', 'sqlite', 'sql', 'pgdump', 'duckdb', 'access', 'dacpac', 'gpkg', 'ipynb'].includes(kind) ? 'tables' : 'records';
     return finalize(Object.assign(res, {
       fileName, fileSize: u8.length, formatKey, formatName: FORMAT_NAMES[formatKey] || kind.toUpperCase(), sectionKind,
     }));
@@ -8301,7 +8933,8 @@ window.DB.DBF_CODEPAGES = {
       s.headerWeak = !!s.headerGuessed && s.columns.length > 0 && s.columns.every((c) => c.type === 'text' || c.type === 'empty');
     }
     doc.notes = doc.notes || {};
-    if (!doc.sections.some((s) => s.rows.length || s.columns.length)) throw new UserError('errEmpty');
+    // A notebook without any table still has its cells to describe
+    if (!doc.contents && !doc.sections.some((s) => s.rows.length || s.columns.length)) throw new UserError('errEmpty');
     if (DB.addRelationships) DB.addRelationships(doc); // declared relationships, then inferred candidates (relationships.js)
     return doc;
   }
@@ -8398,7 +9031,7 @@ window.DB.DBF_CODEPAGES = {
 
   const META_COLS = [
     ['label', 'cLabel'], ['values', 'cValues'], ['measure', 'cMeasure'], ['format', 'cFormat'], ['missing', 'cMissing'],
-    ['sqlType', 'cSql'], ['key', 'cKey'], ['notNull', 'cNotNull'], ['generated', 'cGenerated'], ['parquetType', 'cParquet'], ['geometry', 'cGeometry'],
+    ['sqlType', 'cSql'], ['key', 'cKey'], ['notNull', 'cNotNull'], ['generated', 'cGenerated'], ['parquetType', 'cParquet'], ['geometry', 'cGeometry'], ['dtype', 'cDtype'],
   ];
   const TYPE_KEYS = {
     integer: 'tInteger', decimal: 'tDecimal', date: 'tDate', datetime: 'tDatetime', time: 'tTime',
@@ -8546,6 +9179,48 @@ window.DB.DBF_CODEPAGES = {
    * Collects the prompt. Everything is locked, except free regions: each region becomes one editable
    * block ({ k, s, orig }) that the user can rewrite entirely. Overrides replace a whole region.
    */
+  /* The cells of a notebook, in order (doc.contents, notebook.js). The tables of its outputs are sections; the rest is context.
+   * secName(i): the name to show for section i. ns: the "Do not share data" copy (noshare.js): no code and no output is
+   * in it; the Markdown only when text is true. */
+  function contentsText(cont, t, N, secName, ns, text) {
+    const c = cont.counts;
+    const out = ['**' + t('nbCounts', { n: N(c.cells), code: N(c.code), md: N(c.markdown), raw: N(c.raw) }) + '**', ''];
+    const quote = (s) => s.split('\n').map((l) => '> ' + l).join('\n');
+    const block = (s, lang) => { const f = fenceFor(s); return f + lang + '\n' + s + '\n' + f; };
+    const more = (n) => (n ? '\n_' + t('nbMoreLines', { n: N(n) }) + '_' : '');
+    const withheld = '_(' + t('nbWithheld') + ')_';
+    for (const cell of cont.cells) {
+      const kind = cell.type === 'code' ? t('nbCode') + (cell.exec !== null ? ' [' + cell.exec + ']' : ' · ' + t('nbNotRun'))
+        : cell.type === 'markdown' ? 'Markdown' : t('nbRaw');
+      const head = '**' + t('nbCell', { n: cell.n }) + ' · ' + kind + '**';
+      const lines = [];
+      if (cell.type === 'code') {
+        if (ns) lines.push(head + ': ' + withheld);
+        else if (cell.source) lines.push(head, block(cell.source, cont.language) + more(cell.more));
+        else lines.push(head);
+      } else if (ns && !(text && cell.source !== null)) lines.push(head + ': ' + withheld);
+      else if (cell.source || cell.more) lines.push(head, quote(cell.source || '…') + more(cell.more));
+      else lines.push(head);
+      for (const o of cell.outputs) {
+        if (o.kind === 'table') {
+          lines.push(o.sec >= 0 ? '- ' + t('nbTable', { n: o.sec + 1 }) + ' ' + code(secName(o.sec)) +
+            (o.colsCut ? ' (' + t('nbColsCut', { a: N(o.colsCut.a), b: N(o.colsCut.b) }) + ')' : '') : '- ' + t('nbTableCut', { n: N(cont.maxTables || 200) }));
+        }
+        else if (o.kind === 'error') lines.push('- ' + t('nbError') + ': ' + (o.ename ? code(o.ename) : '') + (!ns && o.evalue ? ' ' + code(o.evalue) : ''));
+        else if (o.kind === 'image') lines.push('- ' + t('nbImage', { mime: o.mime }));
+        else if (o.kind === 'other') lines.push('- ' + t('nbOther', { mime: o.mime }));
+        else {
+          const label = o.kind === 'stream' ? t(o.stderr ? 'nbStderr' : 'nbPrinted') : t('nbText');
+          if (ns) lines.push('- ' + label + ': ' + withheld);
+          else if (o.text || o.more) lines.push('- ' + label + ':', block(o.text || '…', 'text') + more(o.more));
+        }
+      }
+      out.push(lines.join('\n'), '');
+    }
+    if (cont.cellsCut) out.push('_' + t('nbMoreCells', { n: N(cont.cellsCut) }) + '_', '');
+    return out.join('\n') + '\n';
+  }
+
   function Builder(lang, overrides) {
     const parts = [];
     const ov = overrides || {};
@@ -8658,13 +9333,20 @@ window.DB.DBF_CODEPAGES = {
     if (notes.spans) line('- ', 'fmtSpans');
     if (notes.yamlDocs) line('- ', 'fmtYamlDocs');
     if (notes.nestedSkipped) line('- ', 'fmtNested', null, { n: notes.nestedSkipped });
+    if (notes.nbShortened) line('- ', 'nbShortened');
     if (views.some((v) => v.partial)) line('- ', 'fmtPartial');
     if (anyCsv && !files) line('- ', 'fmtCode');
     });
     b.lock('\n'); // the region's own final line break is kept (locked) by region()
 
+    // Locked: the cells of a notebook (its tables are the sections below)
+    if (doc.contents) {
+      line('## ', 'nbTitle'); b.lock('\n'); say('nbIntro'); b.lock('\n\n');
+      b.lock(contentsText(doc.contents, t, N, (k) => (doc.sections[k] ? doc.sections[k].name : '?'), false, true));
+    }
+
     // Locked: sections and columns
-    line('## ', 'details'); b.lock('\n');
+    if (views.length) { line('## ', 'details'); b.lock('\n'); }
     views.forEach((v, i) => {
       const s = v.sec;
       b.lock('### ' + (i + 1) + '. ' + code(s.name) + '\n');
@@ -8702,12 +9384,12 @@ window.DB.DBF_CODEPAGES = {
     // Optional profile of every column (statistics from all the rows)
     if (opts.profile && DB.getProfile) {
       line('## ', 'profTitle'); b.lock('\n'); say('profIntro'); b.lock('\n\n');
-      if (DB.getProfile(doc).some((p) => p.partial)) { say('profPartial', null, { n: N(DB.SQL_MAX_ROWS) }); b.lock('\n\n'); }
+      if (DB.getProfile(doc).some((p) => p.partial)) { say(doc.formatKey === 'ipynb' ? 'nbProfPartial' : 'profPartial', null, { n: N(DB.SQL_MAX_ROWS) }); b.lock('\n\n'); }
       b.lock(profileText(DB.getProfile(doc), t));
     }
 
     // Data
-    line('## ', files ? 'dataSample' : 'data'); b.lock('\n');
+    if (views.length) { line('## ', files ? 'dataSample' : 'data'); b.lock('\n'); }
     views.forEach((v, i) => {
       b.lock('### ' + (i + 1) + '. ' + code(v.sec.name) + '\n\n');
       if (files) { say('sampleOf', 'sampleOf@' + i, { a: N(v.shown), b: N(v.total), file: fileNames[i] }); b.lock('\n\n'); }
@@ -8816,8 +9498,14 @@ window.DB.DBF_CODEPAGES = {
     }
     b.lock('\n');
 
+    // A notebook: which cell made which table; no code and no output, the Markdown only when free text is allowed
+    if (ns.contents) {
+      line('## ', 'nbTitle'); b.lock('\n'); say('nbIntroNs'); b.lock('\n\n');
+      b.lock(contentsText(ns.contents, t, N, (k) => (ns.sections[k] ? S(ns.sections[k].name) : '?'), true, sw.text));
+    }
+
     // Sections and columns: structure only
-    line('## ', 'details'); b.lock('\n');
+    if (ns.sections.length) { line('## ', 'details'); b.lock('\n'); }
     ns.sections.forEach((s, i) => {
       b.lock('### ' + (i + 1) + '. ' + code(S(s.name)) + '\n');
       say('secRows', { n: N(s.rows), c: N(s.columns.length) });
@@ -8890,7 +9578,7 @@ window.DB.DBF_CODEPAGES = {
     // Statistics: counts at level 2, summaries at level 3 (small groups and small tables hidden)
     if (level >= 2) {
       line('## ', 'nsContextTitle'); b.lock('\n'); say(level >= 3 ? 'nsContextL3' : 'nsContextL2'); b.lock('\n\n');
-      if (ns.sections.some((s) => s.profile && s.profile.partial)) { say('profPartial', { n: N(DB.SQL_MAX_ROWS) }); b.lock('\n\n'); }
+      if (ns.sections.some((s) => s.profile && s.profile.partial)) { say(ns.formatKey === 'ipynb' ? 'nbProfPartial' : 'profPartial', { n: N(DB.SQL_MAX_ROWS) }); b.lock('\n\n'); }
       const KIND = { identifier: 'kindIdentifier', categorical: 'kindCategorical', continuous: 'kindContinuous', datetime: 'kindDatetime',
         text: 'kindText', empty: 'kindEmpty', mixed: 'kindMixed' };
       const pct = (x) => (x >= 10 ? Math.round(x) : Math.round(x * 10) / 10) + '%';
@@ -8924,6 +9612,7 @@ window.DB.DBF_CODEPAGES = {
     if (!sw.rel && ns.relationships.length) missing.push('nsMRel');
     if (!sw.sql && ns.hasSql) missing.push('nsMSql');
     if (!sw.text && ns.hasFreeText) missing.push('nsMText');
+    if (ns.contents) missing.push('nbMCode');
     for (const k of missing) line('- ', k);
     b.lock('\n');
 
@@ -9186,8 +9875,8 @@ window.DB.DBF_CODEPAGES = {
   const chips = $('chips');
   // One card per family of formats (what is read / the best file / good to know), opened by clicking a format.
   const CARD = { csv: 'Csv', tsv: 'Csv', txt: 'Csv', xlsx: 'Excel', xlsm: 'Excel', xls: 'Excel', ods: 'Excel', json: 'Json', ndjson: 'Json',
-    xml: 'Xml', yaml: 'Yaml', html: 'Html', sav: 'Spss', parquet: 'Parquet', sqlite: 'Sqlite', sql: 'Sql', pgdump: 'Pgdump', dbf: 'Dbf', duckdb: 'Duckdb', access: 'Access', dacpac: 'Dacpac', geojson: 'Geojson', gpkg: 'Gpkg' };
-  const GUIDE = { Csv: 'csv', Excel: 'excel', Json: 'json', Xml: 'xml', Yaml: 'yaml', Html: 'html', Spss: 'spss', Parquet: 'parquet', Sqlite: 'sqlite', Sql: 'sql', Pgdump: 'pgdump', Dbf: 'dbf', Duckdb: 'duckdb', Access: 'access', Dacpac: 'dacpac', Geojson: 'geodata', Gpkg: 'geodata' };
+    xml: 'Xml', yaml: 'Yaml', html: 'Html', sav: 'Spss', parquet: 'Parquet', sqlite: 'Sqlite', sql: 'Sql', pgdump: 'Pgdump', dbf: 'Dbf', duckdb: 'Duckdb', access: 'Access', dacpac: 'Dacpac', geojson: 'Geojson', gpkg: 'Gpkg', ipynb: 'Ipynb' };
+  const GUIDE = { Csv: 'csv', Excel: 'excel', Json: 'json', Xml: 'xml', Yaml: 'yaml', Html: 'html', Spss: 'spss', Parquet: 'parquet', Sqlite: 'sqlite', Sql: 'sql', Pgdump: 'pgdump', Dbf: 'dbf', Duckdb: 'duckdb', Access: 'access', Dacpac: 'dacpac', Geojson: 'geodata', Gpkg: 'geodata', Ipynb: 'notebook' };
   function openCard(f) {
     const k = CARD[f.key];
     $('fmtTitle').textContent = (f.key === 'sav' ? 'SPSS .sav / .zsav' : f.label) + ' · ' + f.exts.map((e) => '.' + e).join(' ');

@@ -82,16 +82,31 @@
       };
     });
     const views = (doc.views || []).map((v) => ({ name: v.name, sql: v.sql }));
+    // A notebook: the kind of each cell and of each output, which section a table became. Code and outputs (printed text,
+    // values, error messages) can hold records: never copied. Markdown and raw cells are free text (shown only when allowed).
+    // An error keeps its class name only when it is one (ZeroDivisionError), never its message.
+    const nb = doc.contents && doc.contents.kind === 'notebook' ? doc.contents : null;
+    const contents = nb ? {
+      kind: 'notebook', language: nb.language, counts: copy(nb.counts), cellsCut: nb.cellsCut, maxTables: nb.maxTables,
+      cells: nb.cells.map((c) => ({
+        n: c.n, type: c.type, exec: c.exec, source: c.type === 'code' ? null : c.source, more: c.type === 'code' ? 0 : c.more,
+        outputs: c.outputs.map((o) => (o.kind === 'table' ? { kind: 'table', sec: o.sec, colsCut: copy(o.colsCut) }
+          : o.kind === 'error' ? { kind: 'error', ename: /^[A-Za-z_][\w.]{0,80}$/.test(o.ename) ? o.ename : '' }
+            : o.kind === 'image' || o.kind === 'other' ? { kind: o.kind, mime: o.mime }
+              : { kind: o.kind, stderr: !!o.stderr })),
+      })),
+    } : null;
     const fileMeta = (doc.fileMeta || [])
       .map(([key, value]) => ({ key, value: key === 'mNames' ? keepRanges(String(value)) : String(value), freeText: FREE_TEXT_META.has(key), names: NAME_META.has(key), files: FILE_META.has(key), data: DATA_META.has(key) }))
       .filter((m) => m.value !== '');
     return {
       level, fileName: doc.fileName, fileSize: doc.fileSize, formatName: doc.formatName, formatKey: doc.formatKey, sectionKind: doc.sectionKind,
-      sections, views, fileMeta, relationships: relationshipsFor(doc.relationships, level),
+      sections, views, fileMeta, contents, relationships: relationshipsFor(doc.relationships, level),
       hadInferred: (doc.relationships || []).some((r) => r.source === 'inferred'),
       hasLabels: sections.some((s) => s.caption || s.columns.some((c) => c.meta.label || c.meta.values)),
       hasSql: views.length > 0 || sections.some((s) => s.constraints && s.constraints.ddl),
-      hasFreeText: sections.some((s) => s.comments.length || s.description) || fileMeta.some((m) => m.freeText),
+      hasFreeText: sections.some((s) => s.comments.length || s.description) || fileMeta.some((m) => m.freeText) ||
+        !!(contents && contents.cells.some((c) => c.type !== 'code' && c.source)),
     };
   };
 

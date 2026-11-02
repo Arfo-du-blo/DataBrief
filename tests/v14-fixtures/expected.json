@@ -68,6 +68,20 @@
     "errors": [ { "cell": 5, "name": "ZeroDivisionError" } ],
     "neverRun": "a reader must never execute anything: only the stored outputs are read"
   },
+  "ipynbShapes": {
+    "file": "shapes.ipynb",
+    "data": "sales: region, year, amount, qty = North 2023 10.5 3 / North 2024 12.0 4 / South 2023 7.25 2 / South 2024 9.0 5",
+    "tables": {
+      "by_region": "named index 'region' (set_index): a column of its own",
+      "pivot": "MultiIndex columns: amount / 2023, amount / 2024, qty / 2023, qty / 2024; index 'region'",
+      "two_levels": "MultiIndex rows region, year (rowspan in the HTML)",
+      "wide": "30 columns c0..c29, pandas stores c0..c9 and c20..c29 with a '...' column between; footer '3 rows × 30 columns'",
+      "first, second": "two display() calls in one cell",
+      "Styler": "sales.style.format(precision=1): 7.25 shown as 7.2",
+      "pl_sales": "Polars: a row of types (str, f64) in the head, text in quotes, 'shape: (2, 2)'"
+    },
+    "other": "stderr text and a PNG image in cell 9; cell 10 added after the run (never executed)"
+  },
   "geojson": {
     "file": "places.geojson",
     "features": 5,

@@ -481,6 +481,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
       { f: 'sql.sql', txt: true, lab: true, sql: true }, { f: 'pgdump.dump', txt: true, lab: true, sql: true }, { f: 'dbf.dbf', names: 'CONF_COL' }, { f: 'access.accdb' }, { f: 'dacpac.dacpac', noRec: true, txt: true, lab: true, sql: true },
       { f: 'csvgz.csv.gz' },   // the section is named after the file inside the gzip: the file name too
       { f: 'geojson.geojson' }, { f: 'gpkg.gpkg' },   // coordinates are records; layer and column names are names
+      { f: 'ipynb.ipynb', txt: true },   // code and outputs never (they hold values); Markdown is free text; the table's columns are names
     ];
     const checks = [];
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
@@ -565,7 +566,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     {
       const p = await newPage();
       ok(await p.evaluate(() => document.getElementById('nsOn').offsetParent === null), '8: switch must not be visible before a file is read');
-      ok(await p.evaluate(() => document.getElementById('chips').children.length === 23 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
+      ok(await p.evaluate(() => document.getElementById('chips').children.length === 24 && !document.getElementById('nsToggleWrap').offsetParent), '8: chips shown, no "Do not share data" text on the home screen');
       const r0 = await load(p, F('confidential.csv'));
       ok(r0.md.includes('CONFIDENTIAL_CUSTOMER_74291') && await p.evaluate(() => document.getElementById('nsOn').offsetParent !== null && !document.getElementById('nsOn').checked), '8: after loading: data included, switch visible and off');
       const order = await p.evaluate(() => ['secSummary', 'secShare', 'secOutput'].map((id) => document.getElementById(id).getBoundingClientRect().top));
@@ -670,7 +671,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     const wait = (ms) => new Promise((res) => setTimeout(res, ms || 150));
     const page = await newPage();
     const chips = await page.$$eval('#chips button.chip', (els) => els.length);
-    if (chips !== 23) checks.push('expected 23 clickable formats, got ' + chips);
+    if (chips !== 24) checks.push('expected 24 clickable formats, got ' + chips);
     for (let i = 0; i < chips; i++) {
       await page.evaluate((n) => document.querySelectorAll('#chips button.chip')[n].click(), i); await wait(60);
       const r = await page.evaluate(() => ({
@@ -684,12 +685,12 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     // every card in every language, with the guide link
     const miss = await page.evaluate(() => {
       const I = window.DB_I18N, out = [];
-      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump', 'Dbf', 'Duckdb', 'Access', 'Dacpac', 'Geojson', 'Gpkg']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
+      for (const l of I.langs.map((x) => x.code)) for (const k of ['Csv', 'Excel', 'Json', 'Xml', 'Yaml', 'Html', 'Spss', 'Parquet', 'Sqlite', 'Sql', 'Pgdump', 'Dbf', 'Duckdb', 'Access', 'Dacpac', 'Geojson', 'Gpkg', 'Ipynb']) for (const p of ['Reads', 'Best', 'Good']) if (!I.ui[l]['fc' + k + p]) out.push(l + ':' + k + p);
       return out;
     });
     if (miss.length) checks.push('missing card texts: ' + miss.join(','));
     // the guides the cards link to exist in the repository
-    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump', 'dbf', 'duckdb', 'access', 'dacpac', 'geodata']) {
+    for (const g of ['csv', 'excel', 'json', 'xml', 'yaml', 'html', 'spss', 'parquet', 'sqlite', 'sql', 'pgdump', 'dbf', 'duckdb', 'access', 'dacpac', 'geodata', 'notebook']) {
       if (!fs.existsSync(path.join(path.dirname(htmlPath), 'docs', 'formats', g + '.md'))) checks.push('guide docs/formats/' + g + '.md is missing');
     }
     // "what was found"
@@ -698,7 +699,7 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     if (found !== 'Found: 7 sections · 16 columns · 5 relationships (0 declared, 5 inferred)') checks.push('found line: ' + found);
     await page.close();
     if (checks.length) fail('format cards', checks.join(' | '));
-    else pass('format cards', '23 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
+    else pass('format cards', '24 clickable formats, 3 blocks each, guide links, all 15 languages, "what was found" line');
   }
 
   // ---------- export helper (commands to export a database) ----------
@@ -805,6 +806,76 @@ const pass = (name, msg) => results.push({ name, ok: true, msg: msg || '' });
     await p.close();
     if (checks.length) fail('geodata', checks.join(' | '));
     else pass('geodata', 'GeoJSON (also as .json) and GeoPackage written by GDAL: layers, summarised geometries, coordinate systems, no machinery tables; no-share keeps the system, drops coordinates, extent and counts');
+  }
+
+  // ---------- Jupyter notebooks (executed by a real kernel, tests/v14-fixtures) ----------
+  {
+    const checks = [];
+    const bad = (m) => checks.push(m);
+    const wait = (ms) => new Promise((res) => setTimeout(res, ms || 300));
+    const docOf = (p) => p.evaluate(() => {
+      const d = window.DataBrief.getState().doc;
+      return d && { key: d.formatKey, name: d.formatName, secs: d.sections.map((s) => s.name + ':' + s.rows.length) };
+    });
+    let p = await newPage();
+    let r = await load(p, F('analysis.ipynb'));
+    let d = r.ok && await docOf(p);
+    if (!d || d.key !== 'ipynb' || d.name !== 'Jupyter notebook' || d.secs.join(',') !== 'customers:4,orders.head(2):2,big:10') bad('analysis.ipynb: ' + JSON.stringify(d || r.err));
+    if (r.ok) {
+      const md = r.md;
+      for (const s of ['## Notebook contents', '7 cells: 5 code, 2 Markdown, 0 other', '**Cell 1 · Markdown**\n> # Customer analysis', '**Cell 2 · code [1]**\n```python\nimport pandas as pd',
+        '- Output: table, section 1 `customers`', '- Printed output:\n```text\n4\n```', '- Error: `ZeroDivisionError` `division by zero`', 'Name: total',
+        '**Language:** python 3.12', 'Rows included: the first 10 of 300 (partial)', '**Tables from a notebook:**', '| Ana Lima |', '## Sections and columns']) if (!md.includes(s)) bad('prompt lacks: ' + JSON.stringify(s));
+      if (md.indexOf('## Notebook contents') > md.indexOf('## Sections and columns')) bad('the contents should come before the sections');
+      // "Do not share data": no code, no output, no value; the Markdown only with free text; the cell -> table links stay
+      await p.click('#nsOn'); await wait(500);
+      for (const level of [1, 3]) {
+        if (level === 3) { await p.click('#nsLevelGroup button[data-level="3"]'); await wait(400); }
+        const ns = await p.evaluate(() => window.DataBrief.getMarkdown());
+        for (const s of ['## Notebook contents', '**Cell 2 · code [1]**: _(not shared)_', '- Output: table, section 1 `customers`', '- Printed output: _(not shared)_', '- Error: `ZeroDivisionError`',
+          "The notebook's code and the outputs of its cells"]) if (!ns.includes(s)) bad('no-share level ' + level + ' lacks: ' + JSON.stringify(s));
+        for (const s of ['import pandas', 'division by zero', '24.90', 'Ana Lima', 'Customer analysis', 'range(300)']) if (ns.includes(s)) bad('no-share level ' + level + ' leaks: ' + s);
+      }
+      await p.evaluate(() => document.querySelector('[data-sw="text"]').click()); await wait();
+      const txt = await p.evaluate(() => window.DataBrief.getMarkdown());
+      if (!txt.includes('> # Customer analysis')) bad('no-share with free text: the Markdown should appear');
+      for (const s of ['import pandas', 'division by zero', '24.90']) if (txt.includes(s)) bad('no-share with free text leaks code or output: ' + s);
+      await p.evaluate(() => localStorage.clear());
+    }
+    await p.close();
+
+    // a notebook saved as .json: recognised by its content
+    p = await newPage();
+    r = await load(p, F('analysis_as.json'));
+    d = r.ok && await docOf(p);
+    if (!d || d.key !== 'ipynb') bad('notebook in a .json file: ' + JSON.stringify(d || r.err));
+    await p.close();
+
+    // pandas MultiIndex, a frame too wide, the Styler, Polars types, stderr, an image, a cell never run
+    p = await newPage();
+    r = await load(p, F('shapes.ipynb'));
+    d = r.ok && await docOf(p);
+    if (!d || d.secs.length !== 8) bad('shapes.ipynb: ' + JSON.stringify(d || r.err));
+    if (r.ok) {
+      for (const s of ['`amount / 2023`', '(20 of 30 columns stored)', '| Type in the notebook |', '| `region` | text | str |', '- Messages (stderr):', '- Output: image (image/png), not read',
+        '**Cell 10 · code · not run**', '| North | 22.5 |']) if (!r.md.includes(s)) bad('shapes prompt lacks: ' + JSON.stringify(s));
+      if (r.md.includes('"North"')) bad('Polars quotes should be removed');
+    }
+    await p.close();
+
+    // a notebook without any table output: still a prompt (its cells), no empty "Data" part
+    p = await newPage();
+    r = await load(p, F('no_tables.ipynb'));
+    if (!r.ok) bad('no_tables.ipynb: ' + r.err);
+    else {
+      if (!r.md.includes('rows: 120') || !r.md.includes('> # Plan')) bad('no_tables prompt lacks its cells');
+      if (/\n## (Data|Sections and columns)\n/.test(r.md)) bad('no_tables: empty data headings');
+      const found = await p.$eval('#foundLine', (el) => el.textContent);
+      if (!/^Found: 0 sections/.test(found)) bad('no_tables found line: ' + found);
+    }
+    await p.close();
+    if (checks.length) fail('notebooks', checks.join(' | '));
+    else pass('notebooks', 'executed notebooks: data frames as sections (pandas, MultiIndex, Styler, Polars), cells as context; no-share keeps cell kinds and table links, never code or outputs');
   }
 
   // ---------- SQL dumps and PostgreSQL archives (real dumps of tests/sql-fixtures) ----------

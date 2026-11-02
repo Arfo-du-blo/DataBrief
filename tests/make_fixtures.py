@@ -486,3 +486,16 @@ for _f in ("places.geojson", "city.gpkg"):
 shutil.copy(os.path.join(_v14, "geo-fixtures", "places.geojson"), P("places_as.json"))
 shutil.copy(os.path.join(_v14, "canary", "CONFIDENTIAL_FILE_geojson.geojson"), Q("geojson", "geojson"))
 shutil.copy(os.path.join(_v14, "canary", "CONFIDENTIAL_FILE_gpkg.gpkg"), Q("gpkg", "gpkg"))
+
+# --- Jupyter notebooks (v1.4): executed by a real kernel (tests/make_v14_fixtures.sh), their canary, one saved as .json,
+#     and one without any table output (written here: Markdown, code, printed text only)
+for _f in ("analysis.ipynb", "shapes.ipynb"):
+    shutil.copy(os.path.join(_v14, "ipynb-fixtures", _f), P(_f))
+shutil.copy(os.path.join(_v14, "ipynb-fixtures", "analysis.ipynb"), P("analysis_as.json"))
+shutil.copy(os.path.join(_v14, "canary", "CONFIDENTIAL_FILE_ipynb.ipynb"), Q("ipynb", "ipynb"))
+with open(P("no_tables.ipynb"), "w", encoding="utf-8") as _f:
+    json.dump({"nbformat": 4, "nbformat_minor": 5, "metadata": {"language_info": {"name": "python"}}, "cells": [
+        {"cell_type": "markdown", "metadata": {}, "source": ["# Plan\n", "Load the survey."]},
+        {"cell_type": "code", "execution_count": 1, "metadata": {}, "source": ["print('rows:', 120)"],
+         "outputs": [{"output_type": "stream", "name": "stdout", "text": ["rows: 120\n"]}]},
+    ]}, _f)

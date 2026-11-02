@@ -89,7 +89,7 @@
 
   const META_COLS = [
     ['label', 'cLabel'], ['values', 'cValues'], ['measure', 'cMeasure'], ['format', 'cFormat'], ['missing', 'cMissing'],
-    ['sqlType', 'cSql'], ['key', 'cKey'], ['notNull', 'cNotNull'], ['generated', 'cGenerated'], ['parquetType', 'cParquet'], ['geometry', 'cGeometry'],
+    ['sqlType', 'cSql'], ['key', 'cKey'], ['notNull', 'cNotNull'], ['generated', 'cGenerated'], ['parquetType', 'cParquet'], ['geometry', 'cGeometry'], ['dtype', 'cDtype'],
   ];
   const TYPE_KEYS = {
     integer: 'tInteger', decimal: 'tDecimal', date: 'tDate', datetime: 'tDatetime', time: 'tTime',
@@ -237,6 +237,48 @@
    * Collects the prompt. Everything is locked, except free regions: each region becomes one editable
    * block ({ k, s, orig }) that the user can rewrite entirely. Overrides replace a whole region.
    */
+  /* The cells of a notebook, in order (doc.contents, notebook.js). The tables of its outputs are sections; the rest is context.
+   * secName(i): the name to show for section i. ns: the "Do not share data" copy (noshare.js): no code and no output is
+   * in it; the Markdown only when text is true. */
+  function contentsText(cont, t, N, secName, ns, text) {
+    const c = cont.counts;
+    const out = ['**' + t('nbCounts', { n: N(c.cells), code: N(c.code), md: N(c.markdown), raw: N(c.raw) }) + '**', ''];
+    const quote = (s) => s.split('\n').map((l) => '> ' + l).join('\n');
+    const block = (s, lang) => { const f = fenceFor(s); return f + lang + '\n' + s + '\n' + f; };
+    const more = (n) => (n ? '\n_' + t('nbMoreLines', { n: N(n) }) + '_' : '');
+    const withheld = '_(' + t('nbWithheld') + ')_';
+    for (const cell of cont.cells) {
+      const kind = cell.type === 'code' ? t('nbCode') + (cell.exec !== null ? ' [' + cell.exec + ']' : ' · ' + t('nbNotRun'))
+        : cell.type === 'markdown' ? 'Markdown' : t('nbRaw');
+      const head = '**' + t('nbCell', { n: cell.n }) + ' · ' + kind + '**';
+      const lines = [];
+      if (cell.type === 'code') {
+        if (ns) lines.push(head + ': ' + withheld);
+        else if (cell.source) lines.push(head, block(cell.source, cont.language) + more(cell.more));
+        else lines.push(head);
+      } else if (ns && !(text && cell.source !== null)) lines.push(head + ': ' + withheld);
+      else if (cell.source || cell.more) lines.push(head, quote(cell.source || '…') + more(cell.more));
+      else lines.push(head);
+      for (const o of cell.outputs) {
+        if (o.kind === 'table') {
+          lines.push(o.sec >= 0 ? '- ' + t('nbTable', { n: o.sec + 1 }) + ' ' + code(secName(o.sec)) +
+            (o.colsCut ? ' (' + t('nbColsCut', { a: N(o.colsCut.a), b: N(o.colsCut.b) }) + ')' : '') : '- ' + t('nbTableCut', { n: N(cont.maxTables || 200) }));
+        }
+        else if (o.kind === 'error') lines.push('- ' + t('nbError') + ': ' + (o.ename ? code(o.ename) : '') + (!ns && o.evalue ? ' ' + code(o.evalue) : ''));
+        else if (o.kind === 'image') lines.push('- ' + t('nbImage', { mime: o.mime }));
+        else if (o.kind === 'other') lines.push('- ' + t('nbOther', { mime: o.mime }));
+        else {
+          const label = o.kind === 'stream' ? t(o.stderr ? 'nbStderr' : 'nbPrinted') : t('nbText');
+          if (ns) lines.push('- ' + label + ': ' + withheld);
+          else if (o.text || o.more) lines.push('- ' + label + ':', block(o.text || '…', 'text') + more(o.more));
+        }
+      }
+      out.push(lines.join('\n'), '');
+    }
+    if (cont.cellsCut) out.push('_' + t('nbMoreCells', { n: N(cont.cellsCut) }) + '_', '');
+    return out.join('\n') + '\n';
+  }
+
   function Builder(lang, overrides) {
     const parts = [];
     const ov = overrides || {};
@@ -349,13 +391,20 @@
     if (notes.spans) line('- ', 'fmtSpans');
     if (notes.yamlDocs) line('- ', 'fmtYamlDocs');
     if (notes.nestedSkipped) line('- ', 'fmtNested', null, { n: notes.nestedSkipped });
+    if (notes.nbShortened) line('- ', 'nbShortened');
     if (views.some((v) => v.partial)) line('- ', 'fmtPartial');
     if (anyCsv && !files) line('- ', 'fmtCode');
     });
     b.lock('\n'); // the region's own final line break is kept (locked) by region()
 
+    // Locked: the cells of a notebook (its tables are the sections below)
+    if (doc.contents) {
+      line('## ', 'nbTitle'); b.lock('\n'); say('nbIntro'); b.lock('\n\n');
+      b.lock(contentsText(doc.contents, t, N, (k) => (doc.sections[k] ? doc.sections[k].name : '?'), false, true));
+    }
+
     // Locked: sections and columns
-    line('## ', 'details'); b.lock('\n');
+    if (views.length) { line('## ', 'details'); b.lock('\n'); }
     views.forEach((v, i) => {
       const s = v.sec;
       b.lock('### ' + (i + 1) + '. ' + code(s.name) + '\n');
@@ -393,12 +442,12 @@
     // Optional profile of every column (statistics from all the rows)
     if (opts.profile && DB.getProfile) {
       line('## ', 'profTitle'); b.lock('\n'); say('profIntro'); b.lock('\n\n');
-      if (DB.getProfile(doc).some((p) => p.partial)) { say('profPartial', null, { n: N(DB.SQL_MAX_ROWS) }); b.lock('\n\n'); }
+      if (DB.getProfile(doc).some((p) => p.partial)) { say(doc.formatKey === 'ipynb' ? 'nbProfPartial' : 'profPartial', null, { n: N(DB.SQL_MAX_ROWS) }); b.lock('\n\n'); }
       b.lock(profileText(DB.getProfile(doc), t));
     }
 
     // Data
-    line('## ', files ? 'dataSample' : 'data'); b.lock('\n');
+    if (views.length) { line('## ', files ? 'dataSample' : 'data'); b.lock('\n'); }
     views.forEach((v, i) => {
       b.lock('### ' + (i + 1) + '. ' + code(v.sec.name) + '\n\n');
       if (files) { say('sampleOf', 'sampleOf@' + i, { a: N(v.shown), b: N(v.total), file: fileNames[i] }); b.lock('\n\n'); }
@@ -507,8 +556,14 @@
     }
     b.lock('\n');
 
+    // A notebook: which cell made which table; no code and no output, the Markdown only when free text is allowed
+    if (ns.contents) {
+      line('## ', 'nbTitle'); b.lock('\n'); say('nbIntroNs'); b.lock('\n\n');
+      b.lock(contentsText(ns.contents, t, N, (k) => (ns.sections[k] ? S(ns.sections[k].name) : '?'), true, sw.text));
+    }
+
     // Sections and columns: structure only
-    line('## ', 'details'); b.lock('\n');
+    if (ns.sections.length) { line('## ', 'details'); b.lock('\n'); }
     ns.sections.forEach((s, i) => {
       b.lock('### ' + (i + 1) + '. ' + code(S(s.name)) + '\n');
       say('secRows', { n: N(s.rows), c: N(s.columns.length) });
@@ -581,7 +636,7 @@
     // Statistics: counts at level 2, summaries at level 3 (small groups and small tables hidden)
     if (level >= 2) {
       line('## ', 'nsContextTitle'); b.lock('\n'); say(level >= 3 ? 'nsContextL3' : 'nsContextL2'); b.lock('\n\n');
-      if (ns.sections.some((s) => s.profile && s.profile.partial)) { say('profPartial', { n: N(DB.SQL_MAX_ROWS) }); b.lock('\n\n'); }
+      if (ns.sections.some((s) => s.profile && s.profile.partial)) { say(ns.formatKey === 'ipynb' ? 'nbProfPartial' : 'profPartial', { n: N(DB.SQL_MAX_ROWS) }); b.lock('\n\n'); }
       const KIND = { identifier: 'kindIdentifier', categorical: 'kindCategorical', continuous: 'kindContinuous', datetime: 'kindDatetime',
         text: 'kindText', empty: 'kindEmpty', mixed: 'kindMixed' };
       const pct = (x) => (x >= 10 ? Math.round(x) : Math.round(x * 10) / 10) + '%';
@@ -615,6 +670,7 @@
     if (!sw.rel && ns.relationships.length) missing.push('nsMRel');
     if (!sw.sql && ns.hasSql) missing.push('nsMSql');
     if (!sw.text && ns.hasFreeText) missing.push('nsMText');
+    if (ns.contents) missing.push('nbMCode');
     for (const k of missing) line('- ', k);
     b.lock('\n');
 

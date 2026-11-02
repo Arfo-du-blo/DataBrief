@@ -32,13 +32,14 @@
     { key: 'dacpac', label: 'DACPAC', exts: ['dacpac', 'bacpac'] },
     { key: 'geojson', label: 'GeoJSON', exts: ['geojson'] },
     { key: 'gpkg', label: 'GeoPackage', exts: ['gpkg'] },
+    { key: 'ipynb', label: 'Jupyter', exts: ['ipynb'] },
   ];
   const FORMAT_NAMES = {
     csv: 'CSV', tsv: 'TSV', txt: 'TXT (CSV)', xlsx: 'Excel (XLSX)', xlsm: 'Excel (XLSM)',
     xls: 'Excel 97-2003 (XLS)', ods: 'OpenDocument (ODS)', json: 'JSON', ndjson: 'NDJSON / JSON Lines',
     xml: 'XML', yaml: 'YAML', html: 'HTML', sav: 'SPSS Statistics (.sav)', zsav: 'SPSS Statistics (.zsav)',
     parquet: 'Apache Parquet', sqlite: 'SQLite', sql: 'SQL dump', pgdump: 'PostgreSQL archive (pg_dump)', dbf: 'dBase / FoxPro (DBF)', duckdb: 'DuckDB export (zip)', access: 'Microsoft Access', dacpac: 'SQL Server data-tier package',
-    geojson: 'GeoJSON', gpkg: 'GeoPackage',
+    geojson: 'GeoJSON', gpkg: 'GeoPackage', ipynb: 'Jupyter notebook',
   };
   DB.ACCEPT = DB.FORMATS.flatMap((f) => f.exts.map((e) => '.' + e)).concat(['.gz']).join(','); // .gz: a compressed file of any of these
 
@@ -177,6 +178,9 @@
         try { tree = lines(); } catch (e2) { throw e; }
       }
     }
+    // A Jupyter notebook (also saved as .json): its stored outputs and cells, never run
+    const nb = DB.notebookDoc && DB.notebookDoc(tree, baseOf(name));
+    if (nb) return nb;
     const geo = DB.geoJsonDoc && DB.geoJsonDoc(tree, baseOf(name));
     if (geo) { geo.geojson = true; return geo; }
     return treeToDoc(tree, baseOf(name));
@@ -780,6 +784,7 @@
       kind = f.key;
       if (kind === 'geojson') kind = 'json';                // read as JSON, recognised as GeoJSON by its content
       if (kind === 'gpkg') kind = 'sqlite';                 // a GeoPackage is a SQLite file
+      if (kind === 'ipynb') kind = 'json';                  // a notebook is a JSON file
       if (['xlsx', 'xlsm', 'xls', 'ods', 'sqlite', 'parquet', 'sav', 'duckdb', 'access', 'dacpac'].includes(kind)) {
         // Binary format expected but the content does not match: try as text.
         const sample = DB.decodeText(u8.subarray(0, 4096)).text.trim();
@@ -815,9 +820,10 @@
     }
     if (res.geojson) kind = 'geojson';
     if (res.gpkg) kind = 'gpkg';
+    if (res.ipynb) kind = 'ipynb';
     const formatKey = kind === 'sav' && ext === 'zsav' ? 'zsav' : kind;
     const sectionKind = ['xlsx', 'xlsm', 'xls', 'ods'].includes(kind) ? 'sheets'
-      : ['html', 'sqlite', 'sql', 'pgdump', 'duckdb', 'access', 'dacpac', 'gpkg'].includes(kind) ? 'tables' : 'records';
+      : ['html', 'sqlite', 'sql', 'pgdump', 'duckdb', 'access', 'dacpac', 'gpkg', 'ipynb'].includes(kind) ? 'tables' : 'records';
     return finalize(Object.assign(res, {
       fileName, fileSize: u8.length, formatKey, formatName: FORMAT_NAMES[formatKey] || kind.toUpperCase(), sectionKind,
     }));
@@ -836,7 +842,8 @@
       s.headerWeak = !!s.headerGuessed && s.columns.length > 0 && s.columns.every((c) => c.type === 'text' || c.type === 'empty');
     }
     doc.notes = doc.notes || {};
-    if (!doc.sections.some((s) => s.rows.length || s.columns.length)) throw new UserError('errEmpty');
+    // A notebook without any table still has its cells to describe
+    if (!doc.contents && !doc.sections.some((s) => s.rows.length || s.columns.length)) throw new UserError('errEmpty');
     if (DB.addRelationships) DB.addRelationships(doc); // declared relationships, then inferred candidates (relationships.js)
     return doc;
   }

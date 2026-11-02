@@ -31,6 +31,8 @@ JSON is a tree, DataBrief's model is a set of tables. This guide explains how th
 
 - A `.json` file that holds **GeoJSON** (a `FeatureCollection`, a `Feature` or a geometry) is recognised by its content and
   read as geodata: one row per feature, the geometry summarised. See [Geodata](geodata.md).
+- A `.json` file that holds a **Jupyter notebook** (`nbformat` and `cells`) is read as a notebook: the tables of its outputs
+  and its cells. See [Notebooks](notebook.md).
 
 - **`null`, a missing field and an empty string all become an empty cell.** The prompt says an empty cell means "missing". Records with different keys give the union of the keys, with empty cells where a key is absent.
 - **Integers above 2^53** (9,007,199,254,740,992) may lose precision: JSON numbers are read as floating-point numbers. If you have very large identifiers, write them as strings.
