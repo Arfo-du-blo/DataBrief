@@ -24,7 +24,7 @@ const LANGS = ['en', 'fr', 'es', 'de', 'it', 'pt', 'nl', 'pl', 'ru', 'tr', 'zh',
 const pageLangs = [...read('src/i18n.js').matchAll(/code:\s*'([a-z]{2})'/g)].map((m) => m[1]);
 check('the widget has the page\'s 15 languages, and no other', JSON.stringify(Object.keys(I).sort()) === JSON.stringify(LANGS.slice().sort()) && (!pageLangs.length || JSON.stringify([...new Set(pageLangs)].sort()) === JSON.stringify(LANGS.slice().sort())), Object.keys(I).join());
 const keys = Object.keys(I.en);
-check('English has 45 keys', keys.length === 45, String(keys.length));
+check('English has 43 keys', keys.length === 43, String(keys.length));
 const ph = (s) => (s.match(/\{\w+\}/g) || []).sort().join(',');
 for (const code of LANGS) {
   const t = I[code];
@@ -43,8 +43,8 @@ for (const m of js.matchAll(/(?:done|fail)\('([A-Za-z]+)'\)/g)) used.add(m[1]);
 for (const m of js.matchAll(/mkBtn\('[^']+',\s*'[^']*',\s*'([A-Za-z]+)'/g)) used.add(m[1]);
 for (const m of js.matchAll(/T\(hk === 'fill' \? '([A-Za-z]+)' : \(hk === 'send' \? '([A-Za-z]+)' : '([A-Za-z]+)'\)\)/g)) { used.add(m[1]); used.add(m[2]); used.add(m[3]); }
 check('every key the code asks for exists', [...used].every((k) => keys.includes(k)), [...used].filter((k) => !keys.includes(k)).join());
-check('the lines written in the message box are in every language, with the {q} where it belongs', LANGS.every((c) => I[c].lineAsk.includes('{q}') && I[c].askBundle.includes('{q}') && !I[c].lineRead.includes('{') && !I[c].lineReadFill.includes('{')));
-check('the lines for hosts that keep the context aside name the step to take (read_widget_context), the others do not', LANGS.every((c) => I[c].lineReadFill.includes('read_widget_context') && I[c].lineAskFill.includes('read_widget_context') && I[c].lineAskFill.includes('{q}') && !I[c].lineRead.includes('read_widget_context') && !I[c].lineAsk.includes('read_widget_context')));
+check('the lines written in the message box are in every language, with the {q} where it belongs', LANGS.every((c) => I[c].lineAsk.includes('{q}') && I[c].askBundle.includes('{q}') && !I[c].lineRead.includes('{')));
+check('the lines written in the message box carry no internal tool name (they read like something a person would write)', LANGS.every((c) => !/read_widget_context|_/.test(I[c].lineRead + I[c].lineAsk + I[c].askBundle)) && !('lineReadFill' in I.en) && !('lineAskFill' in I.en));
 
 /* ---------- the build ---------- */
 const basePath = path.join(ROOT, 'databrief.html');

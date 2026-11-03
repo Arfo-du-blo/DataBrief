@@ -1,11 +1,10 @@
 /* DataBrief - texts of the widget layer, in the page's 15 languages. GPL-3.0-or-later.
  * One object per language. {name} placeholders are replaced by the widget; every language must carry the same keys and exactly the
  * placeholders of English (tests/test_widget.cjs checks it).
- * lineRead, lineReadFill, lineAsk, lineAskFill and askBundle are not interface texts: they are written in the user's message box, in
- * the PROMPT language. The "Fill" lines are for hosts that keep the context out of the conversation until the AI asks for it (Claude):
- * they name the step to take. askBundle starts the one message that carries the user's question and the whole prompt, used where the
- * AI cannot open the context (the Claude Desktop home chat); askFill and doneAskFill are the texts of that route, askCtxFill and
- * doneAskCtx those of the short route (the context plus a line with the question). */
+ * lineRead, lineAsk and askBundle are not interface texts: they are written in the user's message box, in the PROMPT language.
+ * askBundle starts the one message that carries the user's question and the whole prompt, used where the AI cannot open the
+ * context (the Claude Desktop home chat); askFill and doneAskFill are the texts of that route, askCtxFill and doneAskCtx those of the
+ * short route (the context plus a line with the question). */
 'use strict';
 (function () {
   window.DB_WIDGET_I18N = {
@@ -50,9 +49,7 @@
       working: "Working...",
       lineRead: "Read the DataBrief widget context and follow the prompt in it.",
       lineAsk: "Read the DataBrief widget context, then answer: {q}",
-      lineReadFill: "Read the DataBrief widget context (read_widget_context) and follow the prompt in it.",
       askBundle: "My question about this file: {q}",
-      lineAskFill: "Read the DataBrief widget context (read_widget_context), then answer: {q}",
       askCtxFill: "The AI gets the data. Your question goes into your message box: {line}",
       doneAskCtx: "The AI has the data and your question is in your message box: press send."
     },
@@ -97,9 +94,7 @@
       working: "En cours...",
       lineRead: "Lis le contexte du widget DataBrief et suis le prompt qu'il contient.",
       lineAsk: "Lis le contexte du widget DataBrief, puis réponds : {q}",
-      lineReadFill: "Lis le contexte du widget DataBrief (read_widget_context) et suis le prompt qu'il contient.",
       askBundle: "Ma question sur ce fichier : {q}",
-      lineAskFill: "Lis le contexte du widget DataBrief (read_widget_context), puis réponds : {q}",
       askCtxFill: "L'IA reçoit les données. Votre question est placée dans votre zone de message : {line}",
       doneAskCtx: "L'IA a les données et votre question est dans votre zone de message : appuyez sur envoyer."
     },
@@ -144,9 +139,7 @@
       working: "En curso...",
       lineRead: "Lee el contexto del widget de DataBrief y sigue el prompt que contiene.",
       lineAsk: "Lee el contexto del widget de DataBrief y luego responde: {q}",
-      lineReadFill: "Lee el contexto del widget de DataBrief (read_widget_context) y sigue el prompt que contiene.",
       askBundle: "Mi pregunta sobre este archivo: {q}",
-      lineAskFill: "Lee el contexto del widget de DataBrief (read_widget_context) y luego responde: {q}",
       askCtxFill: "La IA recibe los datos. Tu pregunta se coloca en tu cuadro de mensaje: {line}",
       doneAskCtx: "La IA tiene los datos y tu pregunta está en tu cuadro de mensaje: pulsa enviar."
     },
@@ -191,9 +184,7 @@
       working: "Läuft...",
       lineRead: "Lies den Kontext des DataBrief-Widgets und folge dem Prompt darin.",
       lineAsk: "Lies den Kontext des DataBrief-Widgets und beantworte dann: {q}",
-      lineReadFill: "Lies den Kontext des DataBrief-Widgets (read_widget_context) und folge dem Prompt darin.",
       askBundle: "Meine Frage zu dieser Datei: {q}",
-      lineAskFill: "Lies den Kontext des DataBrief-Widgets (read_widget_context) und beantworte dann: {q}",
       askCtxFill: "Die KI erhält die Daten. Ihre Frage kommt in Ihr Nachrichtenfeld: {line}",
       doneAskCtx: "Die KI hat die Daten, und Ihre Frage steht in Ihrem Nachrichtenfeld: Drücken Sie auf Senden."
     },
@@ -238,9 +229,7 @@
       working: "In corso...",
       lineRead: "Leggi il contesto del widget DataBrief e segui il prompt che contiene.",
       lineAsk: "Leggi il contesto del widget DataBrief, poi rispondi: {q}",
-      lineReadFill: "Leggi il contesto del widget DataBrief (read_widget_context) e segui il prompt che contiene.",
       askBundle: "La mia domanda su questo file: {q}",
-      lineAskFill: "Leggi il contesto del widget DataBrief (read_widget_context), poi rispondi: {q}",
       askCtxFill: "L'IA riceve i dati. La tua domanda va nella tua casella dei messaggi: {line}",
       doneAskCtx: "L'IA ha i dati e la tua domanda è nella tua casella dei messaggi: premi invio."
     },
@@ -285,9 +274,7 @@
       working: "Em andamento...",
       lineRead: "Leia o contexto do widget DataBrief e siga o prompt que ele contém.",
       lineAsk: "Leia o contexto do widget DataBrief e depois responda: {q}",
-      lineReadFill: "Leia o contexto do widget DataBrief (read_widget_context) e siga o prompt que ele contém.",
       askBundle: "A minha pergunta sobre este arquivo: {q}",
-      lineAskFill: "Leia o contexto do widget DataBrief (read_widget_context) e depois responda: {q}",
       askCtxFill: "A IA recebe os dados. A sua pergunta vai para a sua caixa de mensagem: {line}",
       doneAskCtx: "A IA tem os dados e a sua pergunta está na sua caixa de mensagem: pressione enviar."
     },
@@ -332,9 +319,7 @@
       working: "Bezig...",
       lineRead: "Lees de context van de DataBrief-widget en volg de prompt daarin.",
       lineAsk: "Lees de context van de DataBrief-widget en beantwoord dan: {q}",
-      lineReadFill: "Lees de context van de DataBrief-widget (read_widget_context) en volg de prompt daarin.",
       askBundle: "Mijn vraag over dit bestand: {q}",
-      lineAskFill: "Lees de context van de DataBrief-widget (read_widget_context) en beantwoord dan: {q}",
       askCtxFill: "De AI krijgt de gegevens. Je vraag komt in je berichtvak: {line}",
       doneAskCtx: "De AI heeft de gegevens en je vraag staat in je berichtvak: druk op verzenden."
     },
@@ -379,9 +364,7 @@
       working: "W toku...",
       lineRead: "Odczytaj kontekst widżetu DataBrief i wykonaj zawarty w nim prompt.",
       lineAsk: "Odczytaj kontekst widżetu DataBrief, a potem odpowiedz: {q}",
-      lineReadFill: "Odczytaj kontekst widżetu DataBrief (read_widget_context) i wykonaj zawarty w nim prompt.",
       askBundle: "Moje pytanie o ten plik: {q}",
-      lineAskFill: "Odczytaj kontekst widżetu DataBrief (read_widget_context), a potem odpowiedz: {q}",
       askCtxFill: "AI otrzymuje dane. Twoje pytanie trafia do pola wiadomości: {line}",
       doneAskCtx: "AI ma dane, a Twoje pytanie jest w polu wiadomości: naciśnij wyślij."
     },
@@ -426,9 +409,7 @@
       working: "Выполняется...",
       lineRead: "Прочитай контекст виджета DataBrief и выполни промпт из него.",
       lineAsk: "Прочитай контекст виджета DataBrief, затем ответь: {q}",
-      lineReadFill: "Прочитай контекст виджета DataBrief (read_widget_context) и выполни промпт из него.",
       askBundle: "Мой вопрос об этом файле: {q}",
-      lineAskFill: "Прочитай контекст виджета DataBrief (read_widget_context), затем ответь: {q}",
       askCtxFill: "ИИ получает данные. Ваш вопрос попадает в поле сообщения: {line}",
       doneAskCtx: "У ИИ есть данные, а ваш вопрос в поле сообщения: нажмите «Отправить»."
     },
@@ -473,9 +454,7 @@
       working: "Çalışıyor...",
       lineRead: "DataBrief widget bağlamını oku ve içindeki istemi uygula.",
       lineAsk: "DataBrief widget bağlamını oku, sonra yanıtla: {q}",
-      lineReadFill: "DataBrief widget bağlamını (read_widget_context) oku ve içindeki istemi uygula.",
       askBundle: "Bu dosya hakkındaki sorum: {q}",
-      lineAskFill: "DataBrief widget bağlamını (read_widget_context) oku, sonra yanıtla: {q}",
       askCtxFill: "Yapay zekâ verileri alır. Sorunuz mesaj kutunuza konur: {line}",
       doneAskCtx: "Yapay zekâda veriler var ve sorunuz mesaj kutunuzda: gönder'e basın."
     },
@@ -520,9 +499,7 @@
       working: "处理中...",
       lineRead: "请读取 DataBrief 小组件的上下文，并按照其中的提示词执行。",
       lineAsk: "请读取 DataBrief 小组件的上下文，然后回答：{q}",
-      lineReadFill: "请读取 DataBrief 小组件的上下文（read_widget_context），并按照其中的提示词执行。",
       askBundle: "我对这个文件的问题：{q}",
-      lineAskFill: "请读取 DataBrief 小组件的上下文（read_widget_context），然后回答：{q}",
       askCtxFill: "AI 会收到数据。您的问题会放入您的消息框：{line}",
       doneAskCtx: "AI 已收到数据，您的问题已在消息框中：请按发送。"
     },
@@ -567,9 +544,7 @@
       working: "処理中...",
       lineRead: "DataBrief ウィジェットのコンテキストを読み取り、その中のプロンプトに従ってください。",
       lineAsk: "DataBrief ウィジェットのコンテキストを読み取ってから、次に答えてください：{q}",
-      lineReadFill: "DataBrief ウィジェットのコンテキスト（read_widget_context）を読み取り、その中のプロンプトに従ってください。",
       askBundle: "このファイルについての質問：{q}",
-      lineAskFill: "DataBrief ウィジェットのコンテキスト（read_widget_context）を読み取ってから、次に答えてください：{q}",
       askCtxFill: "AI がデータを受け取ります。質問がメッセージ欄に入ります：{line}",
       doneAskCtx: "AI がデータを受け取り、質問がメッセージ欄に入りました。送信を押してください。"
     },
@@ -614,9 +589,7 @@
       working: "처리 중...",
       lineRead: "DataBrief 위젯 컨텍스트를 읽고 그 안의 프롬프트를 따라 주세요.",
       lineAsk: "DataBrief 위젯 컨텍스트를 읽은 다음 답해 주세요: {q}",
-      lineReadFill: "DataBrief 위젯 컨텍스트(read_widget_context)를 읽고 그 안의 프롬프트를 따라 주세요.",
       askBundle: "이 파일에 대한 내 질문: {q}",
-      lineAskFill: "DataBrief 위젯 컨텍스트(read_widget_context)를 읽은 다음 답해 주세요: {q}",
       askCtxFill: "AI가 데이터를 받습니다. 질문이 메시지 입력란에 들어갑니다: {line}",
       doneAskCtx: "AI가 데이터를 받았고 질문이 메시지 입력란에 있습니다. 전송을 누르세요."
     },
@@ -661,9 +634,7 @@
       working: "जारी है...",
       lineRead: "DataBrief विजेट का संदर्भ पढ़ें और उसमें दिए गए प्रॉम्प्ट का पालन करें।",
       lineAsk: "DataBrief विजेट का संदर्भ पढ़ें, फिर उत्तर दें: {q}",
-      lineReadFill: "DataBrief विजेट का संदर्भ (read_widget_context) पढ़ें और उसमें दिए गए प्रॉम्प्ट का पालन करें।",
       askBundle: "इस फ़ाइल के बारे में मेरा प्रश्न: {q}",
-      lineAskFill: "DataBrief विजेट का संदर्भ (read_widget_context) पढ़ें, फिर उत्तर दें: {q}",
       askCtxFill: "AI को डेटा मिलता है। आपका प्रश्न आपके संदेश बॉक्स में जाता है: {line}",
       doneAskCtx: "AI के पास डेटा है और आपका प्रश्न आपके संदेश बॉक्स में है: भेजें दबाएँ।"
     },
@@ -708,9 +679,7 @@
       working: "جارٍ العمل...",
       lineRead: "اقرأ سياق أداة DataBrief واتبع التعليمات الموجودة فيه.",
       lineAsk: "اقرأ سياق أداة DataBrief، ثم أجب: {q}",
-      lineReadFill: "اقرأ سياق أداة DataBrief (read_widget_context) واتبع التعليمات الموجودة فيه.",
       askBundle: "سؤالي عن هذا الملف: {q}",
-      lineAskFill: "اقرأ سياق أداة DataBrief (read_widget_context)، ثم أجب: {q}",
       askCtxFill: "يتلقى الذكاء الاصطناعي البيانات. يوضع سؤالك في مربع الرسالة: {line}",
       doneAskCtx: "لدى الذكاء الاصطناعي البيانات وسؤالك في مربع الرسالة: اضغط إرسال."
     },

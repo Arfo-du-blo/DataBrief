@@ -112,12 +112,8 @@
   // the app). Recognised by what the host announces, as measured in the three Claude surfaces (2026-11-03): the Desktop app (platform
   // "desktop") that offers downloads. The Code tab (desktop, no downloads) and the browser (platform "web") let the AI open the context.
   const homeChat = () => ((host.hostContext || {}).platform === 'desktop') && has().dl;
-  // The line written in the chat, in the prompt language. Where the context stays out of the conversation until the AI asks for it
-  // ('fill', Claude), the line names the step to take; elsewhere the context is simply there.
-  const lineFor = (kind, q) => {
-    const fill = hostKind() === 'fill', lang = page().state.prompt;
-    return kind === 'ask' ? T(fill ? 'lineAskFill' : 'lineAsk', { q }, lang) : T(fill ? 'lineReadFill' : 'lineRead', null, lang);
-  };
+  // The line written in the chat, in the prompt language.
+  const lineFor = (kind, q) => (kind === 'ask' ? T('lineAsk', { q }, page().state.prompt) : T('lineRead', null, page().state.prompt));
 
   function arm(btn, kind, anchor) {
     if (armed && armed.btn === btn) { go(); return; }

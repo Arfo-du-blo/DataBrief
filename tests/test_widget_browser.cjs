@@ -135,7 +135,7 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   await click(frame, '#dbwCtx'); await click(frame, '#dbwCtx');
   const ctx = await waitFor(page, 'ui/update-model-context', 1), msg2 = await waitFor(page, 'ui/message', 1);
   check('Add to context: the context holds the prompt', ctx.length === 1 && ctx[0].params.content[0].text === prompt);
-  check('Add to context: then a short line in the prompt\'s language goes to the message box', msg2.length === 1 && msg2[0].params.content[0].text === 'Read the DataBrief widget context (read_widget_context) and follow the prompt in it.');
+  check('Add to context: then a short line in the prompt\'s language goes to the message box', msg2.length === 1 && msg2[0].params.content[0].text === 'Read the DataBrief widget context and follow the prompt in it.');
   const both = (await log(page)).filter((m) => /ui\/(update-model-context|message)$/.test(m.method || ''));
   check('Claude Add to context: the line goes FIRST, the context after (Desktop only accepts a message right after the click)', both.map((m) => m.method).join() === 'ui/message,ui/update-model-context', both.map((m) => m.method).join());
   check('Claude Add to context: both leave in the same click, without waiting for the host to answer the context (300 ms here)', both.length === 2 && both[1].__t - both[0].__t < 100, both.length === 2 ? String(Math.round(both[1].__t - both[0].__t)) : 'n/a');
@@ -145,7 +145,7 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   await frame.type('#dbwQ', 'What is the total amount per segment?');
   await click(frame, '#dbwAsk'); await click(frame, '#dbwAsk');
   const msg3 = await waitFor(page, 'ui/message', 1), ctx3 = await waitFor(page, 'ui/update-model-context', 1);
-  check('Ask on Claude in the browser: the message box only gets a short line with the question, naming the step to take', msg3.length === 1 && msg3[0].params.content[0].text === 'Read the DataBrief widget context (read_widget_context), then answer: What is the total amount per segment?', msg3.length + ' message(s); ' + JSON.stringify(msg3[0] && msg3[0].params.content[0].text.slice(0, 140)));
+  check('Ask on Claude in the browser: the message box only gets a short line with the question', msg3.length === 1 && msg3[0].params.content[0].text === 'Read the DataBrief widget context, then answer: What is the total amount per segment?', msg3.length + ' message(s); ' + JSON.stringify(msg3[0] && msg3[0].params.content[0].text.slice(0, 140)));
   check('Ask on Claude in the browser: the prompt goes into the context, not into the message box', ctx3.length === 1 && ctx3[0].params.content[0].text === prompt && !msg3[0].params.content[0].text.includes(CANARY));
   check('Ask on Claude in the browser: the line is sent first, in the click (the context follows)', (await log(page)).filter((m) => /ui\/(update-model-context|message)$/.test(m.method || '')).map((m) => m.method).join() === 'ui/message,ui/update-model-context');
   await clearPrompt(page);
@@ -173,7 +173,7 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   await sleep(500);
   await click(frame, '#dbwCtx'); await click(frame, '#dbwCtx');
   const frLine = (await waitFor(page, 'ui/message', 1))[0];
-  check('prompt language French: the line is French', frLine && frLine.params.content[0].text === "Lis le contexte du widget DataBrief (read_widget_context) et suis le prompt qu'il contient.", frLine && frLine.params.content[0].text);
+  check('prompt language French: the line is French', frLine && frLine.params.content[0].text === "Lis le contexte du widget DataBrief et suis le prompt qu'il contient.", frLine && frLine.params.content[0].text);
   check('the interface stays English while only the prompt language changed', (await text(frame, '#dbwChat .dbw-label')) === 'Put in the chat');
   await frame.select('#promptLang', 'en');
 
@@ -311,7 +311,7 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   await frame.type('#dbwQ', 'which segment is largest?');
   await click(frame, '#dbwAsk'); await click(frame, '#dbwAsk');
   const cm = await waitFor(page, 'ui/message', 1), cc = await waitFor(page, 'ui/update-model-context', 1);
-  check('Claude Desktop Code tab: Ask keeps the prompt out of the message box (a short line, the prompt in the context)', cm.length === 1 && cm[0].params.content[0].text === 'Read the DataBrief widget context (read_widget_context), then answer: which segment is largest?' && cc.length === 1 && cc[0].params.content[0].text.includes(CANARY) && !cm[0].params.content[0].text.includes(CANARY));
+  check('Claude Desktop Code tab: Ask keeps the prompt out of the message box (a short line, the prompt in the context)', cm.length === 1 && cm[0].params.content[0].text === 'Read the DataBrief widget context, then answer: which segment is largest?' && cc.length === 1 && cc[0].params.content[0].text.includes(CANARY) && !cm[0].params.content[0].text.includes(CANARY));
   await closePage(page);
   ({ page, frame } = await open(CLAUDE));
   check('Claude in the browser: Add to context is offered', await exists(frame, '#dbwCtx'));
