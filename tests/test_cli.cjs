@@ -429,6 +429,7 @@ async function go(args, over, content) {
     const roFs = Object.assign({}, fs, { mkdirSync: () => { const e = new Error('EACCES: permission denied'); e.code = 'EACCES'; throw e; } });
     const ro = await go(['FILE', '--csv'], { fs: roFs });
     ok('review: the files cannot be written: the prompt is still copied, exit 3, the failure said', ro.code === 3 && clipText(ro.env).length === 1 && /No file was written: Cannot create the folder/.test(ro.err) && /the files were not written/.test(ro.err), ro.code + ' ' + ro.err);
+    ok('review: a refused folder says what to do (--out PATH); another cause does not get that advice', /you cannot write there: give a folder you can write to with --out PATH/.test(ro.err) && !/you cannot write there/.test((await go(['FILE', '--csv'], { fs: Object.assign({}, fs, { mkdirSync: () => { const e = new Error('ENOSPC: no space left'); e.code = 'ENOSPC'; throw e; } }) })).err));
     // --out is checked before the file is read
     let readCalled = false;
     const spyFs = Object.assign({}, fs, { readFileSync: (...a) => { readCalled = true; return fs.readFileSync(...a); } });

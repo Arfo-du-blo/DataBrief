@@ -13,7 +13,7 @@ Nothing else, except a clipboard tool on Linux (below).
 | You use | Install | Node.js |
 |---|---|---|
 | **npm**, any system | `npx databrief FILE` (nothing installed), or `npm install -g databrief` | you have it |
-| **Ubuntu, Debian** | `sudo apt install ./databrief_1.5.0_all.deb`, the file from the [release](https://github.com/Arfo-du-blo/DataBrief/releases/latest) | `apt` installs `nodejs` (recommended by the package); on a system whose Node is older than 18, install a newer one (NodeSource, nvm...) |
+| **Ubuntu, Debian** | `sudo apt install ./databrief_1.5.0_all.deb`, the file from the [release](https://github.com/Arfo-du-blo/DataBrief/releases/latest) | `apt` installs `nodejs` (recommended by the package); on a system whose Node is older than 18 (Ubuntu 22.04 has Node 12), install a newer one (NodeSource, nvm...): see [Troubleshooting](#troubleshooting) |
 | **Homebrew**, macOS or Linux | `brew install Arfo-du-blo/databrief/databrief` | Homebrew installs it |
 | **Scoop**, Windows | `scoop bucket add databrief https://github.com/Arfo-du-blo/scoop-databrief`, then `scoop install databrief` | Scoop installs `nodejs-lts` |
 | **One file**, any system | download `databrief-cli.cjs` from the release, then `node databrief-cli.cjs FILE` | you have it |
@@ -193,6 +193,20 @@ differences:
 - **Files up to 2 GB**; the page is limited by the browser's memory.
 - The tool's own messages are in English; the prompt language follows `--lang`.
 - `vi` is opened as it is (it may not be Vim): only `vim`, `nvim` and `emacs` get the modeline protection.
+
+## Troubleshooting
+
+| What you see | Why, and what to do |
+|---|---|
+| `databrief needs Node.js 18 or newer (this is 12.x)` | Your system's Node.js is too old (Ubuntu 22.04 has Node 12). Install a current one **without `sudo`** with [nvm](https://github.com/nvm-sh/nvm): `curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh \| bash`, open a new terminal (or `. ~/.nvm/nvm.sh`), then `nvm install 22` (**`nvm install 22`**: `npm install 22` would install an unrelated npm package named "22"). Check with `node -v`. |
+| `nvm: command not found` right after installing nvm | The terminal was open before the installation: open a new one, or run `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"`. |
+| `npm install -g databrief` fails with `EACCES: permission denied, mkdir '/usr/local/lib/node_modules/...'` | npm's global folder belongs to root. Do not use `sudo npm`: install Node with nvm (above), whose global folder is yours, or run `npx databrief FILE` without installing. |
+| `bash: /home/you/.nvm/.../bin/databrief: No such file or directory` after switching from npm to the `.deb` (or back) | The shell remembers the old place of the command. Run `hash -r`, or open a new terminal. `which databrief` shows the one in use. |
+| The `.deb` is installed but the tool says it needs Node.js 18 | The `.deb` uses the first `node` of your `PATH`. On a system whose own Node is older than 18, install a newer one (nvm, NodeSource) and make sure `node -v` in the terminal that runs `databrief` says 18 or more. |
+| `Cannot create the folder .../databrief: EACCES` (with `--csv`, `--out` or `--review`) | The tool writes in `./databrief`, inside the current folder, and you cannot write there (a project folder created by Docker or `root`, a system folder). Give a folder of yours: `databrief FILE --review --out ~` (an absolute path that exists). |
+| `--review` says it needs a terminal | The editor needs a real terminal: from a script, a pipe or an AI agent's shell use `--csv` or `--out` and edit `prompt.md` yourself. |
+| `Copied to the clipboard` does nothing on Linux | Install `wl-copy` (Wayland), `xclip` or `xsel`. On WSL the tool uses `powershell.exe` and needs nothing. |
+| `scoop install databrief` installs Node.js and 7-Zip | Scoop's `nodejs-lts` needs 7-Zip to unpack: they are the tool's dependencies, nothing else is added. |
 
 ## Examples
 

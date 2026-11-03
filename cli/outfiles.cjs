@@ -55,8 +55,15 @@ function baseFolder(out, env, opt) {
   return { dir, note: 'The relative --out ' + given + ' was placed under ./databrief: ' + dir };
 }
 
+/* The error for a folder that cannot be made. When the reason is a refusal (permissions, a read-only disk) it says what to do:
+ * ./databrief in the current folder may be in a place that belongs to another user (a Docker project, for example). */
+function cannotCreate(dir, e) {
+  const refused = e && (e.code === 'EACCES' || e.code === 'EPERM' || e.code === 'EROFS');
+  return new OutError('Cannot create the folder ' + dir + ': ' + e.message + (refused ? ' (you cannot write there: give a folder you can write to with --out PATH, an absolute path that exists, for example your home folder)' : ''));
+}
+
 function ensureDir(dir, env) {
-  try { env.fs.mkdirSync(dir, { recursive: true }); } catch (e) { throw new OutError('Cannot create the folder ' + dir + ': ' + e.message); }
+  try { env.fs.mkdirSync(dir, { recursive: true }); } catch (e) { throw cannotCreate(dir, e); }
 }
 
 /* A new folder named after the file and the time (-2, -3 ... when it exists) */
@@ -66,7 +73,7 @@ function newFolder(base, fileName, env) {
   const name = stem + '_' + stamp(env.now());
   for (let k = 1; k < 1000; k++) {
     const dir = path.join(base, k === 1 ? name : name + '-' + k);
-    try { fs.mkdirSync(dir); return dir; } catch (e) { if (e.code !== 'EEXIST') throw new OutError('Cannot create the folder ' + dir + ': ' + e.message); }
+    try { fs.mkdirSync(dir); return dir; } catch (e) { if (e.code !== 'EEXIST') throw cannotCreate(dir, e); }
   }
   throw new OutError('Cannot find a free folder name in ' + base);
 }
