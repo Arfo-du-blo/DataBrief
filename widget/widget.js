@@ -108,9 +108,16 @@
     if (a.x) a.x.remove();
   }
   function cancel() { disarm(); show('', '', null); }
+  // The Claude Desktop home chat: its AI cannot open the widget context (tested, and its own log says that chat is a Claude Code session of
+  // the app). Recognised by what the host announces, as measured in the three Claude surfaces (2026-11-03): the Desktop app (platform
+  // "desktop") that offers downloads. The Code tab (desktop, no downloads) and the browser (platform "web") let the AI open the context.
+  const homeChat = () => ((host.hostContext || {}).platform === 'desktop') && has().dl;
   // The line written in the chat, in the prompt language. Where the context stays out of the conversation until the AI asks for it
   // ('fill', Claude), the line names the step to take; elsewhere the context is simply there.
-  const lineFor = (kind, q) => (kind === 'ask' ? T('lineAsk', { q }, page().state.prompt) : T(hostKind() === 'fill' ? 'lineReadFill' : 'lineRead', null, page().state.prompt));
+  const lineFor = (kind, q) => {
+    const fill = hostKind() === 'fill', lang = page().state.prompt;
+    return kind === 'ask' ? T(fill ? 'lineAskFill' : 'lineAsk', { q }, lang) : T(fill ? 'lineReadFill' : 'lineRead', null, lang);
+  };
 
   function arm(btn, kind, anchor) {
     if (armed && armed.btn === btn) { go(); return; }
@@ -120,19 +127,21 @@
     const q = kind === 'ask' ? ($('dbwQ').value || '').trim() : '';
     if (kind === 'ask' && !q) { show(T('errQuestion'), 'info', anchor); return; }
     const hk = hostKind();
-    // Claude: the AI is not sure to be able to read the context (it can in the browser and in the Code tab, not in the Desktop home
-    // chat: tested), so Put in the chat AND Ask send everything in the message itself. Add to context stays a best effort.
-    const wholePrompt = (kind === 'chat' || kind === 'ask') && hk === 'fill';
-    const message = kind === 'ask' ? T('askBundle', { q }, page().state.prompt) + '\n\n' + cur.text : cur.text;
+    // Claude: Put in the chat sends the whole prompt as the message. Ask and Add to context keep it out of the message box (the context
+    // plus a short line) wherever the AI can open the context (the browser, the Desktop Code tab); in the Desktop home chat it cannot,
+    // so there Ask sends the question and the whole prompt in one message.
+    const bundle = kind === 'ask' && hk === 'fill' && homeChat();
+    const wholePrompt = hk === 'fill' && (kind === 'chat' || bundle);
+    const message = bundle ? T('askBundle', { q }, page().state.prompt) + '\n\n' + cur.text : cur.text;
     const line = wholePrompt ? '' : lineFor(kind, q);
     const big = wholePrompt ? message.length > MSG_CHARS : cur.tokens > CTX_TOKENS;
     let explain;
-    if (hk === 'fill') explain = kind === 'chat' ? T('chatFill') : (kind === 'ask' ? T('askFill') : T('ctxFill', { line }));
+    if (hk === 'fill') explain = kind === 'chat' ? T('chatFill') : (kind === 'ask' ? (bundle ? T('askFill') : T('askCtxFill', { line })) : T('ctxFill', { line }));
     else if (hk === 'send') explain = kind === 'chat' ? T('chatSend', { line }) : T('askSend', { line });
     else explain = kind === 'chat' ? T('chatNeutral', { line }) : T('askNeutral', { line });
     const lines = [(cur.data ? '⚠ ' + T('infoData') : '✓ ' + T('infoNoData')) + ' · ' + T('sizeLine', { chars: num(message.length), tokens: num(Math.max(cur.tokens, Math.ceil(message.length / 4))) }), explain];
     if (big) lines.push(T('warnBig', { limit: wholePrompt ? T('aboutKb', { n: '100' }) : T('aboutTokens', { n: num(16000) }) }));
-    armed = { btn, kind, cls: btn.className, html: btn.innerHTML, text: cur.text, message, line, hk, anchor, whole: wholePrompt };
+    armed = { btn, kind, cls: btn.className, html: btn.innerHTML, text: cur.text, message, line, hk, anchor, whole: wholePrompt, bundle };
     btn.className = btn.className + ' ' + (cur.data ? 'dbw-armed-warn' : 'dbw-armed-ok');
     btn.innerHTML = CHECK + '<span>' + T('confirm') + '</span>';
     const x = document.createElement('button');
@@ -155,7 +164,7 @@
     const done = (key) => () => show(T(key), 'ok', a.anchor);
     const fail = (key) => (e) => show(T(key, { e: errText(e) }), 'err', a.anchor);
     if (a.whole) {
-      request('ui/message', asText(a.message)).then(done(a.kind === 'ask' ? 'doneAskFill' : 'doneChatFill'), fail('errChat'));
+      request('ui/message', asText(a.message)).then(done(a.bundle ? 'doneAskFill' : 'doneChatFill'), fail('errChat'));
       return;
     }
     if (a.hk === 'fill') {
@@ -164,7 +173,7 @@
       // answered. The order does not matter to Claude, which reads the context later, when the AI asks for it.
       const sentLine = request('ui/message', asText(a.line));
       const sentCtx = ctxText();
-      sentLine.then(() => sentCtx.then(done('doneCtx'), fail('errCtx')), (e) => { sentCtx.catch(() => {}); fail('errChat')(e); });
+      sentLine.then(() => sentCtx.then(done(a.kind === 'ask' ? 'doneAskCtx' : 'doneCtx'), fail('errCtx')), (e) => { sentCtx.catch(() => {}); fail('errChat')(e); });
       return;
     }
     // The other hosts: the context first, then the line (ChatGPT sends the line at once, so the context must be there before it).
@@ -239,12 +248,9 @@
       row.insertBefore(b, dl);
       b.onclick = () => arm(b, 'chat', row);
     }
-    // Add to context: only where a message fills the message box instead of being sent, and not in the Claude Desktop home chat: the
-    // AI there cannot open the widget context (tested, and confirmed by its own log: that chat is a Claude Code session of the app).
-    // It is recognised by what its host announces (tested 2026-11-03): the Desktop app (platform "desktop") that offers downloads; the
-    // Code tab (no downloads) and the browser (platform "web") work.
-    const desktopHome = ((host.hostContext || {}).platform === 'desktop') && c.dl;
-    if (hk === 'fill' && c.ctx && c.message && !desktopHome) {
+    // Add to context: only where a message fills the message box instead of being sent, and not in the Claude Desktop home chat, whose
+    // AI cannot open the widget context (see homeChat).
+    if (hk === 'fill' && c.ctx && c.message && !homeChat()) {
       const b = mkBtn('dbwCtx', '<path d="M12 5v14M5 12h14"/>', 'ctxBtn');
       row.insertBefore(b, dl);
       b.onclick = () => arm(b, 'ctx', row);

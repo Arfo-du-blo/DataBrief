@@ -39,7 +39,7 @@ The page is the same everywhere, and it adapts to what each app says it supports
 |---|---|---|---|
 | **Put in the chat** | the whole prompt goes into your message box; you press send | the prompt goes into the chat context and a short line is **sent at once** | the same as ChatGPT, with wording that says "sent, or placed in your message box, depending on the app" |
 | **Add to context** | in the browser and in the Desktop app's Code tab: the data goes into the context and a short line into your message box. Not offered in the Desktop home chat (see below) | not offered | not offered |
-| **Ask about this data** | your question and the whole prompt go into your message box, as one message | the data goes into the context and the question is sent at once | the same as ChatGPT, with neutral wording |
+| **Ask about this data** | the data goes into the context and a short line with your question into your message box (in the Desktop home chat: your question and the whole prompt go into your message box, as one message) | the data goes into the context and the question is sent at once | the same as ChatGPT, with neutral wording |
 | **Downloads** (.md, CSV, zip) | through the app, which asks you to confirm | hidden: the app cannot download | shown only if the app says it can |
 | **Links** | opened by the app, which asks you to confirm | opened by the app | only if the app says it can |
 
@@ -47,7 +47,7 @@ An app that does not support messages or context gets none of those buttons: **C
 turns into **Confirm** (amber when the prompt holds your data, green when "Do not share data" is on) and a box says how big it is, whether it
 holds the data, and what will happen. A prompt that is larger than an app is known to accept only gets a warning: you can still try.
 
-**Add to context depends on Claude's AI opening the context.** Claude keeps the context out of the conversation until the AI decides to open it. In the browser and in the Desktop app's Code tab it does. The Desktop app's home chat is a Claude Code session of the app and its AI has no way to open it (its own log and the AI say so), so the widget does not offer Add to context there: it recognises that chat by what it announces (the Desktop app, with downloads). **Put in the chat** and **Ask about this data** send everything in the message itself, so they work in all three. Where a host does not offer downloads (the Desktop Code tab, ChatGPT), the download buttons are hidden.
+**Add to context depends on Claude's AI opening the context.** Claude keeps the context out of the conversation until the AI decides to open it. In the browser and in the Desktop app's Code tab it does. The Desktop app's home chat is a Claude Code session of the app and its AI has no way to open it (its own log and the AI say so), so the widget does not offer Add to context there: it recognises that chat by what it announces (the Desktop app, with downloads). **Put in the chat** sends everything in the message itself, and in that chat so does **Ask about this data**, so both work in all three. Where a host does not offer downloads (the Desktop Code tab, ChatGPT), the download buttons are hidden.
 
 **Tested:** Claude (browser and Desktop app) and ChatGPT (browser). Other apps that speak MCP Apps get only what they confirm, but nobody has tried them yet. The
 labels and boxes are in the page's 15 languages; the short line that goes into the chat follows the **prompt** language.

@@ -144,9 +144,10 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   await clearPrompt(page);
   await frame.type('#dbwQ', 'What is the total amount per segment?');
   await click(frame, '#dbwAsk'); await click(frame, '#dbwAsk');
-  const msg3 = await waitFor(page, 'ui/message', 1);
-  check('Ask on Claude: ONE message holds the question first and the whole prompt after it', msg3.length === 1 && msg3[0].params.content[0].text === 'My question about this file: What is the total amount per segment?\n\n' + prompt, msg3.length + ' message(s); first starts with ' + JSON.stringify(msg3[0] && msg3[0].params.content[0].text.slice(0, 120)) + '; box: ' + JSON.stringify(await boxText(frame)).slice(0, 160));
-  check('Ask on Claude: no context is set (the AI does not need to open anything)', (await sent(page, 'ui/update-model-context')).length === 0);
+  const msg3 = await waitFor(page, 'ui/message', 1), ctx3 = await waitFor(page, 'ui/update-model-context', 1);
+  check('Ask on Claude in the browser: the message box only gets a short line with the question, naming the step to take', msg3.length === 1 && msg3[0].params.content[0].text === 'Read the DataBrief widget context (read_widget_context), then answer: What is the total amount per segment?', msg3.length + ' message(s); ' + JSON.stringify(msg3[0] && msg3[0].params.content[0].text.slice(0, 140)));
+  check('Ask on Claude in the browser: the prompt goes into the context, not into the message box', ctx3.length === 1 && ctx3[0].params.content[0].text === prompt && !msg3[0].params.content[0].text.includes(CANARY));
+  check('Ask on Claude in the browser: the line is sent first, in the click (the context follows)', (await log(page)).filter((m) => /ui\/(update-model-context|message)$/.test(m.method || '')).map((m) => m.method).join() === 'ui/message,ui/update-model-context');
   await clearPrompt(page);
   await frame.$eval('#dbwQ', (e) => { e.value = ''; });
   await click(frame, '#dbwAsk');
@@ -306,6 +307,11 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   await closePage(page);
   ({ page, frame } = await open(DESKTOP_CODE));
   check('Claude Desktop Code tab: Add to context is offered, the download buttons are hidden (the host does not announce downloads)', (await exists(frame, '#dbwCtx')) && (await hidden(frame, '#downloadBtn')) && (await exists(frame, '#dbwChat')) && (await exists(frame, '#dbwAsk')));
+  await clearPrompt(page);
+  await frame.type('#dbwQ', 'which segment is largest?');
+  await click(frame, '#dbwAsk'); await click(frame, '#dbwAsk');
+  const cm = await waitFor(page, 'ui/message', 1), cc = await waitFor(page, 'ui/update-model-context', 1);
+  check('Claude Desktop Code tab: Ask keeps the prompt out of the message box (a short line, the prompt in the context)', cm.length === 1 && cm[0].params.content[0].text === 'Read the DataBrief widget context (read_widget_context), then answer: which segment is largest?' && cc.length === 1 && cc[0].params.content[0].text.includes(CANARY) && !cm[0].params.content[0].text.includes(CANARY));
   await closePage(page);
   ({ page, frame } = await open(CLAUDE));
   check('Claude in the browser: Add to context is offered', await exists(frame, '#dbwCtx'));
