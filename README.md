@@ -546,7 +546,7 @@ databrief dump.sql --print --no-copy      # print it
   | You use | Install |
   |---|---|
   | **npm** (any system) | `npx databrief FILE`, or `npm install -g databrief` |
-  | **Ubuntu, Debian** | download `databrief_1.5.0_all.deb` from the [release](https://github.com/Arfo-du-blo/DataBrief/releases/latest), then `sudo apt install ./databrief_1.5.0_all.deb` |
+  | **Ubuntu, Debian** | download `databrief_1.5.1_all.deb` from the [release](https://github.com/Arfo-du-blo/DataBrief/releases/latest), then `sudo apt install ./databrief_1.5.0_all.deb` |
   | **macOS, Linux** (Homebrew) | `brew install Arfo-du-blo/databrief/databrief` |
   | **Windows** (Scoop) | `scoop bucket add databrief https://github.com/Arfo-du-blo/scoop-databrief`, then `scoop install databrief` |
   | **Any system** | download `databrief-cli.cjs` from the release and run `node databrief-cli.cjs`; or build it: `node tools/build-cli.cjs` |
@@ -885,7 +885,7 @@ pwsh ./build.ps1                                          # PowerShell 7 (Window
 ### Releasing
 
 ```bash
-git tag v1.5.0 && git push origin v1.5.0
+git tag v1.5.1 && git push origin v1.5.1
 ```
 
 `.github/workflows/release.yml` creates the GitHub release (with both HTML files, the command-line tool
