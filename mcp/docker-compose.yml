@@ -1,0 +1,25 @@
+# DataBrief hosted MCP server with Docker Compose.
+#   docker compose -f mcp/docker-compose.yml up -d --build
+# Settings come from the environment (or a .env file next to this one): see docs/mcp-server.md.
+services:
+  databrief-mcp:
+    build:
+      context: ..
+      dockerfile: mcp/Dockerfile
+    image: databrief-mcp
+    ports:
+      # Only this computer by default: a tunnel or reverse proxy on it reaches the server. Set DATABRIEF_MCP_BIND=0.0.0.0 to
+      # expose the port on the network.
+      - "${DATABRIEF_MCP_BIND:-127.0.0.1}:8787:8787"
+    environment:
+      DATABRIEF_PUBLIC_URL: ${DATABRIEF_PUBLIC_URL:-}
+      DATABRIEF_TRUST_PROXY_HEADER: ${DATABRIEF_TRUST_PROXY_HEADER:-}
+      DATABRIEF_ALLOWED_ORIGINS: ${DATABRIEF_ALLOWED_ORIGINS:-}
+      DATABRIEF_RATE_PER_MIN: ${DATABRIEF_RATE_PER_MIN:-600}
+      DATABRIEF_LOG: ${DATABRIEF_LOG:-on}
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 256m
+    pids_limit: 100
+    restart: unless-stopped

@@ -1,0 +1,9 @@
+# Used instead of the repository's .dockerignore when building mcp/Dockerfile (BuildKit): nothing goes into the build
+# context except what the image needs.
+*
+!mcp/server.js
+!mcp/uris.json
+!mcp/icon.svg
+!package.json
+!widget/databrief-widget.html
+!tests/mcp-fixtures/widget.html
