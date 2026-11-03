@@ -5,5 +5,5 @@
 !mcp/uris.json
 !mcp/icon.svg
 !package.json
-!widget/databrief-widget.html
+!dist/databrief-widget.html
 !tests/mcp-fixtures/widget.html

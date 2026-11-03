@@ -8,6 +8,7 @@ copy of that server (`mcp/server.js`).
 only what you choose to put in the chat. The server serves the page and answers the chat app's requests, and that is all it does.
 
 - [What it does](#what-it-does)
+- [The widget page](#the-widget-page)
 - [Run it](#run-it)
 - [Settings](#settings)
 - [What it logs and what it keeps](#what-it-logs-and-what-it-keeps)
@@ -26,12 +27,41 @@ only what you choose to put in the chat. The server serves the page and answers 
 | Other addresses | `/healthz` (for health checks), `/` (a short page that says what this is), `/icon.svg` and `/favicon.ico` |
 | Dependencies | none: Node.js 18 or newer, built-in modules only, no `npm install` |
 
+## The widget page
+
+`node tools/build-widget.cjs` writes `dist/databrief-widget.html`: the plain `databrief.html`, **unchanged**, plus a small layer (in
+`widget/`) that talks to the chat app. Opened on its own, that file is the normal page: the layer does nothing unless the page sits in a
+frame whose host answers the MCP Apps handshake. The layer makes no network request; it only exchanges messages with the host.
+
+The page is the same everywhere, and it adapts to what each app says it supports, not to guesses:
+
+| | Claude | ChatGPT | An app we have not tested |
+|---|---|---|---|
+| **Put in the chat** | the whole prompt goes into your message box; you press send | the prompt goes into the chat context and a short line is **sent at once** | the same as ChatGPT, with wording that says "sent, or placed in your message box, depending on the app" |
+| **Add to context** | the data goes into the context and a short line into your message box | not offered | not offered |
+| **Ask about this data** | the data goes into the context and your question into your message box | the same, and the question is sent at once | the same, with neutral wording |
+| **Downloads** (.md, CSV, zip) | through the app, which asks you to confirm | hidden: the app cannot download | shown only if the app says it can |
+| **Links** | opened by the app, which asks you to confirm | opened by the app | only if the app says it can |
+
+An app that does not support messages or context gets none of those buttons: **Copy** is always there. Before anything is sent, the button
+turns into **Confirm** (amber when the prompt holds your data, green when "Do not share data" is on) and a box says how big it is, whether it
+holds the data, and what will happen. A prompt that is larger than an app is known to accept only gets a warning: you can still try.
+
+**Tested:** Claude and ChatGPT, in the browser. Other apps that speak MCP Apps get only what they confirm, but nobody has tried them yet. The
+labels and boxes are in the page's 15 languages; the short line that goes into the chat follows the **prompt** language.
+
+`tests/test_widget.cjs` checks the texts and the build, and `tests/test_widget_browser.cjs` opens the page in Chrome inside fake hosts (Claude, ChatGPT,
+an unknown app, a silent one) with a real file, and checks that what the host receives is exactly the prompt the page shows, and nothing of
+the data when "Do not share data" is on.
+
 ## Run it
 
-It needs the widget page. By default it looks for `widget.html` next to `server.js`, then for `widget/databrief-widget.html` in the
-repository; or name any file with `DATABRIEF_WIDGET`. Without the page it stops and says so.
+It needs the widget page, which `node tools/build-widget.cjs` writes to `dist/databrief-widget.html` (the plain `databrief.html`, unchanged,
+plus the layer that talks to the chat app: see [The widget page](#the-widget-page)). By default the server looks for `widget.html` next to
+`server.js`, then for that file; or name any file with `DATABRIEF_WIDGET`. Without the page it stops and says so.
 
 ```bash
+node tools/build-widget.cjs             # once, and after every change of the page
 node mcp/server.js                      # http://localhost:8787/mcp
 DATABRIEF_WIDGET=./my-widget.html node mcp/server.js
 node mcp/server.js --help               # every setting
@@ -64,7 +94,7 @@ Environment variables; `node mcp/server.js --help` prints the same list.
 |---|---|---|
 | `DATABRIEF_MCP_PORT` | `8787` | port to listen on |
 | `DATABRIEF_MCP_HOST` | `0.0.0.0` | address to listen on (`127.0.0.1` = this computer only) |
-| `DATABRIEF_WIDGET` | next to the server, or `widget/databrief-widget.html` | the widget page to serve |
+| `DATABRIEF_WIDGET` | next to the server, or `dist/databrief-widget.html` | the widget page to serve |
 | `DATABRIEF_PUBLIC_URL` | empty | public address, e.g. `https://databrief.example.com`; gives the server's icon an absolute address |
 | `DATABRIEF_RATE_PER_MIN` | `600` | flood guard: requests per minute per source, `0` = off (see below) |
 | `DATABRIEF_TRUST_PROXY_HEADER` | empty | the header that carries the real client address behind a proxy, e.g. `CF-Connecting-IP`; set it **only** behind that proxy |

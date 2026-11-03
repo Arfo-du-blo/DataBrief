@@ -35,6 +35,15 @@ echo
 echo "=== Packages of the command line: npm package (packed, installed, run), Homebrew formula, Scoop manifest, .deb, release workflow"
 node "$HERE/test_packages.cjs" | grep -v '^PASS'
 echo
+echo "=== Hosted MCP server (Node: protocol, tool, widget resource, limits, nothing but method names in the log)"
+node "$HERE/test_mcp.cjs" | grep -v '^ok'
+echo
+echo "=== Widget layer (Node: the texts in 15 languages, the build, no network call in the layer)"
+node "$HERE/test_widget.cjs" | grep -v '^ok'
+echo
+echo "=== Widget layer in Chrome, inside fake hosts (Claude, ChatGPT, an unknown app, a silent one)"
+node "$HERE/test_widget_browser.cjs" | grep -v '^ok'
+echo
 echo "=== Documentation: every link and anchor of the README and the docs"
 node "$HERE/test_docs_links.cjs"
 echo

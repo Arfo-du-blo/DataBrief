@@ -165,7 +165,7 @@ const rpc = (port, id, method, params, headers) => request(port, 'POST', '/mcp',
   check('the log has the method names and the tool name', /"methods":"tools\/call"/.test(all) && /"tool":"databrief_open"/.test(all));
   check('the log has no argument, header, cookie, token or address', !/CANARY_/.test(all) && !/203\.0\.113\.77/.test(all) && !/127\.0\.0\.1/.test(all) && !/::1/.test(all));
   check('the log has only the user-agent product name, not its details', /"ua":"Claude-User"/.test(all) && !/CANARY_UA/.test(all));
-  check('the log has no widget content', !/Stand-in for widget/.test(all));
+  check('the log has no widget content', !/Stand-in for dist/.test(all) && !/databrief-widget/.test(all.replace(/"widgetSha256"/g, '')));
   const source = fs.readFileSync(path.join(ROOT, 'mcp', 'server.js'), 'utf8');
   check('the server code has no call that writes to disk', !/\b(writeFile|writeFileSync|appendFile|appendFileSync|createWriteStream|mkdir|mkdirSync|rename|renameSync|unlink|unlinkSync|copyFile|truncate)\b/.test(source));
   check('the server code makes no outgoing request and runs no program', !/\b(http|https)\.(request|get)\(|require\(['"](child_process|net|dns|tls|dgram)['"]\)|\bfetch\(/.test(source));

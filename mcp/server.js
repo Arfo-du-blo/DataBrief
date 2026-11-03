@@ -30,7 +30,7 @@ const DEFAULT_ORIGINS = ['https://claude.ai', 'https://claude.com', 'https://cha
 const SETTINGS = [
   ['port', 'DATABRIEF_MCP_PORT', '8787', 'Port to listen on'],
   ['host', 'DATABRIEF_MCP_HOST', '0.0.0.0', 'Address to listen on (127.0.0.1 = this computer only)'],
-  ['widget', 'DATABRIEF_WIDGET', '', 'The widget page to serve (default: widget.html next to the server, else widget/databrief-widget.html of the repository)'],
+  ['widget', 'DATABRIEF_WIDGET', '', 'The widget page to serve (default: widget.html next to the server, else dist/databrief-widget.html of the repository, built by tools/build-widget.cjs)'],
   ['public-url', 'DATABRIEF_PUBLIC_URL', '', 'Public address of this server, e.g. https://databrief.example.com (used for the absolute icon address)'],
   ['rate-per-min', 'DATABRIEF_RATE_PER_MIN', '600', 'Flood guard: requests per minute per source (0 = off). Generous on purpose: Claude and ChatGPT call from shared cloud addresses'],
   ['trust-proxy-header', 'DATABRIEF_TRUST_PROXY_HEADER', '', 'Header that carries the real client address behind a proxy, e.g. CF-Connecting-IP (empty = the connection address; set it ONLY behind that proxy)'],
@@ -43,7 +43,8 @@ function loadConfig(env) {
   const get = (name) => { const s = SETTINGS.find((x) => x[0] === name); return env[s[1]] !== undefined && env[s[1]] !== '' ? env[s[1]] : s[2]; };
   const num = (name) => { const v = Number(get(name)); if (!Number.isInteger(v) || v < 0) throw new Error(name + ' must be a whole number, 0 or more'); return v; };
   const pkgFile = [path.join(HERE, 'package.json'), path.join(HERE, '..', 'package.json')].find((f) => fs.existsSync(f));
-  const widget = get('widget') || [path.join(HERE, 'widget.html'), path.join(HERE, '..', 'widget', 'databrief-widget.html')].find((f) => fs.existsSync(f)) || path.join(HERE, '..', 'widget', 'databrief-widget.html');
+  const builtWidget = path.join(HERE, '..', 'dist', 'databrief-widget.html');
+  const widget = get('widget') || [path.join(HERE, 'widget.html'), builtWidget].find((f) => fs.existsSync(f)) || builtWidget;
   const origins = DEFAULT_ORIGINS.concat(get('allowed-origins').split(',').map((s) => s.trim()).filter(Boolean));
   return {
     port: num('port'),
@@ -90,7 +91,7 @@ const cleanName = (s) => (typeof s === 'string' ? s.replace(/[^\w ./-]/g, '').sl
 // The server. Throws (with a clear message) if the widget page is missing: a server without its page is useless.
 function createServer(config, logger) {
   if (!fs.existsSync(config.widgetFile)) {
-    throw new Error('The widget page does not exist: ' + config.widgetFile + '. Build it (widget/databrief-widget.html) or point DATABRIEF_WIDGET at a file.');
+    throw new Error('The widget page does not exist: ' + config.widgetFile + '. Build it with node tools/build-widget.cjs (dist/databrief-widget.html) or point DATABRIEF_WIDGET at a file.');
   }
   const widget = fs.readFileSync(config.widgetFile, 'utf8');
   const widgetSha = crypto.createHash('sha256').update(widget).digest('hex');

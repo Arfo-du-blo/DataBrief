@@ -1,6 +1,6 @@
 # DataBrief hosted MCP server - Docker image (Node.js, no dependency, runs without root, writes nothing).
 #
-# Build, from the repository root (the widget page is the build argument WIDGET):
+# Build, from the repository root (the widget page is the build argument WIDGET; make it first with node tools/build-widget.cjs):
 #   docker build -f mcp/Dockerfile -t databrief-mcp .
 #   docker build -f mcp/Dockerfile --build-arg WIDGET=tests/mcp-fixtures/widget.html -t databrief-mcp:test .   (a stand-in page, for tests)
 # Run:
@@ -9,7 +9,7 @@
 # Settings: DATABRIEF_MCP_* and related environment variables, see docs/mcp-server.md.
 FROM node:22-alpine
 
-ARG WIDGET=widget/databrief-widget.html
+ARG WIDGET=dist/databrief-widget.html
 WORKDIR /app
 COPY mcp/server.js mcp/uris.json mcp/icon.svg package.json ./
 COPY ${WIDGET} /app/widget.html

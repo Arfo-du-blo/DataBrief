@@ -3,7 +3,8 @@
 #                        15 languages, the privacy demo) and the Python and Node.js servers; also checks that the
 #                        committed databrief.html is exactly what build.ps1 produces from the sources
 #   cli                  the command-line tool on Linux, Windows and macOS with Node 18, 22 and 24 (and its packages, except on Windows)
-#   mcp                  the hosted MCP server (protocol, tool, widget resource, limits, no content in the log) with Node 18, 22 and 24
+#   mcp                  the hosted MCP server (protocol, tool, widget resource, limits, no content in the log) and the texts and the
+#                        build of the widget layer, with Node 18, 22 and 24
 #   packages             the .deb in clean Ubuntu and Debian systems (Docker): on version tags and on demand
 #   powershell           the PowerShell server, on Windows
 #   docker               both Docker images (amd64 and arm64 under emulation) and the MCP server's image (amd64), Compose, the Raspberry Pi script and the
@@ -92,6 +93,8 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Hosted MCP server
         run: node tests/test_mcp.cjs
+      - name: Widget layer (texts in 15 languages, the build, no network call; the browser part is in browser-and-servers)
+        run: node tests/test_widget.cjs
 
   powershell:
     runs-on: windows-latest
