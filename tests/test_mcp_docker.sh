@@ -31,7 +31,7 @@ for _ in $(seq 1 30); do curl -fsS "$URL/healthz" >/dev/null 2>&1 && { UP=1; bre
 call() { curl -fsS -X POST "$URL/mcp" -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' -d "$1"; }
 call '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"t","version":"1"}}}' | grep -q '"name":"databrief"' && ok "initialize answers" || bad "initialize"
 call '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' | grep -q '"readOnlyHint":true' && ok "the tool is read-only" || bad "tools/list"
-call '{"jsonrpc":"2.0","id":3,"method":"resources/read","params":{"uri":"ui://databrief/widget-v3.html"}}' | grep -q 'Stand-in for dist' && ok "the widget page is served at its current address" || bad "resources/read"
+call '{"jsonrpc":"2.0","id":3,"method":"resources/read","params":{"uri":"ui://databrief/widget-v4.html"}}' | grep -q 'Stand-in for dist' && ok "the widget page is served at its current address" || bad "resources/read"
 call '{"jsonrpc":"2.0","id":4,"method":"resources/read","params":{"uri":"ui://databrief/widget-v1.html"}}' | grep -q 'Stand-in for dist' && ok "an older widget address still answers" || bad "old address"
 
 WANT=$(sha256sum tests/mcp-fixtures/widget.html | cut -d' ' -f1)

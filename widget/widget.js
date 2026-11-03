@@ -158,8 +158,18 @@
       request('ui/message', asText(a.message)).then(done(a.kind === 'ask' ? 'doneAskFill' : 'doneChatFill'), fail('errChat'));
       return;
     }
+    if (a.hk === 'fill') {
+      // Claude Desktop only accepts a message sent right after the user's click ("ui/message without iframe-originated user
+      // activation blocked", seen in its log): the line goes FIRST, in this very click, without waiting for the context to be
+      // answered. The order does not matter to Claude, which reads the context later, when the AI asks for it.
+      const sentLine = request('ui/message', asText(a.line));
+      const sentCtx = ctxText();
+      sentLine.then(() => sentCtx.then(done('doneCtx'), fail('errCtx')), (e) => { sentCtx.catch(() => {}); fail('errChat')(e); });
+      return;
+    }
+    // The other hosts: the context first, then the line (ChatGPT sends the line at once, so the context must be there before it).
     ctxText().then(() => request('ui/message', asText(a.line)).then(
-      done(a.hk === 'fill' ? 'doneCtx' : (a.hk === 'send' ? (a.kind === 'ask' ? 'doneAskSent' : 'doneChatSent') : 'doneNeutral')),
+      done(a.hk === 'send' ? (a.kind === 'ask' ? 'doneAskSent' : 'doneChatSent') : 'doneNeutral'),
       fail('errAsk')), fail(a.kind === 'chat' ? 'errChat' : 'errCtx'));
   }
 

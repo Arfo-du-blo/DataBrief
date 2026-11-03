@@ -33,9 +33,9 @@ function fail(id, code, message) { frame.contentWindow.postMessage({ jsonrpc: '2
 window.addEventListener('message', (e) => {
   if (e.source !== frame.contentWindow) return;
   const m = e.data;
-  window.__log.push(m);
+  window.__log.push(Object.assign({}, m, { __t: performance.now() }));
   if (m.method === 'ui/initialize') { if (cfg.silent) return; reply(m.id, { protocolVersion: '2026-01-26', hostInfo: cfg.hostInfo, hostCapabilities: cfg.caps, hostContext: { containerDimensions: { maxHeight: 5000 } } }); return; }
-  if (m.id !== undefined && m.method) { if (cfg.fail && cfg.fail[m.method]) fail(m.id, -32000, cfg.fail[m.method]); else reply(m.id, cfg.results && cfg.results[m.method] || {}); }
+  if (m.id !== undefined && m.method) { if (cfg.fail && cfg.fail[m.method]) fail(m.id, -32000, cfg.fail[m.method]); else { const d = cfg.delay && cfg.delay[m.method]; const r = cfg.results && cfg.results[m.method] || {}; if (d) setTimeout(() => reply(m.id, r), d); else reply(m.id, r); } }
 });
 window.__request = (method, params) => new Promise((ok) => { const id = 9000 + Math.floor(Math.random() * 1000); const h = (e) => { if (e.source === frame.contentWindow && e.data && e.data.id === id && !e.data.method) { removeEventListener('message', h); ok(e.data); } }; addEventListener('message', h); frame.contentWindow.postMessage({ jsonrpc: '2.0', id, method, params: params || {} }, '*'); });
 if (cfg.rogue) { const s = document.createElement('iframe'); s.srcdoc = '<script>setInterval(()=>parent.frames[0].postMessage({jsonrpc:"2.0",id:1,result:{hostInfo:{name:"Claude"},hostCapabilities:{message:{},updateModelContext:{}}}},"*"),200)<\\/script>'; document.body.appendChild(s); }
@@ -101,7 +101,7 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   const clearPrompt = async (page) => { await page.evaluate(() => { window.__log.length = 0; }); };
 
   /* ================= Claude: the message box is filled ================= */
-  let { page, frame } = await open(CLAUDE);
+  let { page, frame } = await open(Object.assign({}, CLAUDE, { delay: { 'ui/update-model-context': 300 } }));   // a host slow to answer the context
   const rows = ['#dbwChat', '#dbwCtx', '#dbwAsk', '#dbwQ'];
   check('Claude: Put in the chat, Add to context and the question block are there', (await Promise.all(rows.map((s) => exists(frame, s)))).every(Boolean));
   const labels = await frame.evaluate(() => [...document.querySelectorAll('#dbwChat .dbw-label, #dbwCtx .dbw-label, #dbwAsk .dbw-label')].map((e) => e.textContent));
@@ -132,14 +132,16 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   const ctx = await waitFor(page, 'ui/update-model-context', 1), msg2 = await waitFor(page, 'ui/message', 1);
   check('Add to context: the context holds the prompt', ctx.length === 1 && ctx[0].params.content[0].text === prompt);
   check('Add to context: then a short line in the prompt\'s language goes to the message box', msg2.length === 1 && msg2[0].params.content[0].text === 'Read the DataBrief widget context (read_widget_context) and follow the prompt in it.');
-  const order = (await log(page)).map((m) => m.method).filter((m) => /ui\/(update-model-context|message)$/.test(m || ''));
-  check('Add to context: the context comes first, the line after', order.join() === 'ui/update-model-context,ui/message', order.join());
+  const both = (await log(page)).filter((m) => /ui\/(update-model-context|message)$/.test(m.method || ''));
+  check('Claude Add to context: the line goes FIRST, the context after (Desktop only accepts a message right after the click)', both.map((m) => m.method).join() === 'ui/message,ui/update-model-context', both.map((m) => m.method).join());
+  check('Claude Add to context: both leave in the same click, without waiting for the host to answer the context (300 ms here)', both.length === 2 && both[1].__t - both[0].__t < 100, both.length === 2 ? String(Math.round(both[1].__t - both[0].__t)) : 'n/a');
 
+  await sleep(450);   // the slow context answer shows its box now: let the layout settle before the next click
   await clearPrompt(page);
   await frame.type('#dbwQ', 'What is the total amount per segment?');
   await click(frame, '#dbwAsk'); await click(frame, '#dbwAsk');
   const msg3 = await waitFor(page, 'ui/message', 1);
-  check('Ask on Claude: ONE message holds the question first and the whole prompt after it', msg3.length === 1 && msg3[0].params.content[0].text === 'My question about this file: What is the total amount per segment?\n\n' + prompt);
+  check('Ask on Claude: ONE message holds the question first and the whole prompt after it', msg3.length === 1 && msg3[0].params.content[0].text === 'My question about this file: What is the total amount per segment?\n\n' + prompt, msg3.length + ' message(s); first starts with ' + JSON.stringify(msg3[0] && msg3[0].params.content[0].text.slice(0, 120)) + '; box: ' + JSON.stringify(await boxText(frame)).slice(0, 160));
   check('Ask on Claude: no context is set (the AI does not need to open anything)', (await sent(page, 'ui/update-model-context')).length === 0);
   await clearPrompt(page);
   await frame.$eval('#dbwQ', (e) => { e.value = ''; });
@@ -227,7 +229,7 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   ({ page, frame } = await open(Object.assign({}, CLAUDE, { fail: { 'ui/update-model-context': 'too big' } })));
   await click(frame, '#dbwCtx'); await click(frame, '#dbwCtx');
   await sleep(300);
-  check('a refused context shows an error and sends no line', /too big/.test(await boxText(frame)) && (await sent(page, 'ui/message')).length === 0);
+  check('a refused context shows a red error (on Claude the line was already put in the message box: it goes first)', /too big/.test(await boxText(frame)) && /err/.test(await boxTone(frame)) && (await sent(page, 'ui/message')).length === 1, await boxText(frame));
   await closePage(page);
   ({ page, frame } = await open(Object.assign({}, CLAUDE, { fail: { 'ui/download-file': 'no storage' } })));
   await click(frame, '#downloadBtn');
@@ -256,7 +258,7 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   await closePage(page);
 
   /* ================= ChatGPT: a message is sent at once ================= */
-  ({ page, frame } = await open(CHATGPT));
+  ({ page, frame } = await open(Object.assign({}, CHATGPT, { delay: { 'ui/update-model-context': 300 } })));
   check('ChatGPT: Put in the chat and the question block are there, Add to context is not', (await exists(frame, '#dbwChat')) && (await exists(frame, '#dbwAsk')) && !(await exists(frame, '#dbwCtx')));
   await click(frame, '#modeGroup button[data-mode="files"]');
   await frame.waitForFunction(() => !document.getElementById('dataBtn').classList.contains('hidden'), { timeout: 10000 });
@@ -270,6 +272,8 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   await click(frame, '#dbwChat');
   const gctx = await waitFor(page, 'ui/update-model-context', 1), gmsg = await waitFor(page, 'ui/message', 1);
   check('ChatGPT: Put in the chat = the prompt in the context, then the short line as the message (never the whole prompt)', gctx.length === 1 && gctx[0].params.content[0].text === gptPrompt && gmsg.length === 1 && gmsg[0].params.content[0].text === 'Read the DataBrief widget context and follow the prompt in it.');
+  const gboth = (await log(page)).filter((m) => /ui\/(update-model-context|message)$/.test(m.method || ''));
+  check('ChatGPT: the context first, then the line, and the line WAITS for the context to be answered (300 ms here)', gboth.map((m) => m.method).join() === 'ui/update-model-context,ui/message' && gboth[1].__t - gboth[0].__t >= 250, gboth.map((m) => m.method).join() + ' ' + (gboth.length === 2 ? Math.round(gboth[1].__t - gboth[0].__t) : ''));
   check('ChatGPT: the confirmation says it was sent', /Sent/.test(await boxText(frame)));
   await clearPrompt(page);
   await frame.type('#dbwQ', 'Which segment is largest?');
