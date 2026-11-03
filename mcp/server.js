@@ -109,12 +109,15 @@ function createServer(config, logger) {
     title: 'DataBrief',
     description: 'Opens DataBrief, a page where the user picks a data file (CSV, Excel, Parquet, SQLite, SQL dump, PDF, Word and many more) and turns it into a prompt for an AI, with an option to share no records at all. ' +
       'Use it when the user wants to prepare, describe or analyse a data file with privacy in mind. The file is read in the user\'s browser and never reaches this server. Takes no arguments. ' +
+      'You cannot see the widget: the user picks the file in it. When the user says the prompt or the data was added to the widget context, read that context first (for example with read_widget_context) and follow it; do not ask the user to paste it. ' +
       'In a terminal there is no widget: use the databrief command-line tool instead.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     annotations: { title: 'DataBrief', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     _meta: { ui: { resourceUri: uris.current }, 'ui/resourceUri': uris.current },
   };
   const TOOL_TEXT = 'DataBrief is open. The user chooses a file inside the widget; it is read on their computer and never reaches this server. ' +
+    'You cannot see the widget. Tell the user to choose a file in it and use its buttons (Put in the chat, Add to context, or Ask about this data); do not ask them to paste anything. ' +
+    'When they say the prompt or the data was added to the widget context, read that context first (for example with read_widget_context), then follow it. ' +
     'If no widget is visible (for example in a terminal), tell the user to use the databrief command-line tool: npm install -g databrief, or see https://github.com/Arfo-du-blo/DataBrief.';
   const INSTRUCTIONS = 'DataBrief turns a data file into a prompt for an AI, with an option to share no records. Call databrief_open when the user wants to prepare or analyse a data file; the user picks the file inside the widget.';
 

@@ -76,8 +76,10 @@ const rpc = (port, id, method, params, headers) => request(port, 'POST', '/mcp',
   check('the tool takes no argument', tool.inputSchema.type === 'object' && Object.keys(tool.inputSchema.properties).length === 0 && tool.inputSchema.additionalProperties === false);
   check('the tool points at the widget, in both metadata keys', tool._meta.ui.resourceUri === uris.current && tool._meta['ui/resourceUri'] === uris.current);
   check('the tool description says the file never reaches the server and mentions the terminal', /never reaches this server/.test(tool.description) && /terminal/.test(tool.description));
+  check('the tool description tells the AI it cannot see the widget and to read the widget context, not ask for a paste', /cannot see the widget/.test(tool.description) && /read_widget_context/.test(tool.description) && /do not ask the user to paste/.test(tool.description));
   r = await rpc(P, 6, 'tools/call', { name: 'databrief_open', arguments: {} });
   check('tools/call answers with text that points terminal users at the CLI', r.json.result.content[0].type === 'text' && /databrief command-line tool/.test(r.json.result.content[0].text));
+  check('tools/call answer tells the AI what to say to the user and to read the widget context', /choose a file in it/.test(r.json.result.content[0].text) && /read_widget_context/.test(r.json.result.content[0].text) && /do not ask them to paste/.test(r.json.result.content[0].text));
   r = await rpc(P, 7, 'tools/call', { name: 'nope', arguments: {} });
   check('an unknown tool is an error -32602', r.json.error && r.json.error.code === -32602);
 

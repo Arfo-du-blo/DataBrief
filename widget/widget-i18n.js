@@ -162,10 +162,31 @@
       "{name}: لم ينجح التنزيل ({e}).", "{name}: أُلغي التنزيل.", "تعذّر فتح الرابط: {url} ({e}).", "جارٍ العمل...",
       "اقرأ سياق أداة DataBrief واتبع التعليمات الموجودة فيه.", "اقرأ سياق أداة DataBrief، ثم أجب: {q}"],
   };
+  // The same two lines for hosts that keep the context out of the conversation until the AI asks for it (Claude): they name the
+  // step to take, because a vague "read the context" was not enough (the AI answered without opening it: tested 2026-11-03).
+  const FILL = {
+    en: ["Read the DataBrief widget context (read_widget_context) and follow the prompt in it.", "Read the DataBrief widget context (read_widget_context), then answer: {q}"],
+    fr: ["Lis le contexte du widget DataBrief (read_widget_context) et suis le prompt qu'il contient.", "Lis le contexte du widget DataBrief (read_widget_context), puis réponds : {q}"],
+    es: ["Lee el contexto del widget de DataBrief (read_widget_context) y sigue el prompt que contiene.", "Lee el contexto del widget de DataBrief (read_widget_context) y luego responde: {q}"],
+    de: ["Lies den Kontext des DataBrief-Widgets (read_widget_context) und folge dem Prompt darin.", "Lies den Kontext des DataBrief-Widgets (read_widget_context) und beantworte dann: {q}"],
+    it: ["Leggi il contesto del widget DataBrief (read_widget_context) e segui il prompt che contiene.", "Leggi il contesto del widget DataBrief (read_widget_context), poi rispondi: {q}"],
+    pt: ["Leia o contexto do widget DataBrief (read_widget_context) e siga o prompt que ele contém.", "Leia o contexto do widget DataBrief (read_widget_context) e depois responda: {q}"],
+    nl: ["Lees de context van de DataBrief-widget (read_widget_context) en volg de prompt daarin.", "Lees de context van de DataBrief-widget (read_widget_context) en beantwoord dan: {q}"],
+    pl: ["Odczytaj kontekst widżetu DataBrief (read_widget_context) i wykonaj zawarty w nim prompt.", "Odczytaj kontekst widżetu DataBrief (read_widget_context), a potem odpowiedz: {q}"],
+    ru: ["Прочитай контекст виджета DataBrief (read_widget_context) и выполни промпт из него.", "Прочитай контекст виджета DataBrief (read_widget_context), затем ответь: {q}"],
+    tr: ["DataBrief widget bağlamını (read_widget_context) oku ve içindeki istemi uygula.", "DataBrief widget bağlamını (read_widget_context) oku, sonra yanıtla: {q}"],
+    zh: ["请读取 DataBrief 小组件的上下文（read_widget_context），并按照其中的提示词执行。", "请读取 DataBrief 小组件的上下文（read_widget_context），然后回答：{q}"],
+    ja: ["DataBrief ウィジェットのコンテキスト（read_widget_context）を読み取り、その中のプロンプトに従ってください。", "DataBrief ウィジェットのコンテキスト（read_widget_context）を読み取ってから、次に答えてください：{q}"],
+    ko: ["DataBrief 위젯 컨텍스트(read_widget_context)를 읽고 그 안의 프롬프트를 따라 주세요.", "DataBrief 위젯 컨텍스트(read_widget_context)를 읽은 다음 답해 주세요: {q}"],
+    hi: ["DataBrief विजेट का संदर्भ (read_widget_context) पढ़ें और उसमें दिए गए प्रॉम्प्ट का पालन करें।", "DataBrief विजेट का संदर्भ (read_widget_context) पढ़ें, फिर उत्तर दें: {q}"],
+    ar: ["اقرأ سياق أداة DataBrief (read_widget_context) واتبع التعليمات الموجودة فيه.", "اقرأ سياق أداة DataBrief (read_widget_context)، ثم أجب: {q}"],
+  };
   const out = {};
   for (const code of Object.keys(L)) {
     out[code] = {};
     K.forEach((k, i) => { out[code][k] = L[code][i]; });
+    out[code].lineReadFill = FILL[code][0];
+    out[code].lineAskFill = FILL[code][1];
   }
   window.DB_WIDGET_I18N = out;
 })();

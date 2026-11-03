@@ -108,7 +108,11 @@
     if (a.x) a.x.remove();
   }
   function cancel() { disarm(); show('', '', null); }
-  const lineFor = (kind, q) => (kind === 'ask' ? T('lineAsk', { q }, page().state.prompt) : T('lineRead', null, page().state.prompt));
+  // The line written in the chat, in the prompt language. Where the context stays out of the conversation until the AI asks for it
+  // ('fill', Claude), the line names the step to take; elsewhere the context is simply there.
+  const lineFor = (kind, q, fill) => (kind === 'ask'
+    ? T(fill ? 'lineAskFill' : 'lineAsk', { q }, page().state.prompt)
+    : T(fill ? 'lineReadFill' : 'lineRead', null, page().state.prompt));
 
   function arm(btn, kind, anchor) {
     if (armed && armed.btn === btn) { go(); return; }
@@ -119,7 +123,7 @@
     if (kind === 'ask' && !q) { show(T('errQuestion'), 'info', anchor); return; }
     const hk = hostKind();
     const wholePrompt = kind === 'chat' && hk === 'fill';      // the only route that sends the whole prompt as a message
-    const line = wholePrompt ? '' : lineFor(kind, q);
+    const line = wholePrompt ? '' : lineFor(kind, q, hk === 'fill');
     const big = wholePrompt ? cur.text.length > MSG_CHARS : cur.tokens > CTX_TOKENS;
     let explain;
     if (hk === 'fill') explain = kind === 'chat' ? T('chatFill') : T(kind === 'ask' ? 'askFill' : 'ctxFill', { line });
