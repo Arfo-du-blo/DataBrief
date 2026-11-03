@@ -110,9 +110,7 @@
   function cancel() { disarm(); show('', '', null); }
   // The line written in the chat, in the prompt language. Where the context stays out of the conversation until the AI asks for it
   // ('fill', Claude), the line names the step to take; elsewhere the context is simply there.
-  const lineFor = (kind, q, fill) => (kind === 'ask'
-    ? T(fill ? 'lineAskFill' : 'lineAsk', { q }, page().state.prompt)
-    : T(fill ? 'lineReadFill' : 'lineRead', null, page().state.prompt));
+  const lineFor = (kind, q) => (kind === 'ask' ? T('lineAsk', { q }, page().state.prompt) : T(hostKind() === 'fill' ? 'lineReadFill' : 'lineRead', null, page().state.prompt));
 
   function arm(btn, kind, anchor) {
     if (armed && armed.btn === btn) { go(); return; }
@@ -122,16 +120,19 @@
     const q = kind === 'ask' ? ($('dbwQ').value || '').trim() : '';
     if (kind === 'ask' && !q) { show(T('errQuestion'), 'info', anchor); return; }
     const hk = hostKind();
-    const wholePrompt = kind === 'chat' && hk === 'fill';      // the only route that sends the whole prompt as a message
-    const line = wholePrompt ? '' : lineFor(kind, q, hk === 'fill');
-    const big = wholePrompt ? cur.text.length > MSG_CHARS : cur.tokens > CTX_TOKENS;
+    // Claude: the AI is not sure to be able to read the context (it can in the browser and in the Code tab, not in the Desktop home
+    // chat: tested), so Put in the chat AND Ask send everything in the message itself. Add to context stays a best effort.
+    const wholePrompt = (kind === 'chat' || kind === 'ask') && hk === 'fill';
+    const message = kind === 'ask' ? T('askBundle', { q }, page().state.prompt) + '\n\n' + cur.text : cur.text;
+    const line = wholePrompt ? '' : lineFor(kind, q);
+    const big = wholePrompt ? message.length > MSG_CHARS : cur.tokens > CTX_TOKENS;
     let explain;
-    if (hk === 'fill') explain = kind === 'chat' ? T('chatFill') : T(kind === 'ask' ? 'askFill' : 'ctxFill', { line });
+    if (hk === 'fill') explain = kind === 'chat' ? T('chatFill') : (kind === 'ask' ? T('askFill') : T('ctxFill', { line }));
     else if (hk === 'send') explain = kind === 'chat' ? T('chatSend', { line }) : T('askSend', { line });
     else explain = kind === 'chat' ? T('chatNeutral', { line }) : T('askNeutral', { line });
-    const lines = [(cur.data ? '⚠ ' + T('infoData') : '✓ ' + T('infoNoData')) + ' · ' + T('sizeLine', { chars: num(cur.text.length), tokens: num(cur.tokens) }), explain];
+    const lines = [(cur.data ? '⚠ ' + T('infoData') : '✓ ' + T('infoNoData')) + ' · ' + T('sizeLine', { chars: num(message.length), tokens: num(Math.max(cur.tokens, Math.ceil(message.length / 4))) }), explain];
     if (big) lines.push(T('warnBig', { limit: wholePrompt ? T('aboutKb', { n: '100' }) : T('aboutTokens', { n: num(16000) }) }));
-    armed = { btn, kind, cls: btn.className, html: btn.innerHTML, text: cur.text, line, hk, anchor };
+    armed = { btn, kind, cls: btn.className, html: btn.innerHTML, text: cur.text, message, line, hk, anchor, whole: wholePrompt };
     btn.className = btn.className + ' ' + (cur.data ? 'dbw-armed-warn' : 'dbw-armed-ok');
     btn.innerHTML = CHECK + '<span>' + T('confirm') + '</span>';
     const x = document.createElement('button');
@@ -153,12 +154,12 @@
     const ctxText = () => request('ui/update-model-context', { content: [{ type: 'text', text: a.text }] });
     const done = (key) => () => show(T(key), 'ok', a.anchor);
     const fail = (key) => (e) => show(T(key, { e: errText(e) }), 'err', a.anchor);
-    if (a.kind === 'chat' && a.hk === 'fill') {
-      request('ui/message', asText(a.text)).then(done('doneChatFill'), fail('errChat'));
+    if (a.whole) {
+      request('ui/message', asText(a.message)).then(done(a.kind === 'ask' ? 'doneAskFill' : 'doneChatFill'), fail('errChat'));
       return;
     }
     ctxText().then(() => request('ui/message', asText(a.line)).then(
-      done(a.hk === 'fill' ? (a.kind === 'ask' ? 'doneAskFill' : 'doneCtx') : (a.hk === 'send' ? (a.kind === 'ask' ? 'doneAskSent' : 'doneChatSent') : 'doneNeutral')),
+      done(a.hk === 'fill' ? 'doneCtx' : (a.hk === 'send' ? (a.kind === 'ask' ? 'doneAskSent' : 'doneChatSent') : 'doneNeutral')),
       fail('errAsk')), fail(a.kind === 'chat' ? 'errChat' : 'errCtx'));
   }
 

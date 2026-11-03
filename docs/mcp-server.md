@@ -38,8 +38,8 @@ The page is the same everywhere, and it adapts to what each app says it supports
 | | Claude | ChatGPT | An app we have not tested |
 |---|---|---|---|
 | **Put in the chat** | the whole prompt goes into your message box; you press send | the prompt goes into the chat context and a short line is **sent at once** | the same as ChatGPT, with wording that says "sent, or placed in your message box, depending on the app" |
-| **Add to context** | the data goes into the context and a short line into your message box | not offered | not offered |
-| **Ask about this data** | the data goes into the context and your question into your message box | the same, and the question is sent at once | the same, with neutral wording |
+| **Add to context** | the data goes into the context and a short line into your message box (best effort: see below) | not offered | not offered |
+| **Ask about this data** | your question and the whole prompt go into your message box, as one message | the data goes into the context and the question is sent at once | the same as ChatGPT, with neutral wording |
 | **Downloads** (.md, CSV, zip) | through the app, which asks you to confirm | hidden: the app cannot download | shown only if the app says it can |
 | **Links** | opened by the app, which asks you to confirm | opened by the app | only if the app says it can |
 
@@ -47,7 +47,9 @@ An app that does not support messages or context gets none of those buttons: **C
 turns into **Confirm** (amber when the prompt holds your data, green when "Do not share data" is on) and a box says how big it is, whether it
 holds the data, and what will happen. A prompt that is larger than an app is known to accept only gets a warning: you can still try.
 
-**Tested:** Claude and ChatGPT, in the browser. Other apps that speak MCP Apps get only what they confirm, but nobody has tried them yet. The
+**Add to context on Claude is a best effort.** Claude keeps the context out of the conversation until the AI decides to open it. In the browser and in the Desktop app's Code tab the AI does; in the Desktop app's home chat, at the time of writing, it has no way to, and says to use **Put in the chat** instead. That is why Put in the chat and Ask send everything in the message itself. Where a host does not offer downloads (the Desktop Code tab, ChatGPT), the download buttons are hidden.
+
+**Tested:** Claude (browser and Desktop app) and ChatGPT (browser). Other apps that speak MCP Apps get only what they confirm, but nobody has tried them yet. The
 labels and boxes are in the page's 15 languages; the short line that goes into the chat follows the **prompt** language.
 
 `tests/test_widget.cjs` checks the texts and the build, and `tests/test_widget_browser.cjs` opens the page in Chrome inside fake hosts (Claude, ChatGPT,

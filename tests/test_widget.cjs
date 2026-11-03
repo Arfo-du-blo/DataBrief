@@ -43,8 +43,8 @@ for (const m of js.matchAll(/(?:done|fail)\('([A-Za-z]+)'\)/g)) used.add(m[1]);
 for (const m of js.matchAll(/mkBtn\('[^']+',\s*'[^']*',\s*'([A-Za-z]+)'/g)) used.add(m[1]);
 for (const m of js.matchAll(/T\(hk === 'fill' \? '([A-Za-z]+)' : \(hk === 'send' \? '([A-Za-z]+)' : '([A-Za-z]+)'\)\)/g)) { used.add(m[1]); used.add(m[2]); used.add(m[3]); }
 check('every key the code asks for exists', [...used].every((k) => keys.includes(k)), [...used].filter((k) => !keys.includes(k)).join());
-check('the lines written in the message box are in every language, with the {q} where it belongs', LANGS.every((c) => I[c].lineAsk.includes('{q}') && I[c].lineAskFill.includes('{q}') && !I[c].lineRead.includes('{') && !I[c].lineReadFill.includes('{')));
-check('the lines for hosts that keep the context aside name the step to take (read_widget_context), the others do not', LANGS.every((c) => I[c].lineReadFill.includes('read_widget_context') && I[c].lineAskFill.includes('read_widget_context') && !I[c].lineRead.includes('read_widget_context') && !I[c].lineAsk.includes('read_widget_context')));
+check('the lines written in the message box are in every language, with the {q} where it belongs', LANGS.every((c) => I[c].lineAsk.includes('{q}') && I[c].askBundle.includes('{q}') && !I[c].lineRead.includes('{') && !I[c].lineReadFill.includes('{')));
+check('the lines for hosts that keep the context aside name the step to take (read_widget_context), the others do not', LANGS.every((c) => I[c].lineReadFill.includes('read_widget_context') && !I[c].lineRead.includes('read_widget_context') && !I[c].lineAsk.includes('read_widget_context') && !('lineAskFill' in I[c])));
 
 /* ---------- the build ---------- */
 const basePath = path.join(ROOT, 'databrief.html');

@@ -138,8 +138,9 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   await clearPrompt(page);
   await frame.type('#dbwQ', 'What is the total amount per segment?');
   await click(frame, '#dbwAsk'); await click(frame, '#dbwAsk');
-  const ctx3 = await waitFor(page, 'ui/update-model-context', 1), msg3 = await waitFor(page, 'ui/message', 1);
-  check('Ask: the context holds the prompt and the message holds the question', ctx3.length === 1 && ctx3[0].params.content[0].text === prompt && msg3.length === 1 && msg3[0].params.content[0].text === 'Read the DataBrief widget context (read_widget_context), then answer: What is the total amount per segment?');
+  const msg3 = await waitFor(page, 'ui/message', 1);
+  check('Ask on Claude: ONE message holds the question first and the whole prompt after it', msg3.length === 1 && msg3[0].params.content[0].text === 'My question about this file: What is the total amount per segment?\n\n' + prompt);
+  check('Ask on Claude: no context is set (the AI does not need to open anything)', (await sent(page, 'ui/update-model-context')).length === 0);
   await clearPrompt(page);
   await frame.$eval('#dbwQ', (e) => { e.value = ''; });
   await click(frame, '#dbwAsk');
