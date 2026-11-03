@@ -34,14 +34,18 @@ window.addEventListener('message', (e) => {
   if (e.source !== frame.contentWindow) return;
   const m = e.data;
   window.__log.push(Object.assign({}, m, { __t: performance.now() }));
-  if (m.method === 'ui/initialize') { if (cfg.silent) return; reply(m.id, { protocolVersion: '2026-01-26', hostInfo: cfg.hostInfo, hostCapabilities: cfg.caps, hostContext: { containerDimensions: { maxHeight: 5000 } } }); return; }
+  if (m.method === 'ui/initialize') { if (cfg.silent) return; reply(m.id, { protocolVersion: '2026-01-26', hostInfo: cfg.hostInfo, hostCapabilities: cfg.caps, hostContext: { platform: cfg.platform, containerDimensions: { maxHeight: 5000 } } }); return; }
   if (m.id !== undefined && m.method) { if (cfg.fail && cfg.fail[m.method]) fail(m.id, -32000, cfg.fail[m.method]); else { const d = cfg.delay && cfg.delay[m.method]; const r = cfg.results && cfg.results[m.method] || {}; if (d) setTimeout(() => reply(m.id, r), d); else reply(m.id, r); } }
 });
 window.__request = (method, params) => new Promise((ok) => { const id = 9000 + Math.floor(Math.random() * 1000); const h = (e) => { if (e.source === frame.contentWindow && e.data && e.data.id === id && !e.data.method) { removeEventListener('message', h); ok(e.data); } }; addEventListener('message', h); frame.contentWindow.postMessage({ jsonrpc: '2.0', id, method, params: params || {} }, '*'); });
 if (cfg.rogue) { const s = document.createElement('iframe'); s.srcdoc = '<script>setInterval(()=>parent.frames[0].postMessage({jsonrpc:"2.0",id:1,result:{hostInfo:{name:"Claude"},hostCapabilities:{message:{},updateModelContext:{}}}},"*"),200)<\\/script>'; document.body.appendChild(s); }
 </script>`;
 
-const CLAUDE = { hostInfo: { name: 'Claude', version: '1.0.0' }, caps: { openLinks: {}, downloadFile: {}, updateModelContext: { text: {} }, message: { text: {} }, serverTools: {}, sandbox: {} } };
+// Claude in the browser, as it announces itself (tested 2026-11-03). The Desktop app's home chat announces platform "desktop" with the same
+// capabilities; its Code tab announces platform "desktop" WITHOUT downloadFile.
+const CLAUDE = { hostInfo: { name: 'Claude', version: '1.0.0' }, platform: 'web', caps: { openLinks: {}, downloadFile: {}, updateModelContext: { text: {} }, message: { text: {} }, serverTools: {}, sandbox: {} } };
+const DESKTOP_HOME = Object.assign({}, CLAUDE, { platform: 'desktop' });
+const DESKTOP_CODE = { hostInfo: { name: 'Claude', version: '1.0.0' }, platform: 'desktop', caps: { openLinks: {}, updateModelContext: { text: {} }, message: { text: {} }, serverTools: {}, sandbox: {} } };
 const CHATGPT = { hostInfo: { name: 'chatgpt', version: 'unknown' }, caps: { experimental: { 'openai/modelContext': {}, 'openai/message': { draft: {} } }, openLinks: {}, serverTools: {}, message: { text: {} }, updateModelContext: { text: {} } } };
 const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks: {}, downloadFile: {}, updateModelContext: { text: {} }, message: { text: {} } } };
 
@@ -285,6 +289,26 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   await frame.select('#uiLang', 'fr');
   await sleep(700);
   check('French interface: the labels follow', (await text(frame, '#dbwChat .dbw-label')) === 'Mettre dans le chat' && (await text(frame, '.dbw-ask-title')) === 'Interroger ces données');
+  await closePage(page);
+
+  /* ================= the three Claude surfaces, as each announces itself ================= */
+  ({ page, frame } = await open(DESKTOP_HOME));
+  check('Claude Desktop home chat: no Add to context (its AI cannot open the widget context)', !(await exists(frame, '#dbwCtx')));
+  check('Claude Desktop home chat: Put in the chat and the question block are there, downloads too', (await exists(frame, '#dbwChat')) && (await exists(frame, '#dbwAsk')) && !(await hidden(frame, '#downloadBtn')));
+  await clearPrompt(page);
+  const homePrompt = await md(frame);
+  await frame.type('#dbwQ', 'what is the data about?');
+  await click(frame, '#dbwAsk');
+  check('Claude Desktop home chat: the box says the question and the whole prompt go into the message box', /question and the whole prompt/.test(await boxText(frame)));
+  await click(frame, '#dbwAsk');
+  const hm = await waitFor(page, 'ui/message', 1);
+  check('Claude Desktop home chat: ONE message, the question first and the whole prompt after it, and no context', hm.length === 1 && hm[0].params.content[0].text === 'My question about this file: what is the data about?\n\n' + homePrompt && (await sent(page, 'ui/update-model-context')).length === 0);
+  await closePage(page);
+  ({ page, frame } = await open(DESKTOP_CODE));
+  check('Claude Desktop Code tab: Add to context is offered, the download buttons are hidden (the host does not announce downloads)', (await exists(frame, '#dbwCtx')) && (await hidden(frame, '#downloadBtn')) && (await exists(frame, '#dbwChat')) && (await exists(frame, '#dbwAsk')));
+  await closePage(page);
+  ({ page, frame } = await open(CLAUDE));
+  check('Claude in the browser: Add to context is offered', await exists(frame, '#dbwCtx'));
   await closePage(page);
 
   /* ================= an unknown host: only what it says it supports, neutral words ================= */

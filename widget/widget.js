@@ -239,8 +239,12 @@
       row.insertBefore(b, dl);
       b.onclick = () => arm(b, 'chat', row);
     }
-    // Add to context: only where a message fills the message box instead of being sent.
-    if (hk === 'fill' && c.ctx && c.message) {
+    // Add to context: only where a message fills the message box instead of being sent, and not in the Claude Desktop home chat: the
+    // AI there cannot open the widget context (tested, and confirmed by its own log: that chat is a Claude Code session of the app).
+    // It is recognised by what its host announces (tested 2026-11-03): the Desktop app (platform "desktop") that offers downloads; the
+    // Code tab (no downloads) and the browser (platform "web") work.
+    const desktopHome = ((host.hostContext || {}).platform === 'desktop') && c.dl;
+    if (hk === 'fill' && c.ctx && c.message && !desktopHome) {
       const b = mkBtn('dbwCtx', '<path d="M12 5v14M5 12h14"/>', 'ctxBtn');
       row.insertBefore(b, dl);
       b.onclick = () => arm(b, 'ctx', row);
