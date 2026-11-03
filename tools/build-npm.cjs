@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* Builds the npm package in dist/npm (or the folder given):   node tools/build-npm.cjs [OUTDIR] [--version 1.5.0-rc.1]
  * The package holds the one-file command-line tool (tools/build-cli.cjs) and nothing else of the repository: its manual, the licenses of
- * what is bundled in it, and a short README for the npm page. Publish from that folder:   npm publish ./dist/npm --access public
+ * what is bundled in it, and a short README for the npm page. Stage it from that folder (npm 11.15+):   npm stage publish ./dist/npm --access public
  * (the release workflow does it with provenance; a release candidate is published by hand: --tag next).
  * The root package.json stays private on purpose (so that nothing is ever published from the repository root); the public
  * package.json is written here from its fields. The version is package.json's, or --version (also DATABRIEF_VERSION). */

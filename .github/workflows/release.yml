@@ -6,8 +6,9 @@
 #      (linux/arm64); Docker picks the right one automatically:                                                (job docker)
 #        ghcr.io/<owner>/databrief:latest, :nginx, :<version>, :<version>-nginx   (nginx variant)
 #        ghcr.io/<owner>/databrief:python, :<version>-python                      (Python variant)
-#   3. the npm package "databrief", with provenance, by trusted publishing: npmjs.com > the package > Settings > Trusted
-#      Publisher: GitHub Actions, owner Arfo-du-blo, repository DataBrief, workflow release.yml. No token.      (job npm)
+#   3. the npm package "databrief", with provenance, STAGED by trusted publishing (npmjs.com > the package > Settings > Trusted
+#      Publisher: GitHub Actions, owner Arfo-du-blo, repository DataBrief, workflow release.yml, direct publishing and
+#      dist-tags NOT allowed; no token). It goes live when the owner approves it with 2FA (npm stage approve)  (job npm)
 #   4. the Homebrew formula and the Scoop manifest, written into the repositories homebrew-databrief and
 #      scoop-databrief with the secret PACKAGES_TOKEN (a fine-grained token that can write to those two only)  (job packages)
 # The jobs 2, 3 and 4 wait for the release (1) and do not depend on each other: one that fails can be run again alone.
@@ -115,9 +116,11 @@ jobs:
             ${{ env.IMAGE }}:python
             ${{ env.IMAGE }}:${{ github.ref_name }}-python
 
-  # The npm package. Trusted publishing: npmjs.com knows that this workflow of this repository may publish "databrief", so the job
-  # proves who it is (id-token) and needs no token; the package gets a provenance record. A version already on npm is left alone
-  # (the first one, 1.5.0-rc.1, is published by hand). A tag with a dash (v1.5.0-rc.2) goes to the npm tag "next", never "latest".
+  # The npm package. Trusted publishing: npmjs.com knows that this workflow of this repository may STAGE "databrief" (the trusted
+  # publisher is set to staged publishing only: it cannot publish directly), so the job proves who it is (id-token), needs no token,
+  # and puts the version in the staging queue with a provenance record. NOTHING IS LIVE until the owner approves it, with 2FA:
+  #   npm stage list databrief   then   npm stage approve <id>      (or the Approve button: package > Staged Packages)
+  # A version already on npm is left alone. A tag with a dash (v1.5.0-rc.3) goes to the npm tag "next", never "latest".
   npm:
     needs: release
     runs-on: ubuntu-24.04
@@ -130,9 +133,9 @@ jobs:
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
-      - name: A recent npm (trusted publishing needs npm 11.5.1 or newer)
+      - name: A recent npm (staged publishing needs npm 11.15.0 or newer, and Node 22.14 or newer)
         run: |
-          npm install -g npm@^11.5.1
+          npm install -g npm@^11.15.0
           npm --version
       - name: Build the package
         run: node tools/build-npm.cjs dist/npm --version "${GITHUB_REF_NAME#v}"
@@ -142,13 +145,17 @@ jobs:
         run: |
           gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" -p databrief-cli.cjs -D released
           cmp released/databrief-cli.cjs dist/npm/databrief-cli.cjs
-      - name: Publish
+      - name: Stage the version (the owner approves it on npm)
         run: |
           V="${GITHUB_REF_NAME#v}"
           if npm view "databrief@$V" version >/dev/null 2>&1; then echo "databrief@$V is already on npm: nothing to do"; exit 0; fi
           TAG=latest
           case "$V" in *-*) TAG=next ;; esac
-          npm publish ./dist/npm --provenance --access public --tag "$TAG"
+          npm stage publish ./dist/npm --provenance --access public --tag "$TAG"
+          {
+            echo "### databrief@$V is staged on npm, not live yet"
+            echo "Approve it (2FA): \`npm stage list databrief\` then \`npm stage approve <id>\`, or npmjs.com > databrief > Staged Packages."
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # The Homebrew formula and the Scoop manifest: written from packaging/ with the fingerprints of the files the release published,
   # and pushed to the two small repositories. Only for a real release (no dash in the tag).

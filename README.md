@@ -890,7 +890,7 @@ git tag v1.5.0 && git push origin v1.5.0
 
 `.github/workflows/release.yml` creates the GitHub release (with both HTML files, the command-line tool
 `databrief-cli.cjs`, the man page `databrief.1`, the Debian / Ubuntu package and `SHA256SUMS.txt`, their fingerprints),
-publishes the **npm package** (trusted publishing: npmjs.com links the package to this workflow, no token; with provenance),
+stages the **npm package** (trusted publishing: npmjs.com links the package to this workflow, no token; with provenance; it goes live when you approve it with 2FA, `npm stage approve`),
 writes the **Homebrew formula and the Scoop manifest** into the repositories `homebrew-databrief` and `scoop-databrief` (the
 secret `PACKAGES_TOKEN`: a fine-grained token that can write to those two only), and publishes the Docker images, for `amd64` and `arm64`, to `ghcr.io/<owner>/databrief`. After the
 first release, make the package public: **your GitHub profile → Packages → databrief → Package settings → Change
