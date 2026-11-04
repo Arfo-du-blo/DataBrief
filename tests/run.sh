@@ -41,6 +41,9 @@ echo
 echo "=== Widget layer (Node: the texts in 15 languages, the build, no network call in the layer)"
 node "$HERE/test_widget.cjs" | grep -v '^ok'
 echo
+echo "=== Claude Desktop extension (.mcpb: reproducible build, contents, the server run over stdio, same prompt as the command-line tool)"
+node "$HERE/test_mcpb.cjs" | grep -v '^ok'
+echo
 echo "=== Widget layer in Chrome, inside fake hosts (Claude, ChatGPT, an unknown app, a silent one)"
 node "$HERE/test_widget_browser.cjs" | grep -v '^ok'
 echo

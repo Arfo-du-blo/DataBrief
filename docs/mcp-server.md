@@ -166,3 +166,5 @@ sign-in) or as a plugin in ChatGPT, and ask for DataBrief in a chat.
 - It has no tool that takes a path or a file: a hosted server cannot see your computer. To let an AI read a file on your own machine, use the
   [command-line tool](cli.md).
 - It does not show the widget in a terminal: a terminal has no place to display it.
+
+For Claude Desktop there is also an extension that needs no server at all: see [DataBrief for Claude Desktop](extension.md).

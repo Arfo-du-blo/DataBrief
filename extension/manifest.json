@@ -1,0 +1,30 @@
+{
+  "manifest_version": "0.3",
+  "name": "databrief",
+  "display_name": "DataBrief",
+  "version": "0.0.0",
+  "description": "Turn a data file into an AI-ready prompt, offline, with a Do not share data mode. Claude reads the file on your computer by its path, or you drop it in the DataBrief page.",
+  "long_description": "DataBrief reads a data file (CSV, Excel, Parquet, SQLite, SQL dumps, PostgreSQL archives, JSON, PDF, Word and many more) and builds a prompt that describes it for an AI. With \"Do not share data\" the prompt holds the structure and statistics of the file but no record. This extension adds two tools to Claude Desktop: one opens the DataBrief page as an interactive widget, the other lets Claude read a file on your computer by its path, with the choice of sharing the data or not made explicit. Everything runs on your computer, with no network access and no account.",
+  "author": { "name": "Arfo", "url": "https://github.com/Arfo-du-blo" },
+  "repository": { "type": "git", "url": "https://github.com/Arfo-du-blo/DataBrief.git" },
+  "homepage": "https://github.com/Arfo-du-blo/DataBrief",
+  "license": "GPL-3.0-or-later",
+  "keywords": ["data", "csv", "excel", "privacy", "prompt", "offline"],
+  "icon": "icon.png",
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"]
+    }
+  },
+  "tools": [
+    { "name": "databrief_open", "description": "Opens the DataBrief page as an interactive widget." },
+    { "name": "databrief_analyze", "description": "Reads a data file on your computer by its path and returns a prompt that describes it, with or without the data." }
+  ],
+  "compatibility": {
+    "platforms": ["darwin", "win32"],
+    "runtimes": { "node": ">=18.0.0" }
+  }
+}

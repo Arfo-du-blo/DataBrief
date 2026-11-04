@@ -95,6 +95,8 @@ jobs:
         run: node tests/test_mcp.cjs
       - name: Widget layer (texts in 15 languages, the build, no network call; the browser part is in browser-and-servers)
         run: node tests/test_widget.cjs
+      - name: Claude Desktop extension (.mcpb build, the server over stdio, same prompt as the command-line tool)
+        run: node tests/test_mcpb.cjs
 
   powershell:
     runs-on: windows-latest

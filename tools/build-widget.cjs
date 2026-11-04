@@ -65,13 +65,15 @@ function build() {
 // Claude and ChatGPT keep a widget per address: a widget whose content changed needs a NEW address, and the old ones keep answering.
 // mcp/uris.json records the SHA-256 of the page served at the current address; --new-address moves it to a new one when the page
 // changed (tests/test_widget.cjs fails when the page and the record disagree).
-const URIS = path.join(ROOT, 'mcp', 'uris.json');
-function newAddress(html) {
+// The Claude Desktop extension (extension/uris.json) has its own address with its own prefix and moves together with it.
+const URIS_FILES = [path.join(ROOT, 'mcp', 'uris.json'), path.join(ROOT, 'extension', 'uris.json')];
+function newAddress(html) { URIS_FILES.forEach((f) => newAddressIn(f, html)); }
+function newAddressIn(URIS, html) {
   const uris = JSON.parse(fs.readFileSync(URIS, 'utf8'));
   const digest = sha(html);
   if (uris.widgetSha256 === digest) { console.log('The widget did not change: its address stays ' + uris.current); return; }
   const m = /widget-v(\d+)\.html$/.exec(uris.current || '');
-  if (!m) throw new Error('mcp/uris.json: the current address does not end in widget-vN.html');
+  if (!m) throw new Error(path.relative(ROOT, URIS) + ': the current address does not end in widget-vN.html');
   const next = uris.current.replace(/widget-v\d+\.html$/, 'widget-v' + (Number(m[1]) + 1) + '.html');
   const out = { '//': uris['//'], current: next, previous: [uris.current].concat(uris.previous || []), widgetSha256: digest };
   fs.writeFileSync(URIS, JSON.stringify(out, null, 2) + '\n');
