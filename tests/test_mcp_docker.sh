@@ -57,8 +57,26 @@ else
   bad "the real image builds (with its widget page)"
 fi
 
+# Compose: valid with the example settings, with the tunnel (the example's default) and without it, and the server starts from it.
 if docker compose version >/dev/null 2>&1; then
-  docker compose -f mcp/docker-compose.yml config -q && ok "docker-compose.yml is valid" || bad "docker-compose.yml"
+  C="docker compose --env-file mcp/.env.example -f mcp/docker-compose.yml"
+  $C config -q && ok "docker-compose.yml is valid with the example .env" || bad "docker-compose.yml with the example .env"
+  S=$($C config --services | sort | tr '\n' ' ')
+  [ "$S" = "cloudflared databrief-mcp " ] && ok "with the example settings Compose starts the server and the tunnel" || bad "services with the tunnel: $S"
+  S=$(COMPOSE_PROFILES= $C config --services | sort | tr '\n' ' ')
+  [ "$S" = "databrief-mcp " ] && ok "with COMPOSE_PROFILES empty Compose starts the server alone" || bad "services without the tunnel: $S"
+  PROJ="dbmcp-test-$$"
+  if COMPOSE_PROFILES= DATABRIEF_MCP_PORT=18787 docker compose --env-file mcp/.env.example -p "$PROJ" -f mcp/docker-compose.yml up -d --build databrief-mcp >/dev/null 2>&1; then
+    UP2=0
+    for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:18787/healthz >/dev/null 2>&1 && { UP2=1; break; }; sleep 0.5; done
+    [ "$UP2" = 1 ] && ok "the server starts from the Compose file and answers /healthz" || bad "the server from the Compose file"
+    H2=starting
+    for _ in $(seq 1 40); do H2=$(docker inspect --format '{{.State.Health.Status}}' "${PROJ}-databrief-mcp-1" 2>/dev/null || echo none); [ "$H2" = healthy ] && break; sleep 1; done
+    [ "$H2" = healthy ] && ok "Docker reports it healthy (the tunnel would wait for that)" || bad "health from Compose: $H2"
+    docker compose -p "$PROJ" -f mcp/docker-compose.yml down >/dev/null 2>&1
+  else
+    bad "docker compose up of the server"
+  fi
 else
   echo "skip docker compose is not installed"
 fi

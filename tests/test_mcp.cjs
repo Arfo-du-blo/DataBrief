@@ -219,6 +219,28 @@ const rpc = (port, id, method, params, headers) => request(port, 'POST', '/mcp',
   check('the guard full: new sources share one counter, which fills up (no reset)', newcomers[0] === 0 && newcomers[2] === 0 && newcomers[3] > 0, newcomers.join());
   check('the guard full: the sources it already knew keep their counts', g('a', 1) === 0 && g('a', 1) > 0);
 
+  /* ---------- the deployment files: Compose, .env.example, the operations guide ---------- */
+  const compose = fs.readFileSync(path.join(ROOT, 'mcp', 'docker-compose.yml'), 'utf8');
+  const envEx = fs.readFileSync(path.join(ROOT, 'mcp', '.env.example'), 'utf8');
+  const gitignore = fs.readFileSync(path.join(ROOT, '.gitignore'), 'utf8');
+  const envKeys = new Set([...envEx.matchAll(/^([A-Z][A-Z0-9_]*)=/gm)].map((m) => m[1]));
+  const readByCompose = [...new Set([...compose.matchAll(/\$\{([A-Z][A-Z0-9_]*)/g)].map((m) => m[1]))];
+  check('every variable the Compose file reads is documented in .env.example', readByCompose.every((k) => envKeys.has(k)), readByCompose.filter((k) => !envKeys.has(k)).join());
+  const { SETTINGS } = require('../mcp/server.js');
+  const fixedByImage = new Set(['DATABRIEF_MCP_PORT', 'DATABRIEF_MCP_HOST', 'DATABRIEF_WIDGET']);   // the image and the published port set these
+  const missed = SETTINGS.map((s) => s[1]).filter((n) => !fixedByImage.has(n) && !(new RegExp('^\\s+' + n + ':', 'm').test(compose) && envKeys.has(n)));
+  check('every setting of the server is passed by Compose and documented in .env.example (or fixed by the image)', missed.length === 0, missed.join());
+  check('.env.example holds no tunnel token', /^TUNNEL_TOKEN=\s*$/m.test(envEx));
+  check('the real .env (it holds the token) is git-ignored', /^mcp\/\.env\s*$/m.test(gitignore) && !/^mcp\/\.env\.example/m.test(gitignore));
+  check('both services restart by themselves, run read-only, without Linux capabilities, with a memory limit', (compose.match(/restart: unless-stopped/g) || []).length === 2 && (compose.match(/read_only: true/g) || []).length === 2 && (compose.match(/cap_drop: \[ALL\]/g) || []).length === 2 && (compose.match(/mem_limit:/g) || []).length === 2);
+  const tunnelBlock = compose.slice(compose.indexOf('  cloudflared:'));
+  check('the tunnel publishes no port, reaches the server over Docker\'s network and waits for it to be healthy', !/\bports:/.test(tunnelBlock) && /condition: service_healthy/.test(tunnelBlock) && /profiles: \["tunnel"\]/.test(tunnelBlock));
+  check('the tunnel software is pinned to a version, not "latest"', !/cloudflared:latest/.test(compose + envEx) && /CLOUDFLARED_IMAGE=cloudflare\/cloudflared:\d{4}\.\d+\.\d+/.test(envEx));
+  check('the tunnel is on by default in .env.example and the logs rotate', /^COMPOSE_PROFILES=tunnel\s*$/m.test(envEx) && (compose.match(/max-size/g) || []).length === 2);
+  const ops = fs.readFileSync(path.join(ROOT, 'docs', 'mcp-operations.md'), 'utf8');
+  check('the operations guide covers start, tunnel, update, check, when it fails, logs, shut down and revoke', ['## Start it', '## The Cloudflare Tunnel', '## Update it', '## Check it', '## When it does not work', '## What the logs hold', '## Shut it down and revoke it'].every((h) => ops.includes(h)));
+  check('the operations guide names no private address or secret', !/boards\.digital|eyJ[A-Za-z0-9]{20,}/.test(ops + envEx + compose));
+
   /* ---------- log off, config, missing widget ---------- */
   const quiet = [];
   const q = await start(baseConfig({ log: false }), (o) => quiet.push(o));

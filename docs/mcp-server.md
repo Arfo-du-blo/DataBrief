@@ -80,10 +80,12 @@ docker build -f mcp/Dockerfile -t databrief-mcp .
 docker run -d -p 8787:8787 --read-only --cap-drop ALL --security-opt no-new-privileges databrief-mcp
 ```
 
-or with Compose (the port is open on this computer only unless `DATABRIEF_MCP_BIND=0.0.0.0` is set):
+or with Compose, which also starts the Cloudflare Tunnel that gives the server a public address, from a `.env` file that holds every setting.
+How to set it up on a server, update it and find out why it is down is in [Running the hosted MCP server](mcp-operations.md):
 
 ```bash
-docker compose -f mcp/docker-compose.yml up -d --build
+cd mcp && cp .env.example .env     # edit .env
+docker compose up -d --build
 ```
 
 The image runs as a user that is not root, writes nothing, and needs no capability. `tests/test_mcp_docker.sh` builds it with a stand-in
