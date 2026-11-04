@@ -101,12 +101,12 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   const exists = (frame, sel) => frame.$(sel).then((e) => !!e);
   const boxText = (frame) => frame.$eval('.dbw-box', (e) => e.textContent).catch(() => '');
   const boxTone = (frame) => frame.$eval('.dbw-box', (e) => e.className).catch(() => '');
-  // A second click on the same button sooner than 700 ms does not confirm (no double-click send): a person reads the box first, so the
-  // helper waits like one. rawClick does not wait (to test that rule).
+  // The Confirm button is grey and spinning for 2.5 s after the first click and cannot be clicked: a person reads the box first, so the
+  // helper waits like one before a second click on the same button. rawClick does not wait (to test that rule).
   const lastClick = new Map();
   const click = async (frame, sel) => {
     const since = Date.now() - (lastClick.get(sel) || 0);
-    if (since < 800) await sleep(800 - since);
+    if (since < 2700) await sleep(2700 - since);
     await (await frame.$(sel)).click();
     lastClick.set(sel, Date.now());
     await sleep(120);
@@ -256,9 +256,24 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   /* ================= what the review found (2026-11-03) ================= */
   ({ page, frame } = await open(CLAUDE));
   await clearPrompt(page);
+  await rawClick(frame, '#dbwChat');
+  await sleep(150);
+  check('Put in the chat on Claude loads no context: Confirm at once, amber, clickable, no spinner', (await text(frame, '#dbwChat')) === 'Confirm' && (await frame.$eval('#dbwChat', (e) => e.getAttribute('aria-disabled') === null && e.classList.contains('dbw-armed-warn') && !e.querySelector('.dbw-spin'))));
   await rawClick(frame, '#dbwChat'); await sleep(60); await rawClick(frame, '#dbwChat');
+  await sleep(200);
+  check('a double-click on it still sends nothing (the second click came within 700 ms)', (await sent(page, 'ui/message')).length === 0);
+  await page.keyboard.press('Escape');
+  await sleep(200);
+  // a context route: Add to context
+  await rawClick(frame, '#dbwCtx');
+  await sleep(150);
+  check('Add to context: the first click shows Confirm at once, grey, with a spinner, and it is not clickable yet', (await text(frame, '#dbwCtx')) === 'Confirm' && (await frame.$eval('#dbwCtx', (e) => e.getAttribute('aria-disabled') === 'true' && e.classList.contains('dbw-armed-wait') && !!e.querySelector('.dbw-spin'))));
+  check('the explanation box is already there while the button waits', /Contains the data/.test(await boxText(frame)));
+  await rawClick(frame, '#dbwCtx'); await sleep(100); await rawClick(frame, '#dbwCtx');
   await sleep(300);
-  check('a double-click arms but does not confirm: nothing is sent, the button says Confirm', (await sent(page, 'ui/message')).length === 0 && (await text(frame, '#dbwChat')) === 'Confirm');
+  check('clicks during the wait (a double-click) send nothing and do not cancel the button', (await sent(page, 'ui/message')).length === 0 && (await text(frame, '#dbwCtx')) === 'Confirm' && (await frame.$eval('#dbwCtx', (e) => e.getAttribute('aria-disabled') === 'true')));
+  await sleep(2400);
+  check('after 2.5 s the button turns into the real Confirm: amber, no spinner, clickable', await frame.$eval('#dbwCtx', (e) => e.getAttribute('aria-disabled') === null && e.classList.contains('dbw-armed-warn') && !e.classList.contains('dbw-armed-wait') && !e.querySelector('.dbw-spin')));
   await page.keyboard.press('Escape');
   // a new file dropped while a button is armed: the armed (old) prompt must not be sent
   await click(frame, '#dbwChat');
@@ -352,6 +367,7 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   const gptPrompt = await md(frame);
   await clearPrompt(page);
   await click(frame, '#dbwChat');
+  check('ChatGPT: Put in the chat loads a context, so its Confirm waits too (grey, spinning)', await frame.$eval('#dbwChat', (e) => e.getAttribute('aria-disabled') === 'true' && !!e.querySelector('.dbw-spin')));
   check('ChatGPT: the box says the message is sent at once and shows the line', /sent at once/.test(await boxText(frame)) && /Read the DataBrief widget context and follow the prompt in it\./.test(await boxText(frame)));
   await click(frame, '#dbwChat');
   const gctx = await waitFor(page, 'ui/update-model-context', 1), gmsg = await waitFor(page, 'ui/message', 1);

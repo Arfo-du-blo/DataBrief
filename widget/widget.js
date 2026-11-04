@@ -22,8 +22,13 @@
   const VERSION = '__WIDGET_VERSION__';
   const CTX_TOKENS = 15000;      // about what the smallest known host accepts as context (Claude: 16,000 tokens)
   const MSG_CHARS = 100000;      // about what the smallest known host accepts as a message (ChatGPT: between 100 and 250 KB)
-  const ARM_MS = 8000, OK_MS = 6000, HANDSHAKE_MS = 5000;
-  const CONFIRM_MIN_MS = 700;   // a second click sooner than this (a double-click) does not confirm: the box must be readable first
+  const ARM_MS = 10000, OK_MS = 6000, HANDSHAKE_MS = 5000;
+  // The routes that load a CONTEXT (Add to context, Ask, and Put in the chat on ChatGPT and unknown hosts): the Confirm button shows at
+  // once but stays grey and spinning for this long, then turns clickable. Claude Desktop refuses a message sent too soon after the
+  // first click (tested 2026-11-04: it works after 2 to 3 s). The routes that send the whole prompt as the message (Put in the chat on
+  // Claude, Ask in the Desktop home chat) load no context and need no wait: only DOUBLE_CLICK_MS, so that a double-click cannot send
+  // before the box could be read.
+  const CONFIRM_MIN_MS = 2500, DOUBLE_CLICK_MS = 700;
   // Sent as the context when a context that held data must be taken back (the user switched to Do not share data, changed file, or
   // was told that the send failed). For the AI, in English.
   const WITHDRAWN = 'DataBrief: the user withdrew the file context given earlier. Do not use it.';
@@ -133,10 +138,12 @@
   /* ---------- the two clicks: the button turns into Confirm ---------- */
   let armed = null;
   const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
+  const SPIN = '<svg class="dbw-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9" /></svg>';
   function disarm() {
     if (!armed) return;
     const a = armed; armed = null;
-    clearTimeout(a.timer);
+    clearTimeout(a.timer); clearTimeout(a.readyTimer);
+    a.btn.removeAttribute('aria-disabled');
     a.btn.className = a.cls; a.btn.innerHTML = a.html;
     if (a.x) a.x.remove();
   }
@@ -149,7 +156,7 @@
   const lineFor = (kind, q) => (kind === 'ask' ? T('lineAsk', { q }, page().state.prompt) : T('lineRead', null, page().state.prompt));
 
   function arm(btn, kind, anchor) {
-    if (armed && armed.btn === btn) { if (Date.now() - armed.at >= CONFIRM_MIN_MS) go(); return; }
+    if (armed && armed.btn === btn) { if (Date.now() - armed.at >= armed.minMs) go(); return; }
     disarm();
     const cur = current();
     if (!cur.text || $('copyBtn').disabled) { show(T('errNoPrompt'), 'info', anchor); return; }
@@ -170,9 +177,27 @@
     else explain = kind === 'chat' ? T('chatNeutral', { line }) : T('askNeutral', { line });
     const lines = [(cur.data ? '⚠ ' + T('infoData') : '✓ ' + T('infoNoData')) + ' · ' + T('sizeLine', { chars: num(message.length), tokens: num(Math.max(cur.tokens, Math.ceil(message.length / 4))) }), explain];
     if (big) lines.push(T('warnBig', { limit: wholePrompt ? T('aboutKb', { n: '100' }) : T('aboutTokens', { n: num(16000) }) }));
-    armed = { btn, kind, cls: btn.className, html: btn.innerHTML, text: cur.text, data: cur.data, q, message, line, hk, anchor, whole: wholePrompt, bundle, at: Date.now() };
-    btn.className = btn.className + ' ' + (cur.data ? 'dbw-armed-warn' : 'dbw-armed-ok');
-    btn.innerHTML = CHECK + '<span>' + T('confirm') + '</span>';
+    armed = { btn, kind, cls: btn.className, html: btn.innerHTML, text: cur.text, data: cur.data, q, message, line, hk, anchor, whole: wholePrompt, bundle, at: Date.now(), minMs: wholePrompt ? DOUBLE_CLICK_MS : CONFIRM_MIN_MS };
+    const colour = cur.data ? 'dbw-armed-warn' : 'dbw-armed-ok';
+    armed.colour = colour;
+    if (wholePrompt) {
+      // No context to load: the real Confirm at once.
+      btn.className = btn.className + ' ' + colour;
+      btn.innerHTML = CHECK + '<span>' + T('confirm') + '</span>';
+    } else {
+      // Waiting: the button is there at once, grey and spinning, and ignores clicks (aria-disabled, not disabled, so a click on it is not
+      // taken for a click elsewhere); then it turns into the real Confirm.
+      btn.className = btn.className + ' dbw-armed-wait';
+      btn.setAttribute('aria-disabled', 'true');
+      btn.innerHTML = SPIN + '<span>' + T('confirm') + '</span>';
+      const mine = armed;
+      armed.readyTimer = setTimeout(() => {
+        if (armed !== mine) return;
+        btn.removeAttribute('aria-disabled');
+        btn.className = mine.cls + ' ' + colour;
+        btn.innerHTML = CHECK + '<span>' + T('confirm') + '</span>';
+      }, CONFIRM_MIN_MS);
+    }
     const x = document.createElement('button');
     x.type = 'button'; x.className = 'btn btn-ghost btn-sm'; x.textContent = '✕';
     x.title = T('cancel'); x.setAttribute('aria-label', T('cancel'));

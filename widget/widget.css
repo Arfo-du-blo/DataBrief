@@ -8,6 +8,11 @@
 .btn.dbw-armed-warn:hover { background: #b45309; border-color: #b45309; color: #fff; }
 .btn.dbw-armed-ok { background: var(--ok); border-color: var(--ok); color: #fff; }
 .btn.dbw-armed-ok:hover { filter: brightness(.92); color: #fff; }
+.btn.dbw-armed-wait { background: var(--surface); border-color: var(--border-strong); color: var(--muted); cursor: progress; }
+.btn.dbw-armed-wait:hover { background: var(--surface); border-color: var(--border-strong); color: var(--muted); }
+.dbw-spin { animation: dbw-spin .9s linear infinite; }
+@keyframes dbw-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .dbw-spin { animation-duration: 3s; } }
 .dbw-ask { margin-top: 18px; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
 .dbw-ask-title { display: block; margin-bottom: 8px; font-weight: 600; font-size: 15px; }
 .dbw-ask input[type="text"] { width: 100%; box-sizing: border-box; height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: inherit; font-size: 14px; }
