@@ -61,6 +61,8 @@ for (const [name, find] of PATCHES) {
 check('the layer is inserted once each (style, texts, code, banner)', ['id="databrief-widget-css"', 'id="databrief-widget-i18n"', 'id="databrief-widget"', '<!-- DataBrief widget '].every((s) => out1.split(s).length === 2));
 check('the hooks are in the copy once each', out1.split('window.DataBriefPage = ').length === 2 && out1.split('window.DataBriefHost.save(blob, name)) return;').length === 2);
 check('the banner states the SHA-256 of the page it was made from', out1.includes(sha(base)));
+const urisRec = JSON.parse(read('mcp/uris.json'));
+check('the widget served at the current address is this build (a changed widget needs: node tools/build-widget.cjs --new-address)', urisRec.widgetSha256 === sha(out1), 'recorded ' + String(urisRec.widgetSha256).slice(0, 12) + ', built ' + sha(out1).slice(0, 12));
 check('the copy is the page plus the layer (the page\'s text is otherwise intact)', out1.length > base.length && out1.length - base.length < 120000, String(out1.length - base.length));
 const inLayer = out1.slice(out1.lastIndexOf('<!-- DataBrief widget '));
 check('the layer comes before the last </body>', /<\/body>\s*<\/html>\s*$/.test(out1) && inLayer.indexOf('</body>') > inLayer.indexOf('id="databrief-widget"'));

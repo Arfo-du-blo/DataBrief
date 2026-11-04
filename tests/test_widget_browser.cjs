@@ -34,9 +34,10 @@ window.addEventListener('message', (e) => {
   if (e.source !== frame.contentWindow) return;
   const m = e.data;
   window.__log.push(Object.assign({}, m, { __t: performance.now() }));
-  if (m.method === 'ui/initialize') { if (cfg.silent) return; reply(m.id, { protocolVersion: '2026-01-26', hostInfo: cfg.hostInfo, hostCapabilities: cfg.caps, hostContext: { platform: cfg.platform, containerDimensions: { maxHeight: 5000 } } }); return; }
+  if (m.method === 'ui/initialize') { if (cfg.silent) return; reply(m.id, { protocolVersion: '2026-01-26', hostInfo: cfg.hostInfo, hostCapabilities: cfg.caps, hostContext: { platform: cfg.platform, theme: cfg.theme, containerDimensions: { maxHeight: 5000 } } }); return; }
   if (m.id !== undefined && m.method) { if (cfg.fail && cfg.fail[m.method]) fail(m.id, -32000, cfg.fail[m.method]); else { const d = cfg.delay && cfg.delay[m.method]; const r = cfg.results && cfg.results[m.method] || {}; if (d) setTimeout(() => reply(m.id, r), d); else reply(m.id, r); } }
 });
+window.__notify = (method, params) => frame.contentWindow.postMessage({ jsonrpc: '2.0', method, params: params || {} }, '*');
 window.__request = (method, params) => new Promise((ok) => { const id = 9000 + Math.floor(Math.random() * 1000); const h = (e) => { if (e.source === frame.contentWindow && e.data && e.data.id === id && !e.data.method) { removeEventListener('message', h); ok(e.data); } }; addEventListener('message', h); frame.contentWindow.postMessage({ jsonrpc: '2.0', id, method, params: params || {} }, '*'); });
 if (cfg.rogue) { const s = document.createElement('iframe'); s.srcdoc = '<script>setInterval(()=>parent.frames[0].postMessage({jsonrpc:"2.0",id:1,result:{hostInfo:{name:"Claude"},hostCapabilities:{message:{},updateModelContext:{}}}},"*"),200)<\\/script>'; document.body.appendChild(s); }
 </script>`;
@@ -100,7 +101,17 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   const exists = (frame, sel) => frame.$(sel).then((e) => !!e);
   const boxText = (frame) => frame.$eval('.dbw-box', (e) => e.textContent).catch(() => '');
   const boxTone = (frame) => frame.$eval('.dbw-box', (e) => e.className).catch(() => '');
-  const click = async (frame, sel) => { await (await frame.$(sel)).click(); await sleep(120); };
+  // A second click on the same button sooner than 700 ms does not confirm (no double-click send): a person reads the box first, so the
+  // helper waits like one. rawClick does not wait (to test that rule).
+  const lastClick = new Map();
+  const click = async (frame, sel) => {
+    const since = Date.now() - (lastClick.get(sel) || 0);
+    if (since < 800) await sleep(800 - since);
+    await (await frame.$(sel)).click();
+    lastClick.set(sel, Date.now());
+    await sleep(120);
+  };
+  const rawClick = async (frame, sel) => { await (await frame.$(sel)).click(); };
   const hidden = (frame, sel) => frame.$eval(sel, (e) => getComputedStyle(e).display === 'none').catch(() => true);
   const clearPrompt = async (page) => { await page.evaluate(() => { window.__log.length = 0; }); };
 
@@ -240,6 +251,66 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   await click(frame, '#downloadBtn');
   await sleep(300);
   check('a failed download is said, with its file name', /no storage/.test(await boxText(frame)) && /\.md/.test(await boxText(frame)));
+  await closePage(page);
+
+  /* ================= what the review found (2026-11-03) ================= */
+  ({ page, frame } = await open(CLAUDE));
+  await clearPrompt(page);
+  await rawClick(frame, '#dbwChat'); await sleep(60); await rawClick(frame, '#dbwChat');
+  await sleep(300);
+  check('a double-click arms but does not confirm: nothing is sent, the button says Confirm', (await sent(page, 'ui/message')).length === 0 && (await text(frame, '#dbwChat')) === 'Confirm');
+  await page.keyboard.press('Escape');
+  // a new file dropped while a button is armed: the armed (old) prompt must not be sent
+  await click(frame, '#dbwChat');
+  const other = path.join(os.tmpdir(), 'widget-test-other-' + process.pid + '.csv');
+  fs.writeFileSync(other, 'city,people\nLyon,500000\nNice,340000\n');
+  await (await frame.$('#fileInput')).uploadFile(other);
+  await frame.waitForFunction(() => window.DataBriefPage.state.md && window.DataBriefPage.state.md.includes('Lyon'), { timeout: 20000 });
+  await sleep(600);
+  check('a new file while armed cancels the armed button (it would have sent the old prompt)', (await text(frame, '#dbwChat')) === 'Put in the chat' && (await sent(page, 'ui/message')).length === 0);
+  fs.unlinkSync(other);
+  await closePage(page);
+  // a context that held data is taken back when the user turns on Do not share data
+  ({ page, frame } = await open(CLAUDE));
+  await click(frame, '#dbwCtx'); await click(frame, '#dbwCtx');
+  await waitFor(page, 'ui/update-model-context', 1);
+  await clearPrompt(page);
+  await click(frame, '#nsOn');
+  await frame.waitForFunction(() => window.DataBriefPage.state.share === 'no', { timeout: 20000 });
+  const wd = await waitFor(page, 'ui/update-model-context', 1, 3000);
+  check('switching to Do not share data takes back the context that held the data', wd.length === 1 && /withdrew/.test(wd[0].params.content[0].text) && !JSON.stringify(wd).includes(CANARY));
+  await closePage(page);
+  // on Claude the line is refused: the context, already sent, is taken back at once
+  ({ page, frame } = await open(Object.assign({}, CLAUDE, { fail: { 'ui/message': 'blocked: no press in view' } })));
+  await click(frame, '#dbwCtx'); await click(frame, '#dbwCtx');
+  const lr = await waitFor(page, 'ui/update-model-context', 2, 3000);
+  check('a refused line on Claude: the context sent with it is taken back, and the box is red', lr.length === 2 && lr[0].params.content[0].text.includes(CANARY) && /withdrew/.test(lr[1].params.content[0].text) && /err/.test(await boxTone(frame)), lr.length + ' context update(s)');
+  await closePage(page);
+  // the explanation stays while Confirm is live (Do not share data: a green box, which used to fade after 6 s while Confirm lasted 8)
+  ({ page, frame } = await open(CLAUDE));
+  await click(frame, '#nsOn');
+  await frame.waitForFunction(() => window.DataBriefPage.state.share === 'no' && !document.getElementById('copyBtn').disabled, { timeout: 20000 });
+  await click(frame, '#dbwChat');
+  await sleep(6600);
+  check('the explanation box stays visible as long as Confirm is live', (await text(frame, '#dbwChat')) === 'Confirm' && /no records/.test(await boxText(frame)) && /on/.test(await boxTone(frame)));
+  await closePage(page);
+
+  // Claude Desktop refuses a message with a NORMAL answer that says isError (and a reason), not with an error: that is a failure.
+  ({ page, frame } = await open(Object.assign({}, CLAUDE, { results: { 'ui/message': { isError: true, _reason: 'The host takes a message only right after the person presses something inside this view.' } } })));
+  await click(frame, '#dbwChat'); await click(frame, '#dbwChat');
+  await sleep(300);
+  check('a message the host refuses with isError shows a red error with its reason, not a success', /presses something inside this view/.test(await boxText(frame)) && /err/.test(await boxTone(frame)), await boxText(frame));
+  await closePage(page);
+
+  /* ================= the host's theme ================= */
+  ({ page, frame } = await open(Object.assign({}, CLAUDE, { theme: 'dark' })));
+  check('the widget takes the host\'s theme when it opens (dark)', (await frame.evaluate(() => document.documentElement.getAttribute('data-theme'))) === 'dark');
+  await page.evaluate(() => window.__notify('ui/notifications/host-context-changed', { theme: 'light' }));
+  await sleep(200);
+  check('the widget follows a theme change of the host (light)', (await frame.evaluate(() => document.documentElement.getAttribute('data-theme'))) === 'light');
+  await page.evaluate(() => window.__notify('ui/notifications/host-context-changed', { theme: 'purple' }));
+  await sleep(200);
+  check('an unknown theme value changes nothing', (await frame.evaluate(() => document.documentElement.getAttribute('data-theme'))) === 'light');
   await closePage(page);
 
   /* ================= Do not share data ================= */

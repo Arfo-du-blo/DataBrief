@@ -23,6 +23,10 @@
   const CTX_TOKENS = 15000;      // about what the smallest known host accepts as context (Claude: 16,000 tokens)
   const MSG_CHARS = 100000;      // about what the smallest known host accepts as a message (ChatGPT: between 100 and 250 KB)
   const ARM_MS = 8000, OK_MS = 6000, HANDSHAKE_MS = 5000;
+  const CONFIRM_MIN_MS = 700;   // a second click sooner than this (a double-click) does not confirm: the box must be readable first
+  // Sent as the context when a context that held data must be taken back (the user switched to Do not share data, changed file, or
+  // was told that the send failed). For the AI, in English.
+  const WITHDRAWN = 'DataBrief: the user withdrew the file context given earlier. Do not use it.';
   const $ = (id) => document.getElementById(id);
   const I = window.DB_WIDGET_I18N || {};
   const page = () => window.DataBriefPage;
@@ -40,26 +44,45 @@
   const errText = (e) => (e && (e.message || (e.code !== undefined ? 'error ' + e.code : ''))) || String(e);
 
   /* ---------- the host (MCP Apps: JSON-RPC over postMessage) ---------- */
-  let nextId = 1, host = null, lastHeight = 0, maxHeight = 5000;
-  const pending = {};
-  const post = (m) => window.parent.postMessage(m, '*');
+  let nextId = 1, host = null, lastHeight = 0, maxHeight = 5000, hostOrigin = null;
+  const pending = new Map();
+  // Before the handshake the host's origin is unknown; after it, messages go to that origin only (an opaque 'null' origin cannot be named).
+  const post = (m) => window.parent.postMessage(m, hostOrigin || '*');
   function request(method, params) {
-    return new Promise((ok, no) => { const id = nextId++; pending[id] = { ok, no }; post({ jsonrpc: '2.0', id, method, params: params || {} }); });
+    return new Promise((ok, no) => { const id = nextId++; pending.set(id, { ok, no }); post({ jsonrpc: '2.0', id, method, params: params || {} }); });
   }
   window.addEventListener('message', (e) => {
     if (e.source !== window.parent) return;             // only the host speaks to us
+    if (hostOrigin && e.origin !== hostOrigin) return;   // and, once known, from its own origin
     const m = e.data;
     if (!m || m.jsonrpc !== '2.0') return;
-    if (m.id !== undefined && m.id !== null && !m.method && pending[m.id]) {
-      const p = pending[m.id]; delete pending[m.id];
+    if (m.id !== undefined && m.id !== null && !m.method && pending.has(m.id)) {
+      const p = pending.get(m.id); pending.delete(m.id);
+      if (m.id === 1 && !hostOrigin && /^https?:\/\//.test(e.origin)) hostOrigin = e.origin;   // the handshake answer names the host
       if (m.error) p.no(m.error); else p.ok(m.result || {});
       return;
     }
     if (m.method && m.id !== undefined && m.id !== null) {   // a request from the host
       const known = m.method === 'ping' || m.method === 'ui/resource-teardown';
       post(known ? { jsonrpc: '2.0', id: m.id, result: {} } : { jsonrpc: '2.0', id: m.id, error: { code: -32601, message: 'Method not found' } });
+      return;
+    }
+    if (m.method === 'ui/notifications/host-context-changed' && host && m.params && typeof m.params === 'object') {
+      host.hostContext = Object.assign({}, host.hostContext || {}, m.params);
+      applyTheme(m.params.theme);
+      if (m.params.containerDimensions && m.params.containerDimensions.maxHeight) maxHeight = m.params.containerDimensions.maxHeight;
     }
   });
+  // Follow the host's light or dark theme (the page's own switch still works; the host's next change wins again).
+  function applyTheme(t) { if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); }
+  // A host may refuse a request with a normal answer that says isError (Claude Desktop does, for a message sent without a fresh press
+  // in the widget, with the reason in _reason): that is a failure, not a success.
+  function call(method, params) {
+    return request(method, params).then((r) => {
+      if (r && r.isError) throw new Error((r._reason || (r.content && r.content[0] && r.content[0].text) || 'refused by the app').slice(0, 300));
+      return r;
+    });
+  }
   function reportSize() {
     const h = Math.min(document.documentElement.scrollHeight, maxHeight);
     if (h === lastHeight) return;
@@ -83,6 +106,14 @@
     const text = s.md || '';
     return { text, data: s.share !== 'no', tokens: s.tokens || Math.ceil(text.length / 4) };
   };
+  const fileKey = () => { const d = page().state.doc || page().state.ns || {}; return String(d.fileName || ''); };
+  // The context this widget gave the host, while it may still hold data: { data, file }. Taken back (WITHDRAWN) when that changes.
+  let ctxHeld = null;
+  function withdraw() {
+    if (!ctxHeld) return;
+    ctxHeld = null;
+    request('ui/update-model-context', { content: [{ type: 'text', text: WITHDRAWN }] }).catch(() => {});
+  }
 
   /* ---------- the box under the buttons ---------- */
   let box = null, hideTimer = null;
@@ -93,7 +124,7 @@
     if (!text) { box.className = 'dbw-box'; box.textContent = ''; return; }
     box.className = 'dbw-box on ' + (tone || '');
     box.textContent = text;
-    if (tone === 'ok') hideTimer = setTimeout(() => show('', '', null), OK_MS);
+    if (tone === 'ok' && !armed) hideTimer = setTimeout(() => show('', '', null), OK_MS);   // an explanation stays while Confirm is live
     reportSize();
   }
 
@@ -116,7 +147,7 @@
   const lineFor = (kind, q) => (kind === 'ask' ? T('lineAsk', { q }, page().state.prompt) : T('lineRead', null, page().state.prompt));
 
   function arm(btn, kind, anchor) {
-    if (armed && armed.btn === btn) { go(); return; }
+    if (armed && armed.btn === btn) { if (Date.now() - armed.at >= CONFIRM_MIN_MS) go(); return; }
     disarm();
     const cur = current();
     if (!cur.text || $('copyBtn').disabled) { show(T('errNoPrompt'), 'info', anchor); return; }
@@ -137,7 +168,7 @@
     else explain = kind === 'chat' ? T('chatNeutral', { line }) : T('askNeutral', { line });
     const lines = [(cur.data ? '⚠ ' + T('infoData') : '✓ ' + T('infoNoData')) + ' · ' + T('sizeLine', { chars: num(message.length), tokens: num(Math.max(cur.tokens, Math.ceil(message.length / 4))) }), explain];
     if (big) lines.push(T('warnBig', { limit: wholePrompt ? T('aboutKb', { n: '100' }) : T('aboutTokens', { n: num(16000) }) }));
-    armed = { btn, kind, cls: btn.className, html: btn.innerHTML, text: cur.text, message, line, hk, anchor, whole: wholePrompt, bundle };
+    armed = { btn, kind, cls: btn.className, html: btn.innerHTML, text: cur.text, data: cur.data, q, message, line, hk, anchor, whole: wholePrompt, bundle, at: Date.now() };
     btn.className = btn.className + ' ' + (cur.data ? 'dbw-armed-warn' : 'dbw-armed-ok');
     btn.innerHTML = CHECK + '<span>' + T('confirm') + '</span>';
     const x = document.createElement('button');
@@ -150,32 +181,38 @@
     armed.timer = setTimeout(cancel, ARM_MS);
   }
 
+  // The page no longer shows what was armed (another file was dropped, an option changed, the question was edited, the page is busy).
+  const stale = (a) => page().state.busy || current().text !== a.text || current().data !== a.data || (a.kind === 'ask' && ($('dbwQ').value || '').trim() !== a.q);
   function go() {
     const a = armed;
+    if (a && stale(a)) { cancel(); return; }
     disarm();
     if (!a) return;
     show(T('working'), 'info', a.anchor);
     const asText = (t) => ({ role: 'user', content: [{ type: 'text', text: t }] });
-    const ctxText = () => request('ui/update-model-context', { content: [{ type: 'text', text: a.text }] });
-    const done = (key) => () => show(T(key), 'ok', a.anchor);
-    const fail = (key) => (e) => show(T(key, { e: errText(e) }), 'err', a.anchor);
+    const ctxText = () => call('ui/update-model-context', { content: [{ type: 'text', text: a.text }] });
+    const done = (key) => () => { if (!armed) show(T(key), 'ok', a.anchor); };   // a button armed since then keeps its explanation
+    const fail = (key) => (e) => { disarm(); show(T(key, { e: errText(e) }), 'err', a.anchor); };
+    const held = () => { ctxHeld = { data: a.data, file: fileKey() }; };
     if (a.whole) {
-      request('ui/message', asText(a.message)).then(done(a.bundle ? 'doneAskFill' : 'doneChatFill'), fail('errChat'));
+      call('ui/message', asText(a.message)).then(done(a.bundle ? 'doneAskFill' : 'doneChatFill'), fail('errChat'));
       return;
     }
     if (a.hk === 'fill') {
       // Claude Desktop only accepts a message sent right after the user's click ("ui/message without iframe-originated user
       // activation blocked", seen in its log): the line goes FIRST, in this very click, without waiting for the context to be
       // answered. The order does not matter to Claude, which reads the context later, when the AI asks for it.
-      const sentLine = request('ui/message', asText(a.line));
-      const sentCtx = ctxText();
-      sentLine.then(() => sentCtx.then(done(a.kind === 'ask' ? 'doneAskCtx' : 'doneCtx'), fail('errCtx')), (e) => { sentCtx.catch(() => {}); fail('errChat')(e); });
+      const sentLine = call('ui/message', asText(a.line));
+      const sentCtx = ctxText().then(held);
+      sentLine.then(() => sentCtx.then(done(a.kind === 'ask' ? 'doneAskCtx' : 'doneCtx'), fail('errCtx')),
+        // the line was refused: the user is told it failed, so the context must not keep the data either
+        (e) => { sentCtx.then(withdraw, () => {}); fail('errChat')(e); });
       return;
     }
     // The other hosts: the context first, then the line (ChatGPT sends the line at once, so the context must be there before it).
-    ctxText().then(() => request('ui/message', asText(a.line)).then(
+    ctxText().then(() => { held(); return call('ui/message', asText(a.line)).then(
       done(a.hk === 'send' ? (a.kind === 'ask' ? 'doneAskSent' : 'doneChatSent') : 'doneNeutral'),
-      fail('errAsk')), fail(a.kind === 'chat' ? 'errChat' : 'errCtx'));
+      (e) => { withdraw(); fail(a.kind === 'chat' ? 'errChat' : 'errAsk')(e); }); }, fail(a.kind === 'chat' ? 'errChat' : 'errCtx'));
   }
 
   /* ---------- downloads and links, through the host ---------- */
@@ -190,7 +227,7 @@
     const type = (blob.type || 'application/octet-stream').split(';')[0];
     const textLike = /^text\//.test(type) || /json|xml/.test(type);
     (textLike ? blob.text().then((text) => ({ text })) : toBase64(blob).then((b) => ({ blob: b })))
-      .then((part) => request('ui/download-file', { contents: [{ type: 'resource', resource: Object.assign({ uri: 'file:///' + name, mimeType: type }, part) }] }))
+      .then((part) => request('ui/download-file', { contents: [{ type: 'resource', resource: Object.assign({ uri: 'file:///' + encodeURIComponent(name), mimeType: type }, part) }] }))
       .then((r) => { if (r && r.isError) show(T('dlCancelled', { name }), 'info', anchor); },
         (e) => show(T('errDownload', { name, e: errText(e) }), 'err', anchor));
   }
@@ -202,7 +239,7 @@
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
     e.preventDefault();                                  // new-tab links are blocked in the frame: the host opens them
     if (!has().links) return;
-    request('ui/open-link', { url: url.href }).then(() => {}, (err) => show(T('errLink', { url: url.href, e: errText(err) }), 'err', $('copyBtn').parentNode));
+    call('ui/open-link', { url: url.href }).then(() => {}, (err) => show(T('errLink', { url: url.href, e: errText(err) }), 'err', $('copyBtn').parentNode));
   }
 
   /* ---------- the buttons ---------- */
@@ -228,6 +265,8 @@
     if (lang !== shownLang) { shownLang = lang; cancel(); relabel(); }
     const off = $('copyBtn').disabled;
     for (const b of buttons) b.el.disabled = off;
+    if (armed && stale(armed)) cancel();
+    if (ctxHeld && ((ctxHeld.data && !current().data) || fileKey() !== ctxHeld.file)) withdraw();
     reportSize();
   }
 
@@ -263,7 +302,7 @@
       wrap.append(askTitle, askInput, askRow, askHint);
       box.parentNode.insertBefore(wrap, box.nextSibling);
       askBtn.onclick = () => arm(askBtn, 'ask', askRow);
-      askInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); arm(askBtn, 'ask', askRow); } });
+      askInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!e.repeat) arm(askBtn, 'ask', askRow); } });
     }
     if (!c.dl) document.documentElement.classList.add('dbw-nodl');
     window.DataBriefHost = { save: (blob, name) => { if (!has().dl) return false; sendFile(blob, name); return true; } };
@@ -285,6 +324,7 @@
     host = r;
     const dim = (r.hostContext && r.hostContext.containerDimensions) || {};
     if (dim.maxHeight) maxHeight = dim.maxHeight;
+    applyTheme((r.hostContext || {}).theme);
     post({ jsonrpc: '2.0', method: 'ui/notifications/initialized', params: {} });
     build();
     reportSize();

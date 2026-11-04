@@ -62,13 +62,31 @@ function build() {
   return page.slice(0, at) + banner + layer + page.slice(at);
 }
 
+// Claude and ChatGPT keep a widget per address: a widget whose content changed needs a NEW address, and the old ones keep answering.
+// mcp/uris.json records the SHA-256 of the page served at the current address; --new-address moves it to a new one when the page
+// changed (tests/test_widget.cjs fails when the page and the record disagree).
+const URIS = path.join(ROOT, 'mcp', 'uris.json');
+function newAddress(html) {
+  const uris = JSON.parse(fs.readFileSync(URIS, 'utf8'));
+  const digest = sha(html);
+  if (uris.widgetSha256 === digest) { console.log('The widget did not change: its address stays ' + uris.current); return; }
+  const m = /widget-v(\d+)\.html$/.exec(uris.current || '');
+  if (!m) throw new Error('mcp/uris.json: the current address does not end in widget-vN.html');
+  const next = uris.current.replace(/widget-v\d+\.html$/, 'widget-v' + (Number(m[1]) + 1) + '.html');
+  const out = { '//': uris['//'], current: next, previous: [uris.current].concat(uris.previous || []), widgetSha256: digest };
+  fs.writeFileSync(URIS, JSON.stringify(out, null, 2) + '\n');
+  console.log('New widget address ' + next + ' (the old ones still answer)');
+}
+
 function main() {
-  const out = path.resolve(process.argv[2] || path.join(ROOT, 'dist', 'databrief-widget.html'));
+  const args = process.argv.slice(2);
+  const out = path.resolve(args.find((a) => !a.startsWith('--')) || path.join(ROOT, 'dist', 'databrief-widget.html'));
   const html = build();
   fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out, html);
   const bytes = Buffer.byteLength(html);
   console.log('Built ' + path.relative(process.cwd(), out) + ' (' + bytes.toLocaleString('en-US') + ' bytes, SHA-256 ' + sha(html) + ')');
+  if (args.includes('--new-address')) newAddress(html);
 }
 
 if (require.main === module) main();

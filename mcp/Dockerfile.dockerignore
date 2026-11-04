@@ -1,9 +1,13 @@
 # Used instead of the repository's .dockerignore when building mcp/Dockerfile (BuildKit): nothing goes into the build
-# context except what the image needs.
+# context except what the image needs (the server, and what the widget page is built from).
 *
 !mcp/server.js
 !mcp/uris.json
 !mcp/icon.svg
 !package.json
-!dist/databrief-widget.html
+!databrief.html
+!widget/widget.js
+!widget/widget-i18n.js
+!widget/widget.css
+!tools/build-widget.cjs
 !tests/mcp-fixtures/widget.html

@@ -25,6 +25,11 @@ const MIME = 'text/html;profile=mcp-app';
 const MAX_BODY = 64 * 1024;       // requests are tiny: a tool call or a resource name
 const MAX_BATCH = 20;
 const DEFAULT_ORIGINS = ['https://claude.ai', 'https://claude.com', 'https://chatgpt.com'];
+const MAX_KEYS = 50000;           // the flood guard remembers at most this many sources
+// The log names a method only if it is one of these; anything else a client sends is logged as "other" (the log holds no client text).
+const KNOWN_METHODS = new Set(['initialize', 'ping', 'notifications/initialized', 'notifications/cancelled', 'notifications/progress',
+  'notifications/roots/list_changed', 'tools/list', 'tools/call', 'resources/list', 'resources/read', 'resources/templates/list',
+  'resources/subscribe', 'resources/unsubscribe', 'prompts/list', 'prompts/get', 'completion/complete', 'logging/setLevel', 'server/discover']);
 
 // name, environment variable, default, description
 const SETTINGS = [
@@ -69,14 +74,17 @@ const INFO_PAGE = (url) => '<!doctype html><html lang="en"><meta charset="utf-8"
   '<p>This server <b>never receives your files</b>. The DataBrief page runs in your browser, inside the chat, and reads the file there. The server only serves that page and answers the chat app\'s requests. It stores nothing, and its logs hold no file content and no IP address.</p>' +
   '<p><a href="https://github.com/Arfo-du-blo/DataBrief">DataBrief on GitHub</a> (GPL-3.0-or-later)</p>';
 
-function makeLimiter(perMin) {
+function makeLimiter(perMin, maxKeys) {
+  maxKeys = maxKeys || MAX_KEYS;
   const hits = new Map();
   let sweepAt = Date.now() + 60000;
   // Returns 0 when allowed, else the seconds to wait.
   return (key, cost) => {
     if (!perMin) return 0;
     const now = Date.now();
-    if (now > sweepAt || hits.size > 50000) { for (const [k, v] of hits) if (v.reset <= now) hits.delete(k); if (hits.size > 50000) hits.clear(); sweepAt = now + 60000; }
+    if (now > sweepAt || hits.size >= maxKeys) { for (const [k, v] of hits) if (v.reset <= now) hits.delete(k); sweepAt = now + 60000; }
+    // Never forget the counters to make room (a flood of new addresses would reset every limit): when full, new sources share one counter.
+    if (!hits.has(key) && hits.size >= maxKeys) key = '\u0000overflow';
     let e = hits.get(key);
     if (!e || e.reset <= now) { e = { n: 0, reset: now + 60000 }; hits.set(key, e); }
     e.n += cost;
@@ -124,9 +132,11 @@ function createServer(config, logger) {
   // One JSON-RPC message in, one answer (or null) out. info collects what the log may say: method names, never content.
   function handle(msg, info) {
     if (!msg || typeof msg !== 'object' || Array.isArray(msg) || msg.jsonrpc !== '2.0') return rpcError(msg && msg.id, -32600, 'Invalid Request');
-    if (typeof msg.method !== 'string') return ('result' in msg || 'error' in msg) ? null : rpcError(msg.id, -32600, 'Invalid Request');
-    info.methods.push(msg.method.slice(0, 60));
-    if (msg.id === undefined || msg.id === null) return null;   // a notification
+    if (typeof msg.method !== 'string') return ('result' in msg || 'error' in msg) ? null : rpcError(null, -32600, 'Invalid Request');
+    info.methods.push(KNOWN_METHODS.has(msg.method) ? msg.method : 'other');
+    if (!('id' in msg)) return null;   // a notification
+    // MCP: a request id is a string or a number, never null, an object or a list
+    if (!(typeof msg.id === 'string' || (typeof msg.id === 'number' && Number.isFinite(msg.id)))) return rpcError(null, -32600, 'Invalid Request');
     const p = msg.params && typeof msg.params === 'object' ? msg.params : {};
     switch (msg.method) {
       case 'initialize':
@@ -181,9 +191,15 @@ function createServer(config, logger) {
     if (route !== '/mcp') return send(404, 'Not found\n');
 
     // /mcp: stateless Streamable HTTP. POST only; no stream (GET), no session to close (DELETE).
-    if (req.method !== 'POST') return send(405, rpcError(null, -32000, 'Method not allowed: POST only'), { Allow: 'POST' });
+    // A call from a web page carries an Origin: only the allowed ones pass, with the CORS answers a browser needs (preflight included).
     const origin = req.headers.origin;
     if (origin && !config.origins.includes(origin)) return send(403, rpcError(null, -32000, 'Origin not allowed'));
+    if (origin) { res.setHeader('Access-Control-Allow-Origin', origin); res.setHeader('Vary', 'Origin'); res.setHeader('Access-Control-Expose-Headers', 'Retry-After'); }
+    if (req.method === 'OPTIONS' && origin) {
+      res.writeHead(204, { 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type, Accept, MCP-Protocol-Version', 'Access-Control-Max-Age': '600' });
+      return res.end();
+    }
+    if (req.method !== 'POST') return send(405, rpcError(null, -32000, 'Method not allowed: POST only'), { Allow: 'POST' });
     const key = (config.trustProxyHeader && String(req.headers[config.trustProxyHeader] || '').split(',')[0].trim()) || req.socket.remoteAddress || '?';
     let wait = limiter(key, 1);
     if (wait) return send(429, rpcError(null, -32000, 'Too many requests'), { 'Retry-After': String(wait) });
@@ -235,4 +251,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { createServer, loadConfig, SETTINGS, SUPPORTED, MAX_BODY };
+module.exports = { createServer, loadConfig, makeLimiter, SETTINGS, SUPPORTED, MAX_BODY };

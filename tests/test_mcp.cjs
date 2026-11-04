@@ -11,7 +11,7 @@ const os = require('os');
 const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
-const { createServer, loadConfig, SUPPORTED, MAX_BODY } = require('../mcp/server.js');
+const { createServer, loadConfig, makeLimiter, SUPPORTED, MAX_BODY } = require('../mcp/server.js');
 
 const ROOT = path.join(__dirname, '..');
 const FIXTURE = path.join(__dirname, 'mcp-fixtures', 'widget.html');
@@ -145,6 +145,18 @@ const rpc = (port, id, method, params, headers) => request(port, 'POST', '/mcp',
   check('an allowed origin passes', r.status === 200);
   r = await request(P, 'POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'ping' });
   check('no Origin (server to server) passes', r.status === 200);
+  r = await request(P, 'POST', '/mcp', { jsonrpc: '2.0', id: 1, method: 'ping' }, { Origin: 'https://claude.ai' });
+  check('an allowed origin gets the CORS answer a browser needs to read the reply', r.headers['access-control-allow-origin'] === 'https://claude.ai' && /Origin/.test(r.headers.vary || ''));
+  r = await request(P, 'OPTIONS', '/mcp', undefined, { Origin: 'https://claude.ai', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type' });
+  check('the browser preflight (OPTIONS) of an allowed origin is answered', r.status === 204 && r.headers['access-control-allow-origin'] === 'https://claude.ai' && /POST/.test(r.headers['access-control-allow-methods'] || '') && /Content-Type/i.test(r.headers['access-control-allow-headers'] || ''));
+  r = await request(P, 'OPTIONS', '/mcp', undefined, { Origin: 'https://evil.example', 'Access-Control-Request-Method': 'POST' });
+  check('the preflight of an origin that is not allowed is refused, with no CORS header', r.status === 403 && !r.headers['access-control-allow-origin']);
+  r = await request(P, 'POST', '/mcp', { jsonrpc: '2.0', id: null, method: 'initialize', params: {} });
+  check('a request with id null is refused (MCP: never null), not taken as a notification', r.status === 200 && r.json.error && r.json.error.code === -32600);
+  r = await request(P, 'POST', '/mcp', { jsonrpc: '2.0', id: { a: 1 }, method: 'ping' });
+  check('a request whose id is an object is refused and its id is not echoed', r.json.error && r.json.error.code === -32600 && r.json.id === null);
+  r = await request(P, 'POST', '/mcp', { jsonrpc: '2.0', id: 'x1', method: 'ping' });
+  check('a string id is fine', r.json.id === 'x1' && r.json.result);
 
   /* ---------- the other routes ---------- */
   r = await request(P, 'GET', '/healthz');
@@ -161,8 +173,10 @@ const rpc = (port, id, method, params, headers) => request(port, 'POST', '/mcp',
 
   /* ---------- the log: method names and timings only ---------- */
   await rpc(P, 15, 'tools/call', { name: 'databrief_open', arguments: { secret: 'CANARY_ARGUMENT_9Q', file: 'C:/Users/CANARY_USER_PATH/data.csv' } }, { 'X-Forwarded-For': '203.0.113.77', Authorization: 'Bearer CANARY_TOKEN_5Z', Cookie: 'sid=CANARY_COOKIE_3K', 'User-Agent': 'Claude-User/1.0 (CANARY_UA_DETAIL)' });
+  await rpc(P, 16, 'CANARY_METHOD_NAME/' + 'x'.repeat(40));
   await new Promise((r2) => setTimeout(r2, 50));
   const all = lines.join('\n');
+  check('a method the server does not know is logged as "other", never with the client\'s text', /"methods":"other"/.test(all) && !/CANARY_METHOD/.test(all));
   check('the log has entries', lines.length > 10);
   check('the log has the method names and the tool name', /"methods":"tools\/call"/.test(all) && /"tool":"databrief_open"/.test(all));
   check('the log has no argument, header, cookie, token or address', !/CANARY_/.test(all) && !/203\.0\.113\.77/.test(all) && !/127\.0\.0\.1/.test(all) && !/::1/.test(all));
@@ -197,6 +211,13 @@ const rpc = (port, id, method, params, headers) => request(port, 'POST', '/mcp',
   const other = (await rpc(proxy.port, 1, 'ping', undefined, { 'CF-Connecting-IP': '198.51.100.2' })).status;
   check('behind a proxy the limit counts per real address', codes[3] === 429 && other === 200, codes.join() + ' / ' + other);
   await proxy.close();
+
+  // The guard's memory is bounded, and filling it never resets the counters (a flood of new addresses would otherwise wipe every limit).
+  const g = makeLimiter(3, 2);
+  g('a', 1); g('a', 1); g('b', 1);
+  const newcomers = ['c', 'd', 'e', 'f'].map((k) => g(k, 1));
+  check('the guard full: new sources share one counter, which fills up (no reset)', newcomers[0] === 0 && newcomers[2] === 0 && newcomers[3] > 0, newcomers.join());
+  check('the guard full: the sources it already knew keep their counts', g('a', 1) === 0 && g('a', 1) > 0);
 
   /* ---------- log off, config, missing widget ---------- */
   const quiet = [];

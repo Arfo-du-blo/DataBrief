@@ -1,18 +1,31 @@
 # DataBrief hosted MCP server - Docker image (Node.js, no dependency, runs without root, writes nothing).
 #
-# Build, from the repository root (the widget page is the build argument WIDGET; make it first with node tools/build-widget.cjs):
+# Build, from the repository root. The image builds the widget page itself (databrief.html + widget/, with tools/build-widget.cjs),
+# so it can never ship a stale copy:
 #   docker build -f mcp/Dockerfile -t databrief-mcp .
-#   docker build -f mcp/Dockerfile --build-arg WIDGET=tests/mcp-fixtures/widget.html -t databrief-mcp:test .   (a stand-in page, for tests)
+#   docker build -f mcp/Dockerfile --build-arg WIDGET_SOURCE=fixture -t databrief-mcp:test .   (a stand-in page, for tests)
 # Run:
 #   docker run -d -p 8787:8787 --read-only --cap-drop ALL --security-opt no-new-privileges databrief-mcp
 # The connector address is then http://localhost:8787/mcp (put it behind HTTPS: a reverse proxy or a tunnel).
 # Settings: DATABRIEF_MCP_* and related environment variables, see docs/mcp-server.md.
-FROM node:22-alpine
+ARG WIDGET_SOURCE=built
 
-ARG WIDGET=dist/databrief-widget.html
+FROM node:22-alpine AS widget-built
+WORKDIR /src
+COPY package.json databrief.html ./
+COPY widget/ widget/
+COPY tools/build-widget.cjs tools/
+RUN node tools/build-widget.cjs /out/databrief-widget.html
+
+FROM node:22-alpine AS widget-fixture
+COPY tests/mcp-fixtures/widget.html /out/databrief-widget.html
+
+FROM widget-${WIDGET_SOURCE} AS widget
+
+FROM node:22-alpine
 WORKDIR /app
 COPY mcp/server.js mcp/uris.json mcp/icon.svg package.json ./
-COPY ${WIDGET} /app/widget.html
+COPY --from=widget /out/databrief-widget.html /app/widget.html
 
 USER node
 ENV DATABRIEF_MCP_PORT=8787 \

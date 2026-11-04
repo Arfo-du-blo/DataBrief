@@ -11,7 +11,7 @@ bad() { echo "FAIL $1"; FAIL=1; }
 cleanup() { docker rm -f "$NAME" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
-if docker build -q -f mcp/Dockerfile --build-arg WIDGET=tests/mcp-fixtures/widget.html -t "$IMG" . >/dev/null; then ok "the image builds from the repository root"; else bad "the image builds"; exit 1; fi
+if docker build -q -f mcp/Dockerfile --build-arg WIDGET_SOURCE=fixture -t "$IMG" . >/dev/null; then ok "the image builds from the repository root"; else bad "the image builds"; exit 1; fi
 
 FILES=$(docker run --rm --entrypoint sh "$IMG" -c 'ls /app' | tr '\n' ' ')
 [ "$FILES" = "icon.svg package.json server.js uris.json widget.html " ] && ok "the image holds only the server, its icon, its list of addresses, package.json and the widget" || bad "the image content: $FILES"
@@ -47,6 +47,15 @@ docker stop -t 10 "$NAME" >/dev/null
 T1=$(date +%s)
 CODE=$(docker inspect --format '{{.State.ExitCode}}' "$NAME")
 { [ $((T1 - T0)) -le 4 ] && [ "$CODE" = 0 ]; } && ok "it stops on SIGTERM at once, exit code 0" || bad "stop: $((T1 - T0)) s, code $CODE"
+
+# The real image builds its own widget page (from databrief.html and widget/): it must be byte-identical to a local build.
+if command -v node >/dev/null 2>&1 && docker build -q -f mcp/Dockerfile -t databrief-mcp:built . >/dev/null; then
+  WANT_REAL=$(node -e "process.stdout.write(require('crypto').createHash('sha256').update(require('./tools/build-widget.cjs').build()).digest('hex'))")
+  GOT_REAL=$(docker run --rm --entrypoint sha256sum databrief-mcp:built /app/widget.html | cut -d' ' -f1)
+  [ "$WANT_REAL" = "$GOT_REAL" ] && ok "the real image builds its own widget page, identical to a local build" || bad "the real image's widget page: $GOT_REAL, local build: $WANT_REAL"
+else
+  bad "the real image builds (with its widget page)"
+fi
 
 if docker compose version >/dev/null 2>&1; then
   docker compose -f mcp/docker-compose.yml config -q && ok "docker-compose.yml is valid" || bad "docker-compose.yml"

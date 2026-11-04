@@ -46,6 +46,9 @@ The page is the same everywhere, and it adapts to what each app says it supports
 An app that does not support messages or context gets none of those buttons: **Copy** is always there. Before anything is sent, the button
 turns into **Confirm** (amber when the prompt holds your data, green when "Do not share data" is on) and a box says how big it is, whether it
 holds the data, and what will happen. A prompt that is larger than an app is known to accept only gets a warning: you can still try.
+Confirm needs a real second click: a double-click does not count. A button that is armed is cancelled when the page changes under it
+(another file, another option, another question), so what is sent is always what the box described. When you switch to "Do not share
+data", change file, or a send fails, a context that held your data is taken back. The widget follows the app's light or dark theme.
 
 **Add to context depends on Claude's AI opening the context.** Claude keeps the context out of the conversation until the AI decides to open it. In the browser and in the Desktop app's Code tab it does. The Desktop app's home chat is a Claude Code session of the app and its AI has no way to open it (its own log and the AI say so), so the widget does not offer Add to context there: it recognises that chat by what it announces (the Desktop app, with downloads). **Put in the chat** sends everything in the message itself, and in that chat so does **Ask about this data**, so both work in all three. Where a host does not offer downloads (the Desktop Code tab, ChatGPT), the download buttons are hidden.
 
@@ -69,7 +72,8 @@ DATABRIEF_WIDGET=./my-widget.html node mcp/server.js
 node mcp/server.js --help               # every setting
 ```
 
-With Docker, from the repository root:
+With Docker, from the repository root. The image builds the widget page itself, from `databrief.html` and `widget/`, so it can never
+serve a stale copy:
 
 ```bash
 docker build -f mcp/Dockerfile -t databrief-mcp .
@@ -106,14 +110,14 @@ Environment variables; `node mcp/server.js --help` prints the same list.
 **The flood guard is generous on purpose.** Claude and ChatGPT call from shared cloud addresses, so one address stands for many users. The
 default of 600 requests a minute only stops a flood. Reading the widget page counts as five requests, because it is the heavy one.
 
-Requests that carry an `Origin` header (a web page calling the server) are refused unless the origin is in the list: the chat apps call
-server to server and send none.
+Requests that carry an `Origin` header (a web page calling the server) are refused unless the origin is in the list; an allowed origin
+gets the CORS answers a browser needs, the preflight included. The chat apps call server to server and send none.
 
 ## What it logs and what it keeps
 
 It keeps **nothing**: no file, no conversation, no session, no database, and its code has no call that writes to disk (a test checks that).
 
-The log has one line per request: the time, the route, the HTTP status, the duration, the **method names** (`tools/call`, `resources/read`), the
+The log has one line per request: the time, the route, the HTTP status, the duration, the **method names** it knows (`tools/call`, `resources/read`; any other is logged as `other`, never with the client's text), the
 tool name, the name the chat app gives itself, and the first word of its user agent. It has no tool argument, no header, no cookie, no token
 and **no IP address**; `tests/test_mcp.cjs` plants canaries in all of those and checks they never appear. At start, one line states the
 version, the address it listens on, the size and the SHA-256 of the widget page it serves, so you can compare it with the one you built.
@@ -136,8 +140,10 @@ Claude and ChatGPT remember a widget by its address and keep an old tool list un
 - `current`: the address of the widget in use;
 - `previous`: every address ever used, which keep answering with the **current** page.
 
-When the widget changes, give it a new `current` address and move the old one to `previous`. Never remove an address: an app that still
-asks for it would show "cannot reach" instead of the page. `tests/test_mcp.cjs` checks that every listed address answers.
+When the widget changes, run `node tools/build-widget.cjs --new-address`: it gives the page a new `current` address, moves the old one to
+`previous` and records the SHA-256 of the page (`widgetSha256`). Never remove an address: an app that still asks for it would show "cannot
+reach" instead of the page. `tests/test_mcp.cjs` checks that every listed address answers, and `tests/test_widget.cjs` fails when the page
+changed but its address did not.
 
 ChatGPT users must also refresh the plugin in their settings to get a new version.
 
