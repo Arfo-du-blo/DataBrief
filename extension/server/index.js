@@ -19,9 +19,15 @@ const URIS = JSON.parse(fs.readFileSync(path.join(HERE, 'uris.json'), 'utf8'));
 const WIDGET_FILE = path.join(HERE, 'widget.html');
 const log = (s) => process.stderr.write('[databrief] ' + s + '\n');
 
+// The last resort, as in databrief --mcp: an error nobody caught can quote the file (a parser's message), and the app keeps this log, so only
+// its kind is written. The server keeps running: one bad file must not stop it.
+const crash = (e) => log('unexpected error (' + String((e && e.name) || 'Error').replace(/[^\w]/g, '').slice(0, 40) + ')');
+process.on('uncaughtException', crash);
+process.on('unhandledRejection', crash);
+
 const lib = require(path.join(HERE, 'databrief-cli.cjs'));
 lib.mcp.serveStdio({
   main: lib, version: MANIFEST.version, input: process.stdin, output: process.stdout, log,
   widget: { uri: URIS.current, previous: URIS.previous || [], read: () => fs.readFileSync(WIDGET_FILE, 'utf8') },
-}).then(() => process.exit(0));
+}).then(() => { process.exitCode = 0; });   // not process.exit(): the last answer may still be on its way through the pipe
 log('started, version ' + MANIFEST.version + ' (Node ' + process.version + ')');

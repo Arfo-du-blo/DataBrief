@@ -24,7 +24,7 @@ Everything else has a good default: do not ask about it. Write the prompt in the
 The script `scripts/databrief.cjs` is in this skill's folder, next to this file. It needs Node.js 18 or newer. Use its full path.
 
 ```
-node <skill folder>/scripts/databrief.cjs --json --no-copy [--no-share=1|2|3] [--lang CODE] [--limit auto] -- "<absolute path of the file>"
+node "<skill folder>/scripts/databrief.cjs" --json --no-copy [--no-share=1|2|3] [--lang CODE] [--limit auto] -- "<absolute path of the file>"
 ```
 
 - Put the file path after `--` and in quotes, so that a name starting with `-` or holding spaces is not read as an option.
@@ -40,8 +40,8 @@ The command prints one JSON object. `ok` is true, and `prompt` is the text to wo
 `large` is set, the file is large: say what was kept. When `ok` is false, `error` says why (missing file, unsupported format, damaged file): tell the user and
 do not guess.
 
-If the output is too long for your tool, write it to a folder that exists instead: add `--out "<existing folder>"` (without `--json`), then read `prompt.md`
-in the new folder it creates.
+If the output is too long for your tool, ask the user whether DataBrief may write it to a folder (it puts the prompt, and the data when shared, on disk). If
+they agree, add `--out "<existing folder>"` (without `--json`), then read `prompt.md` in the new folder it creates.
 
 ## Rules
 

@@ -33,6 +33,7 @@ function files() {
       { name: 'databrief/SKILL.md', data: Buffer.from(text('agents/skill/SKILL.md'), 'utf8') },
       { name: 'databrief/scripts/databrief.cjs', data: cli },
       { name: 'databrief/LICENSE', data: Buffer.from(lf(fs.readFileSync(path.join(ROOT, 'LICENSE'), 'utf8')), 'utf8') },
+      { name: 'databrief/THIRD-PARTY-NOTICES.md', data: Buffer.from(lf(fs.readFileSync(path.join(ROOT, 'THIRD-PARTY-NOTICES.md'), 'utf8')), 'utf8') },
     ],
     snippet: Buffer.from(text('agents/AGENTS-snippet.md'), 'utf8'),
     mcpConfig: Buffer.from(text('agents/mcp.json'), 'utf8'),

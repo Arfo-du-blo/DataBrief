@@ -78,13 +78,15 @@ jobs:
         run: node tests/test_packages.cjs
 
   # The hosted MCP server (mcp/): the protocol conversation, the tool and the widget resource, the limits, and the canaries that the
-  # log never shows. No browser, no dependency.
+  # log never shows. No browser, no dependency. On Windows and macOS too: the Claude Desktop extension runs there (and --root has
+  # Windows-only rules: letter case, network paths).
   mcp:
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-24.04, windows-latest, macos-latest]
         node: ['18', '22', '24']
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7

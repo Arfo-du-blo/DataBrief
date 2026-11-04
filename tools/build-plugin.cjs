@@ -23,7 +23,7 @@ function checkUrl(url) {
   try { u = new URL(String(url)); } catch (e) { throw new Error('The address of the hosted server is not a URL: ' + url); }
   if (u.protocol !== 'https:') throw new Error('The address of the hosted server must be https');
   if (u.username || u.password || u.search || u.hash) throw new Error('The address must hold no login, query or fragment');
-  if (u.pathname !== '/mcp') throw new Error('The address must end with /mcp (the server answers there)');
+  if (u.pathname !== '/mcp') throw new Error('The path of the address must be exactly /mcp (https://YOUR-HOST/mcp: the server answers there)');
   return u;
 }
 
@@ -36,8 +36,8 @@ function build(url) {
 
   // the plugin's skill = the standalone skill, with the script addressed by ${CLAUDE_SKILL_DIR} and the connector's section before the rules
   let skill = fill(text('agents/skill/SKILL.md'));
-  skill = replaceOnce(skill, 'The script `scripts/databrief.cjs` is in this skill\'s folder, next to this file. It needs Node.js 18 or newer. Use its full path.', 'The script `scripts/databrief.cjs` is in this skill\'s folder (`${CLAUDE_SKILL_DIR}`). It needs Node.js 18 or newer.', 'the sentence about the script');
-  skill = replaceOnce(skill, 'node <skill folder>/scripts/databrief.cjs --json', 'node ${CLAUDE_SKILL_DIR}/scripts/databrief.cjs --json', 'the command');
+  skill = replaceOnce(skill, 'The script `scripts/databrief.cjs` is in this skill\'s folder, next to this file. It needs Node.js 18 or newer. Use its full path.', 'The script `scripts/databrief.cjs` is in this skill\'s folder (`${CLAUDE_SKILL_DIR}`), next to this file. It needs Node.js 18 or newer. If that variable is empty, use the full path of this skill\'s folder.', 'the sentence about the script');
+  skill = replaceOnce(skill, 'node "<skill folder>/scripts/databrief.cjs" --json', 'node "${CLAUDE_SKILL_DIR}/scripts/databrief.cjs" --json', 'the command');
   skill = replaceOnce(skill, '\n## Rules\n', '\n' + fill(text('agents/plugin/connector-section.md')) + '\n## Rules\n', 'the Rules heading');
   const script = agentFiles().skill.find((f) => f.name === 'databrief/scripts/databrief.cjs').data;
   const P = 'databrief/';
@@ -50,6 +50,7 @@ function build(url) {
     { name: P + 'commands/databrief.md', data: buf(fill(text('agents/plugin/commands/databrief.md'))) },
     { name: P + 'README.md', data: buf(fill(text('agents/plugin/README.md'))) },
     { name: P + 'LICENSE', data: buf(text('LICENSE')) },
+    { name: P + 'THIRD-PARTY-NOTICES.md', data: buf(text('THIRD-PARTY-NOTICES.md')) },
   ];
   return { zip: zip(entries), entries };
 }

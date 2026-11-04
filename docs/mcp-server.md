@@ -1,4 +1,4 @@
-﻿# The hosted MCP server
+# The hosted MCP server
 
 DataBrief can open as an interactive widget inside a chat of **Claude** (web, desktop, mobile) and **ChatGPT**. A small server makes that
 possible: it tells the chat app which tool to offer and hands it the DataBrief page to display. This page is for people who run their own

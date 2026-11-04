@@ -357,6 +357,26 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   check('Do not share data: the context holds none of the data either (the question route)', !JSON.stringify(await log(page)).includes(CANARY) && !JSON.stringify(await log(page)).includes('ceo@acme.example'));
   check('Do not share data: the CSV and zip buttons stay hidden by the page', await hidden(frame, '#dataBtn') && await hidden(frame, '#allBtn'));
   await closePage(page);
+  // level 3 (summaries that can show real values): amber, and the box says so; back to level 1, a context given at level 3 is taken back
+  ({ page, frame } = await open(CLAUDE));
+  await click(frame, '#nsOn');
+  await frame.waitForFunction(() => window.DataBriefPage.state.share === 'no' && window.DataBriefPage.state.md && !document.getElementById('copyBtn').disabled, { timeout: 20000 });
+  await click(frame, '#nsLevelGroup button[data-level="3"]');
+  await frame.waitForFunction(() => window.DataBriefPage.state.nsLevel === 3 && !window.DataBriefPage.state.busy && window.DataBriefPage.state.md && !document.getElementById('copyBtn').disabled, { timeout: 20000 });
+  await clearPrompt(page);
+  await click(frame, '#dbwChat');
+  await sleep(2200);
+  check('Do not share data at level 3: Confirm is amber and the box says real values can show, not "no records"', (await frame.$eval('#dbwChat', (e) => e.classList.contains('dbw-armed-warn'))) && /real values/.test(await boxText(frame)) && !/no records/.test(await boxText(frame)) && /warn/.test(await boxTone(frame)), await boxText(frame));
+  await page.keyboard.press('Escape');
+  await sleep(300);
+  await click(frame, '#dbwCtx'); await sleep(2200); await click(frame, '#dbwCtx');
+  await waitFor(page, 'ui/update-model-context', 1);
+  await clearPrompt(page);
+  await click(frame, '#nsLevelGroup button[data-level="1"]');
+  await frame.waitForFunction(() => window.DataBriefPage.state.nsLevel === 1 && !window.DataBriefPage.state.busy, { timeout: 20000 });
+  const wd3 = await waitFor(page, 'ui/update-model-context', 1, 3000);
+  check('back to level 1: the context given at level 3 is taken back', wd3.length === 1 && /withdrew/.test(wd3[0].params.content[0].text), wd3.length + ' update(s)');
+  await closePage(page);
 
   /* ================= ChatGPT: a message is sent at once ================= */
   ({ page, frame } = await open(Object.assign({}, CHATGPT, { delay: { 'ui/update-model-context': 300 } })));

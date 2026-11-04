@@ -110,7 +110,9 @@
   const current = () => {
     const s = page().state;
     const text = s.md || '';
-    return { text, data: s.share !== 'no', tokens: s.tokens || Math.ceil(text.length / 4) };
+    // vals: Do not share data, but at level 3 (summaries of the columns) or with the file's own text or SQL code, which can show real values
+    const vals = s.share === 'no' && (s.nsLevel === 3 || !!(s.nsSw && (s.nsSw.text || s.nsSw.sql)));
+    return { text, data: s.share !== 'no', vals, tokens: s.tokens || Math.ceil(text.length / 4) };
   };
   const fileKey = () => { const d = page().state.doc || page().state.ns || {}; return String(d.fileName || ''); };
   // The context this widget gave the host, while it may still hold data: { data, file }. Taken back (WITHDRAWN) when that changes.
@@ -174,10 +176,10 @@
     if (hk === 'fill') explain = kind === 'chat' ? T('chatFill') : (kind === 'ask' ? (bundle ? T('askFill') : T('askCtxFill', { line })) : T('ctxFill', { line }));
     else if (hk === 'send') explain = kind === 'chat' ? T('chatSend', { line }) : T('askSend', { line });
     else explain = kind === 'chat' ? T('chatNeutral', { line }) : T('askNeutral', { line });
-    const lines = [(cur.data ? '⚠ ' + T('infoData') : '✓ ' + T('infoNoData')) + ' · ' + T('sizeLine', { chars: num(message.length), tokens: num(Math.max(cur.tokens, Math.ceil(message.length / 4))) }), explain];
+    const lines = [(cur.data ? '⚠ ' + T('infoData') : (cur.vals ? '⚠ ' + T('infoNoDataVals') : '✓ ' + T('infoNoData'))) + ' · ' + T('sizeLine', { chars: num(message.length), tokens: num(Math.max(cur.tokens, Math.ceil(message.length / 4))) }), explain];
     if (big) lines.push(T('warnBig', { limit: wholePrompt ? T('aboutKb', { n: '100' }) : T('aboutTokens', { n: num(16000) }) }));
-    armed = { btn, kind, cls: btn.className, html: btn.innerHTML, text: cur.text, data: cur.data, q, message, line, hk, anchor, whole: wholePrompt, bundle, at: Date.now(), minMs: CONFIRM_MIN_MS };
-    const colour = cur.data ? 'dbw-armed-warn' : 'dbw-armed-ok';
+    armed = { btn, kind, cls: btn.className, html: btn.innerHTML, text: cur.text, data: cur.data, vals: cur.vals, q, message, line, hk, anchor, whole: wholePrompt, bundle, at: Date.now(), minMs: CONFIRM_MIN_MS };
+    const colour = cur.data || cur.vals ? 'dbw-armed-warn' : 'dbw-armed-ok';
     armed.colour = colour;
     // Waiting: the button is there at once, grey and spinning, and ignores clicks (aria-disabled, not disabled, so a click on it is not
     // taken for a click elsewhere); then it turns into the real Confirm.
@@ -197,12 +199,12 @@
     x.onclick = cancel;
     btn.parentNode.insertBefore(x, btn.nextSibling);
     armed.x = x;
-    show(lines.join('\n'), big ? 'err' : (cur.data ? 'warn' : 'ok'), anchor);
+    show(lines.join('\n'), big ? 'err' : (cur.data || cur.vals ? 'warn' : 'ok'), anchor);
     armed.timer = setTimeout(cancel, ARM_MS);
   }
 
   // The page no longer shows what was armed (another file was dropped, an option changed, the question was edited, the page is busy).
-  const stale = (a) => page().state.busy || current().text !== a.text || current().data !== a.data || (a.kind === 'ask' && ($('dbwQ').value || '').trim() !== a.q);
+  const stale = (a) => page().state.busy || current().text !== a.text || current().data !== a.data || current().vals !== a.vals || (a.kind === 'ask' && ($('dbwQ').value || '').trim() !== a.q);
   function go() {
     const a = armed;
     if (a && stale(a)) { cancel(); return; }
@@ -213,7 +215,7 @@
     const ctxText = () => call('ui/update-model-context', { content: [{ type: 'text', text: a.text }] });
     const done = (key) => () => { if (!armed) show(T(key), 'ok', a.anchor); };   // a button armed since then keeps its explanation
     const fail = (key) => (e) => { disarm(); show(T(key, { e: errText(e) }), 'err', a.anchor); };
-    const held = () => { ctxHeld = { data: a.data, file: fileKey() }; };
+    const held = () => { ctxHeld = { data: a.data, vals: a.vals, file: fileKey() }; };
     // The app says it refused the message but may have taken it: a quiet note, nothing taken back.
     const unconfirmed = () => { if (!armed) show(T('doneUnconfirmed'), 'info', a.anchor); };
     if (a.whole) {
@@ -288,7 +290,8 @@
     const off = $('copyBtn').disabled;
     for (const b of buttons) b.el.disabled = off;
     if (armed && stale(armed)) cancel();
-    if (ctxHeld && ((ctxHeld.data && !current().data) || fileKey() !== ctxHeld.file)) withdraw();
+    const now = current();
+    if (ctxHeld && ((ctxHeld.data && !now.data) || (ctxHeld.vals && !now.data && !now.vals) || fileKey() !== ctxHeld.file)) withdraw();
     reportSize();
   }
 

@@ -22,7 +22,7 @@ const a = build(), b = build();
 check('the build is reproducible (zip, snippet)', Buffer.compare(a.zip, b.zip) === 0 && Buffer.compare(a.snippet, b.snippet) === 0);
 const files = fflate.unzipSync(new Uint8Array(a.zip));
 const names = Object.keys(files);
-check('the zip holds the skill folder only: databrief/SKILL.md, scripts/databrief.cjs, LICENSE', names.join() === 'databrief/SKILL.md,databrief/scripts/databrief.cjs,databrief/LICENSE', names.join());
+check('the zip holds the skill folder only: databrief/SKILL.md, scripts/databrief.cjs, LICENSE, THIRD-PARTY-NOTICES.md (the script bundles code of other projects)', names.join() === 'databrief/SKILL.md,databrief/scripts/databrief.cjs,databrief/LICENSE,databrief/THIRD-PARTY-NOTICES.md', names.join());
 const skill = Buffer.from(files['databrief/SKILL.md']).toString('utf8');
 const snippet = a.snippet.toString('utf8');
 
@@ -37,10 +37,14 @@ check('no placeholder left in the skill or the snippet', !/\{\{|\}\}/.test(skill
 const npxUses = ((skill + snippet).match(/npx[^`\n]*/g) || []);
 check('every npx use is pinned to package.json\'s version (never latest, never unpinned)', npxUses.length >= 2 && npxUses.every((u) => u.startsWith('npx -y databrief@' + pkg.version)), npxUses.join(' | '));
 
+check('skill: the script path is in quotes (a space or a Windows path in the folder)', skill.includes('node "<skill folder>/scripts/databrief.cjs" --json'));
+check('skill: --out (the prompt, and the data when shared, written to disk) only after asking the user', /ask the user whether DataBrief may write it to a folder/.test(skill) && skill.indexOf('ask the user whether DataBrief may write') < skill.indexOf('--out "<existing folder>"'));
+
 // every option named in the texts exists in the tool
 const help = execFileSync(process.execPath, [path.join(ROOT, 'cli', 'databrief.cjs'), '--help']).toString('utf8');
 const named = new Set(((skill + snippet).match(/(?<![\w-])--[a-z][a-z-]*/g)) || []);
-const missing = [...named].filter((o) => !help.includes(o));
+const known = new Set(help.match(/(?<![\w-])--[a-z][a-z-]*/g) || []);   // whole options only: a cut-off "--no-shar" is not an option
+const missing = [...named].filter((o) => !known.has(o));
 check('every --option the texts name exists in the command-line tool (' + [...named].join(' ') + ')', missing.length === 0, missing.join(' '));
 check('every named level and part exists (levels 1-3; names, labels, rel, file, text, sql)', ['names', 'labels', 'rel', 'file', 'text', 'sql'].every((p) => new RegExp('--hide=' + p + '(?![a-z])').test(skill)) && /--no-share=1\|2\|3/.test(skill) && /--no-share=1\|2\|3/.test(snippet));
 check('the clipboard rule is stated, and --limit auto is the documented value in both texts', /always add it/.test(skill) && /Always `--no-copy`/.test(snippet) && /--limit auto(?![a-z])/.test(skill) && /--limit auto(?![a-z])/.test(snippet));

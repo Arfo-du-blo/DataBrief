@@ -17,6 +17,9 @@ const ROOT = path.join(__dirname, '..');
 const { build } = require('../tools/build-mcpb.cjs');
 const fflate = (() => { const m = { exports: {} }; new Function('module', 'exports', 'self', fs.readFileSync(path.join(ROOT, 'vendor', 'fflate.min.js'), 'utf8'))(m, m.exports, undefined); return m.exports; })();
 let failed = 0, total = 0;
+// A call that is never answered leaves nothing for Node to do, and Node then ends with exit 0 without the summary: that is a failure.
+let finished = false;
+process.on('exit', (code) => { if (!finished && code === 0) { console.log('FAIL the test stopped before its end (something was never answered)'); process.exitCode = 1; } });
 const check = (name, ok, detail) => { total++; if (!ok) { failed++; console.log('FAIL ' + name + (detail ? ' :: ' + detail : '')); } else console.log('ok   ' + name); };
 const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
 
@@ -26,8 +29,8 @@ const GUARD = path.join(os.tmpdir(), 'databrief-mcpb-noprocess-' + process.pid +
 fs.writeFileSync(GUARD, "const cp = require('child_process'); for (const k of ['spawn','spawnSync','fork','exec','execSync','execFile','execFileSync']) cp[k] = function () { throw new Error('GUARD: a subprocess was started (' + k + ')'); };\n");
 
 class Client {
-  constructor(dir) {
-    this.child = spawn(process.execPath, ['--require', GUARD, path.join(dir, 'server', 'index.js')], { stdio: ['pipe', 'pipe', 'pipe'] });
+  constructor(dir, pre) {
+    this.child = spawn(process.execPath, ['--require', GUARD].concat(pre ? ['--require', pre] : [], [path.join(dir, 'server', 'index.js')]), { stdio: ['pipe', 'pipe', 'pipe'] });
     this.buf = ''; this.err = ''; this.out = ''; this.waiting = new Map(); this.id = 0; this.badLines = 0;
     this.child.stdout.setEncoding('utf8'); this.child.stderr.setEncoding('utf8');
     this.child.stdout.on('data', (c) => {
@@ -35,9 +38,12 @@ class Client {
       let i;
       while ((i = this.buf.indexOf('\n')) >= 0) {
         const line = this.buf.slice(0, i); this.buf = this.buf.slice(i + 1);
-        let m; try { m = JSON.parse(line); } catch (e) { this.badLines++; continue; }
-        if (m.jsonrpc !== '2.0') this.badLines++;
-        const w = this.waiting.get(m.id); if (w) { this.waiting.delete(m.id); w(m); }
+        let got; try { got = JSON.parse(line); } catch (e) { this.badLines++; continue; }
+        if (Array.isArray(got)) this.batches = (this.batches || 0) + 1;   // the answer to a batch is one array
+        for (const m of [].concat(got)) {
+          if (!m || m.jsonrpc !== '2.0') { this.badLines++; continue; }
+          const w = this.waiting.get(m.id); if (w) { this.waiting.delete(m.id); w(m); }
+        }
       }
     });
     this.child.stderr.on('data', (c) => { this.err += c; });
@@ -185,7 +191,7 @@ function cliJson(args) {   // the command-line tool from the source tree (not th
   c.raw('[1,2,{"jsonrpc":"2.0","id":"s1","method":"ping"}]\n');
   await new Promise((r) => setTimeout(r, 300));
   check('still alive after garbage lines', (await c.call('ping')).result !== undefined);
-  check('a batch is handled, a string id is kept', c.out.includes('"id":"s1"'));
+  check('a batch is handled and answered with one array, a string id is kept', c.out.includes('"id":"s1"') && c.batches === 1);
   check('stdout held protocol messages only', c.badLines === 0);
   const log = c.err;
   check('stderr (the log) holds no path, no canary, no file name', !log.includes(CANARY) && !log.includes(data) && !log.includes('sales.csv') && !log.includes('Lyon'));
@@ -199,6 +205,16 @@ function cliJson(args) {   // the command-line tool from the source tree (not th
   const r0 = await c2.call('resources/read', { uri: 'ui://databrief-local/widget-v0.html' });
   check('an address listed in previous still answers with the current page', r0.result && r0.result.contents[0].text === widgetBuilt);
   await c2.close();
+
+  // an error nobody catches (a reader failing in a timer): the log gets its kind only (the message can quote the file), and the server goes on
+  const BOOM = path.join(dir, 'boom.cjs');
+  fs.writeFileSync(BOOM, "setTimeout(() => { throw new TypeError('parse failed near CANARY-Bm-77 in /secret/path.csv'); }, 300); setTimeout(() => Promise.reject(new Error('CANARY-Bm-78')), 350);\n");
+  const c3 = new Client(dir, BOOM);
+  await new Promise((r) => setTimeout(r, 800));
+  const alive = await c3.call('ping');
+  await c3.close();
+  check('an uncaught error: the log keeps only its kind (no message, no path), and the server still answers', !!alive.result && /unexpected error \(TypeError\)/.test(c3.err) && !/CANARY-Bm|secret/.test(c3.err), c3.err.slice(0, 300));
+  check('the server ends without process.exit() (the last answer may still be in the pipe)', !/process\.exit\(/.test(fs.readFileSync(path.join(ROOT, 'extension', 'server', 'index.js'), 'utf8').replace(/\/\/.*$/gm, '')));
 
   // ---- the code
   // the extension's code is its wrapper and the command-line tool's MCP server (cli/mcp.cjs), which the bundle carries
@@ -218,5 +234,6 @@ function cliJson(args) {   // the command-line tool from the source tree (not th
   fs.rmSync(dir, { recursive: true, force: true });
   fs.rmSync(data, { recursive: true, force: true });
   console.log('\n' + (total - failed) + '/' + total + ' checks passed');
+  finished = true;
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(2); });

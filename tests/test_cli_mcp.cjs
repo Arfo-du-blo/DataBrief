@@ -15,6 +15,9 @@ const { spawn, spawnSync, execFileSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 let failed = 0, total = 0;
+// A call that is never answered leaves nothing for Node to do, and Node then ends with exit 0 without the summary: that is a failure.
+let finished = false;
+process.on('exit', (code) => { if (!finished && code === 0) { console.log('FAIL the test stopped before its end (something was never answered)'); process.exitCode = 1; } });
 const check = (name, ok, detail) => { total++; if (!ok) { failed++; console.log('FAIL ' + name + (detail ? ' :: ' + detail : '')); } else console.log('ok   ' + name); };
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 
@@ -70,6 +73,10 @@ const text = (r) => r.result.content[0].text;
   fs.writeFileSync(broken, '{"a": 1, "b": ' + CANARY + ' ]');
   const secret = path.join(outside, 'secret.csv');
   fs.writeFileSync(secret, 'k,v\n1,' + CANARY + '\n');
+  const dotted = path.join(data, '..notes.csv');
+  fs.writeFileSync(dotted, 'a,b\n1,2\n');
+  let hard = path.join(data, 'hard.csv');
+  try { fs.linkSync(secret, hard); } catch (e) { hard = null; }
   let linkOut = null, linkIn = null;
   try { linkOut = path.join(data, 'link-out.csv'); fs.symlinkSync(secret, linkOut); linkIn = path.join(data, 'link-in.csv'); fs.symlinkSync(csv, linkIn); } catch (e) { linkOut = linkIn = null; }
 
@@ -93,6 +100,21 @@ const text = (r) => r.result.content[0].text;
     check(label + ': a parser error in Do not share data does not quote the file', br.result.isError === true && !JSON.stringify(br).includes(CANARY), JSON.stringify(br).slice(0, 200));
     const any = await call({ path: secret, share: 'no' });
     check(label + ': without --root any readable file can be read (documented)', !any.result.isError);
+    const strNum = await call({ path: csv, share: 'yes', limit: '5' });
+    const strLvl = await call({ path: csv, share: 'no', level: '2' });
+    check(label + ': limit and level given as text (clients that flatten the schema) are taken as numbers', !strNum.result.isError && text(strNum) === cliJson(['--limit', '5', '--', csv]).prompt && !strLvl.result.isError && text(strLvl) === cliJson(['--no-share=2', '--', csv]).prompt);
+    const l3 = await call({ path: csv, share: 'no', level: 3 });
+    const l1 = await call({ path: csv, share: 'no' });
+    const withText = await call({ path: csv, share: 'no', allow: ['text', 'sql'] });
+    check(label + ': the summary line says level 3 can show real values, level 1 does not', /can show real values/.test(l3.result.content[1].text) && !/real values/.test(l1.result.content[1].text) && /holds NO record/.test(l1.result.content[1].text));
+    check(label + ': the summary line says when the file\'s own text or SQL code is included', /INCLUDES the file's own written text and its SQL code/.test(withText.result.content[1].text));
+    check(label + ': the schema says text and sql can put the file\'s contents in the prompt', /only when the user asked/.test(tools[0].inputSchema.properties.allow.description) && /OWN WRITTEN TEXT/.test(tools[0].inputSchema.properties.allow.description));
+    if (process.platform === 'win32') {
+      for (const unc of ['\\\\127.0.0.1\\c$\\x.csv', '//127.0.0.1/c$/x.csv', '\\\\?\\C:\\x.csv', '\\\\.\\NUL']) {
+        const u = await call({ path: unc, share: 'yes' });
+        check(label + ': without --root too, a network or device path is refused: ' + unc, u.result.isError === true && /network and device paths/.test(text(u)));
+      }
+    }
     for (const [name, args] of [['share missing', { path: csv }], ['relative path', { path: 'sales.csv', share: 'no' }], ['option as a path', { path: '--version', share: 'no' }], ['bad level', { path: csv, share: 'no', level: 7 }], ['arguments not an object', [csv, 'no']]]) {
       const r = await call(args);
       check(label + ': refused with a message: ' + name, r.result && r.result.isError === true && r.result.content[0].text.length > 10);
@@ -131,6 +153,18 @@ const text = (r) => r.result.content[0].text;
       const up = await rc({ path: csv.toUpperCase(), share: 'no' });
       check(label + ': --root: another letter case of a file inside is read (Windows)', !up.result.isError);
     }
+    const dotName = await rc({ path: dotted, share: 'no' });
+    check(label + ': --root: a file whose name starts with ".." is inside, and read', !dotName.result.isError, text(dotName));
+    if (hard) {
+      const hl = await rc({ path: hard, share: 'yes' });
+      check(label + ': --root: a hard link inside to a file outside is refused (a file with two names)', hl.result.isError === true && !JSON.stringify(hl).includes(CANARY) && text(hl) === text(missingIn));
+    } else console.log('SKIP ' + label + ': hard links (this file system does not have them)');
+    if (process.platform === 'win32') {
+      for (const unc of ['\\\\127.0.0.1\\c$\\x.csv', '//127.0.0.1/c$/x.csv', '\\\\?\\UNC\\127.0.0.1\\c$\\x.csv', '\\\\.\\pipe\\x']) {
+        const u = await rc({ path: unc, share: 'yes' });
+        check(label + ': --root: a network or device path is refused: ' + unc, u.result.isError === true && /network and device paths/.test(text(u)));
+      }
+    }
     await r.close();
     check(label + ': --root: the log names no folder', !r.err.includes(data) && /limited to the --root folder/.test(r.err));
   }
@@ -163,7 +197,59 @@ const text = (r) => r.result.content[0].text;
   const noWidget = fake(() => Promise.resolve(0));
   check('core: no widget given, no databrief_open and no resource', noWidget.tools.map((x) => x.name).join() === 'databrief_analyze');
 
+  // a network path is refused before ANY file system call (opening it could connect to another computer), with or without root
+  if (process.platform === 'win32') {
+    const touched = [];
+    const saved = { real: fs.realpathSync.native, stat: fs.statSync, lstat: fs.lstatSync };
+    fs.realpathSync.native = function (p) { touched.push(p); return saved.real.apply(this, arguments); };
+    fs.statSync = function (p) { touched.push(p); return saved.stat.apply(this, arguments); };
+    fs.lstatSync = function (p) { touched.push(p); return saved.lstat.apply(this, arguments); };
+    let refused = 0;
+    try {
+      for (const p of ['\\\\attacker.example\\s\\a.csv', '//attacker.example/s/a.csv']) for (const root of [null, data]) if (mcp.check({ path: p, share: 'yes' }, root, root).error) refused++;
+    } finally { fs.realpathSync.native = saved.real; fs.statSync = saved.stat; fs.lstatSync = saved.lstat; }
+    check('core: a network path is refused without any file system call (Windows)', refused === 4 && touched.length === 0, touched.join(' '));
+  }
+  // with root, a path outside is refused by its name first: nothing outside is looked at
+  {
+    const touched = [];
+    const saved = fs.realpathSync.native;
+    fs.realpathSync.native = function (p) { touched.push(p); return saved.apply(this, arguments); };
+    let r;
+    try { r = mcp.check({ path: secret, share: 'yes' }, fs.realpathSync(data), data); } finally { fs.realpathSync.native = saved; }
+    check('core: --root: a path outside is refused before its real path is looked up', !!r.error && touched.length === 0, touched.join(' '));
+  }
+  let diskRoot = null;
+  try { mcp.resolveRoot(path.parse(tmp).root); } catch (e) { diskRoot = e.message; }
+  check('core: --root refuses the root of a disk (it would open every file)', /root of a disk/.test(diskRoot || ''), String(diskRoot));
+  // a read that runs out of time: answered at once; the queue stays closed (calls are told) until the read really ends
+  {
+    let release, runs = 0;
+    const slow = mcp.createServer({ main: { run: () => (++runs === 1 ? new Promise((r) => { release = () => r(0); }) : Promise.resolve(0)), defaultEnv: () => ({}) }, version: '0', timeoutMs: 150 });
+    const ask = () => slow.handle({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'databrief_analyze', arguments: { path: csv, share: 'no' } } }).then((m) => m.result);
+    const first = await ask();
+    const second = await ask();
+    check('core: a read past its time is answered as such, and the next call is told the reader is still busy', first.isError && /given up/.test(first.content[0].text) && second.isError && /still busy/.test(second.content[0].text), first.content[0].text + ' / ' + second.content[0].text);
+    release();
+    await new Promise((r) => setTimeout(r, 50));
+    const third = await ask();
+    check('core: once the slow read has really ended, calls are taken again', third.isError && !/still busy/.test(third.content[0].text) && !/given up/.test(third.content[0].text), third.content[0].text);
+  }
+  // batches over stdio: one array back, every message answered, even past 50
+  {
+    const { PassThrough } = require('stream');
+    const input = new PassThrough(), output = new PassThrough();
+    let outText = ''; output.setEncoding('utf8'); output.on('data', (c) => { outText += c; });
+    const done = mcp.serveStdio({ main: { run: () => Promise.resolve(0), defaultEnv: () => ({}) }, version: '0', input, output });
+    input.write(JSON.stringify(Array.from({ length: 60 }, (_, i) => ({ jsonrpc: '2.0', id: i + 1, method: 'ping' }))) + '\n');
+    input.end();
+    await done;
+    let arr = null; try { arr = JSON.parse(outText.trim()); } catch (e) { /* */ }
+    check('core: a batch of 60 gets ONE array of 60 answers (50 done, 10 refused), not a silence', Array.isArray(arr) && arr.length === 60 && arr.filter((m) => m.result).length === 50 && arr.filter((m) => m.error).length === 10, outText.slice(0, 120));
+  }
+
   fs.rmSync(tmp, { recursive: true, force: true });
   console.log('\n' + (total - failed) + '/' + total + ' checks passed');
+  finished = true;
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (x) { /* */ } process.exit(2); });
