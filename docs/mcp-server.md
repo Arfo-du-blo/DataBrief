@@ -110,7 +110,9 @@ Environment variables; `node mcp/server.js --help` prints the same list.
 | `DATABRIEF_LOG` | `on` | request log: `on` or `off` |
 
 **The flood guard is generous on purpose.** Claude and ChatGPT call from shared cloud addresses, so one address stands for many users. The
-default of 600 requests a minute only stops a flood. Reading the widget page counts as five requests, because it is the heavy one.
+default of 600 requests a minute only stops a flood. Reading the widget page counts as five requests, because it is the heavy one, and a request may ask for the page only
+once (a batch with several page reads gets the page once and an error for the others). An IPv6 address counts with its whole /64 network (one computer usually holds a whole
+/64), so a source cannot fill the guard's memory with addresses of its own network.
 
 Requests that carry an `Origin` header (a web page calling the server) are refused unless the origin is in the list; an allowed origin
 gets the CORS answers a browser needs, the preflight included. The chat apps call server to server and send none.
@@ -132,8 +134,8 @@ Any reverse proxy (Caddy, nginx, Traefik) or tunnel that gives the server an HTT
 No login, no challenge page and no bot protection may sit in front of `/mcp`: the chat apps' servers cannot answer them.
 
 Behind Cloudflare, set `DATABRIEF_TRUST_PROXY_HEADER=CF-Connecting-IP` so the flood guard counts real addresses. Without it, every request
-seems to come from the proxy itself. Do not set it when the server is reachable directly, because anyone could then put any address in that
-header.
+seems to come from the proxy itself. The header is believed **only when the connection itself comes from this machine or a private network** (the tunnel in the same Docker network, a reverse proxy on the same
+host); from a public address the server ignores it and counts the connection's own address. Even so, do not set it when the server is reachable directly.
 
 ## Updating the widget page
 

@@ -19,7 +19,7 @@ Docker Compose, give it a public HTTPS address with a Cloudflare Tunnel, keep it
 ## What you need
 
 - A server with **Docker** and **Docker Compose v2** (the `docker compose` command). A small one is enough: the server container is limited to 256 MB.
-- A copy of this repository (`git clone`), because the image is built from it: `databrief.html`, `widget/` and `mcp/`.
+- Either a copy of this repository (`git clone`), because the image can be built from it (`databrief.html`, `widget/` and `mcp/`), or two files from a release that pull the published image (see [From the published image](#from-the-published-image-no-repository-needed)).
 - For the tunnel: a free **Cloudflare** account and a domain on it. No port has to be opened on your server or router.
 
 ## Start it
@@ -43,6 +43,13 @@ The rest has safe defaults. The services are described in [`docker-compose.yml`]
 Linux capability, with a memory limit, and restart by themselves after a reboot or a crash.
 
 Without the tunnel (`COMPOSE_PROFILES=` empty), put any reverse proxy with HTTPS in front and forward `/mcp` and `/healthz` to `127.0.0.1:8787`.
+
+### From the published image (no repository needed)
+
+Each release publishes the server's image (`ghcr.io/<owner>/databrief-mcp`) and two files that use it. Without cloning anything: download `databrief-mcp-compose.yml` as
+`docker-compose.yml` and `databrief-mcp.env.example` as `.env` into one folder from the [release](https://github.com/Arfo-du-blo/DataBrief/releases/latest), edit `.env` as above,
+then `docker compose up -d` (it pulls the image; nothing is built). Both files already name the image and the release's version. The first time, the owner of the repository
+may have to make the package public in GitHub (Packages, databrief-mcp, Package settings, Change visibility).
 
 ## The Cloudflare Tunnel
 
@@ -74,6 +81,8 @@ git pull
 cd mcp
 docker compose up -d --build      # rebuilds the image (and the widget page inside it) and replaces the containers
 ```
+
+From the published image: set `DATABRIEF_MCP_VERSION` in `.env` to the new release's tag (or download the new release's two files), then `docker compose pull && docker compose up -d`.
 
 The widget page is built into the image from the repository. When the page changes, the repository also changes the widget's **address** in
 `mcp/uris.json` (a changed widget needs a new one, and every old address keeps answering), so there is nothing for you to do beyond the update.
@@ -125,7 +134,7 @@ by themselves (3 files of 10 MB). `DATABRIEF_LOG=off` turns them off. The tunnel
 
 - What is reachable: `/mcp` (POST only), `/healthz`, a short home page, the icon. There is no way to upload or read a file, and the code has no call that
   writes to disk or reaches out to the network (a test checks it).
-- `DATABRIEF_TRUST_PROXY_HEADER` makes the flood guard believe a header. Set it only when every request really comes through that proxy (the tunnel);
-  on a server reachable directly, anyone could put any address in it.
+- `DATABRIEF_TRUST_PROXY_HEADER` makes the flood guard believe a header, but only when the connection comes from this machine or a private network (the tunnel,
+  a proxy, Docker's networks); from a public address it is ignored. Set it only when every request really comes through that proxy.
 - The flood guard is generous on purpose, because Claude and ChatGPT call from shared cloud addresses.
 - `.env` holds the tunnel token: protect the file (`chmod 600 .env`), and rotate the token if it ever leaks.

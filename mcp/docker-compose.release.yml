@@ -1,0 +1,55 @@
+# DataBrief hosted MCP server: everything to run it on a server, with Docker Compose, from the published image (ghcr.io).
+#
+#   Save this file as docker-compose.yml and databrief-mcp.env.example as .env in one folder, edit .env (the tunnel token, the public address), then:
+#   docker compose up -d        (pulls the published image; nothing is built here)
+#
+# Two services:
+#   databrief-mcp  the MCP server and the widget page (never receives your files). It listens on port 8787 inside Docker.
+#   cloudflared    a Cloudflare Tunnel that gives it a public HTTPS address (profile "tunnel", on by default in .env.example).
+#                  Remove the profile (COMPOSE_PROFILES= in .env) if you use your own reverse proxy instead.
+# Every setting is in .env (documented in .env.example); docs/mcp-operations.md explains how to run, update and check it.
+name: databrief
+
+services:
+  databrief-mcp:
+    image: ${DATABRIEF_MCP_IMAGE:-ghcr.io/arfo-du-blo/databrief-mcp}:${DATABRIEF_MCP_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      DATABRIEF_PUBLIC_URL: ${DATABRIEF_PUBLIC_URL:-}
+      DATABRIEF_TRUST_PROXY_HEADER: ${DATABRIEF_TRUST_PROXY_HEADER:-}
+      DATABRIEF_ALLOWED_ORIGINS: ${DATABRIEF_ALLOWED_ORIGINS:-}
+      DATABRIEF_RATE_PER_MIN: ${DATABRIEF_RATE_PER_MIN:-600}
+      DATABRIEF_LOG: ${DATABRIEF_LOG:-on}
+    ports:
+      # Reachable from this machine only (for checks and for a reverse proxy running on it). The tunnel does not use it: it reaches the
+      # server over Docker's own network. Set DATABRIEF_MCP_BIND=0.0.0.0 to expose the port on the network, or empty the port to publish nothing.
+      - "${DATABRIEF_MCP_BIND:-127.0.0.1}:${DATABRIEF_MCP_PORT:-8787}:8787"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: ${DATABRIEF_MCP_MEMORY:-256m}
+    pids_limit: 100
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }   # the logs rotate: they hold method names and timings only
+
+  cloudflared:
+    image: ${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:2026.10.7}
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    # The tunnel and its public address are made in the Cloudflare dashboard (Zero Trust, Networks, Tunnels): the public hostname
+    # points at the service  http://databrief-mcp:8787 . The token below connects this container to that tunnel.
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
+    depends_on:
+      databrief-mcp:
+        condition: service_healthy
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 128m
+    pids_limit: 100
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }

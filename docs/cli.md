@@ -13,7 +13,7 @@ Nothing else, except a clipboard tool on Linux (below).
 | You use | Install | Node.js |
 |---|---|---|
 | **npm**, any system | `npx databrief FILE` (nothing installed), or `npm install -g databrief` | you have it |
-| **Ubuntu, Debian** | `sudo apt install ./databrief_1.5.1_all.deb`, the file from the [release](https://github.com/Arfo-du-blo/DataBrief/releases/latest) | `apt` installs `nodejs` (recommended by the package); on a system whose Node is older than 18 (Ubuntu 22.04 has Node 12), install a newer one (NodeSource, nvm...): see [Troubleshooting](#troubleshooting) |
+| **Ubuntu, Debian** | `sudo apt install ./databrief_1.6.0_all.deb`, the file from the [release](https://github.com/Arfo-du-blo/DataBrief/releases/latest) | `apt` installs `nodejs` (recommended by the package); on a system whose Node is older than 18 (Ubuntu 22.04 has Node 12), install a newer one (NodeSource, nvm...): see [Troubleshooting](#troubleshooting) |
 | **Homebrew**, macOS or Linux | `brew install Arfo-du-blo/databrief/databrief` | Homebrew installs it |
 | **Scoop**, Windows | `scoop bucket add databrief https://github.com/Arfo-du-blo/scoop-databrief`, then `scoop install databrief` | Scoop installs `nodejs-lts` |
 | **One file**, any system | download `databrief-cli.cjs` from the release, then `node databrief-cli.cjs FILE` | you have it |
@@ -154,6 +154,19 @@ One JSON object on standard output (`ok`, `version`, `file`, `format`, `shared`,
 `folder`, `files`, `reviewed`, `large`, `notes`, `warnings`, `writeError`); an error is `{"ok": false, "error": {...}}` with exit code 1.
 On a terminal, characters that could act on it (C1 controls, direction overrides) are written as `\uXXXX`: the JSON stays
 valid and means the same.
+
+## As an MCP server: `--mcp`
+
+```bash
+databrief --mcp                # AI agents start this and talk to it on standard input and output
+databrief --mcp --root .       # ... and may read only files inside the folder the agent starts it in
+```
+
+`--mcp` turns the tool into a local [MCP](https://modelcontextprotocol.io) server for AI agents. It takes no file and no option but `--root DIR`, and it
+offers one tool, `databrief_analyze` (the absolute path of a file and `share` yes or no, required): the same code and the same prompt as `--json --no-copy`.
+It starts no program, opens no connection, writes no file, and its log on standard error holds method names and timings, never a path or any content. With
+`--root DIR` only files inside DIR are read (links are followed to the real file; a link out of DIR, a hard link and a network path are refused). The agents'
+configurations, the skill and the limits are in [docs/agents.md](agents.md).
 
 ## Exit codes
 

@@ -11,6 +11,10 @@
 #      dist-tags NOT allowed; no token). It goes live when the owner approves it with 2FA (npm stage approve)  (job npm)
 #   4. the Homebrew formula and the Scoop manifest, written into the repositories homebrew-databrief and
 #      scoop-databrief with the secret PACKAGES_TOKEN (a fine-grained token that can write to those two only)  (job packages)
+#      The release also holds the files for AI apps (tools/build-release-assets.cjs): databrief-widget.html, databrief.mcpb, databrief-skill.zip,
+#      AGENTS-snippet.md, mcp.json, databrief-mcp-compose.yml and databrief-mcp.env.example, and databrief-plugin.zip when the repository variable
+#      DATABRIEF_MCP_URL (https://HOST/mcp, the address of your connector server) is set. The job docker also publishes the connector server's
+#      image: ghcr.io/<owner>/databrief-mcp:<tag> (and :latest).
 # The jobs 2, 3 and 4 wait for the release (1) and do not depend on each other: one that fails can be run again alone.
 # After the first release: GitHub profile > Packages > databrief > Package settings > Change visibility > Public
 name: Release
@@ -53,8 +57,20 @@ jobs:
           cp dist/databrief_*_all.deb .
           ls -l databrief_*_all.deb
 
+      # The files for AI apps (tools/build-release-assets.cjs; the tag must be package.json's version): the page with the widget layer, the Claude
+      # Desktop extension, the skill, the paste-in text, the agents' configuration, and the Compose file and settings of the connector server (it pulls
+      # the image of the docker job). The Claude plugin holds the address of YOUR connector server, which is not in the repository: it is built only
+      # when the repository variable DATABRIEF_MCP_URL (Settings > Secrets and variables > Actions > Variables) is set to https://HOST/mcp.
+      - name: Build the files for AI apps
+        env:
+          DATABRIEF_MCP_URL: ${{ vars.DATABRIEF_MCP_URL }}
+        run: |
+          node tools/build-release-assets.cjs dist/release --tag "$GITHUB_REF_NAME"
+          cp dist/release/* .
+          echo "ASSETS=databrief.html databrief_set_default.html databrief-cli.cjs databrief.1 databrief_*_all.deb $(ls dist/release | tr '\n' ' ')" >> "$GITHUB_ENV"
+
       - name: Fingerprints (SHA-256) of the released files
-        run: sha256sum databrief.html databrief_set_default.html databrief-cli.cjs databrief.1 databrief_*_all.deb | tee SHA256SUMS.txt
+        run: sha256sum $ASSETS | tee SHA256SUMS.txt
 
       - name: Create (or update) the GitHub release
         env:
@@ -62,9 +78,9 @@ jobs:
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             # the tag was pushed again: replace the files of the existing release
-            gh release upload "$GITHUB_REF_NAME" databrief.html databrief_set_default.html databrief-cli.cjs databrief.1 databrief_*_all.deb SHA256SUMS.txt --clobber
+            gh release upload "$GITHUB_REF_NAME" $ASSETS SHA256SUMS.txt --clobber
           else
-            gh release create "$GITHUB_REF_NAME" databrief.html databrief_set_default.html databrief-cli.cjs databrief.1 databrief_*_all.deb SHA256SUMS.txt \
+            gh release create "$GITHUB_REF_NAME" $ASSETS SHA256SUMS.txt \
               --title "DataBrief $GITHUB_REF_NAME" --generate-notes
           fi
 
@@ -115,6 +131,25 @@ jobs:
           tags: |
             ${{ env.IMAGE }}:python
             ${{ env.IMAGE }}:${{ github.ref_name }}-python
+
+      # The hosted MCP server (the connector for Claude and ChatGPT): its own image, built from the repository (it builds the widget page itself).
+      # databrief-mcp-compose.yml of the release pulls it. "latest" moves only for a real release (no dash in the tag).
+      - name: MCP server image name and tags
+        run: |
+          echo "MCP_IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/databrief-mcp" >> "$GITHUB_ENV"
+          case "$GITHUB_REF_NAME" in *-*) echo "MCP_LATEST=false" >> "$GITHUB_ENV" ;; *) echo "MCP_LATEST=true" >> "$GITHUB_ENV" ;; esac
+
+      - name: MCP server image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: mcp/Dockerfile
+          build-args: WIDGET_SOURCE=built
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.MCP_IMAGE }}:${{ github.ref_name }}
+            ${{ env.MCP_LATEST == 'true' && format('{0}:latest', env.MCP_IMAGE) || '' }}
 
   # The npm package. Trusted publishing: npmjs.com knows that this workflow of this repository may STAGE "databrief" (the trusted
   # publisher is set to staged publishing only: it cannot publish directly), so the job proves who it is (id-token), needs no token,

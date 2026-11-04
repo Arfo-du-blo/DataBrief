@@ -83,6 +83,7 @@ case: when an assistant already handles your file well, the original file may be
 - [**Supported formats**](#supported-formats): 29 formats in 12 areas, one guide per format
 - [Choose how to use DataBrief](#choose-how-to-use-databrief)
 - [Command line](#command-line): the same readers in a terminal, for scripts and AI agents
+- [Use it from an AI app](#use-it-from-an-ai-app): Claude, ChatGPT and other MCP apps (tested only on Claude and ChatGPT)
 - [Learn deployment with DataBrief](#learn-deployment-with-databrief): the tutorial, from a single file to an ESP32
 - [Do not share data](#do-not-share-data): describe your data to an AI **without its records**
 - [Guides](#guides), one per way of using it
@@ -121,6 +122,7 @@ Start at the top: the first rows need nothing at all; the last ones are for IT t
 | 19 | **Raspberry Pi** (Ubuntu Server 26.04 LTS) | Team (local network) | Home, classroom, small teams | A Raspberry Pi 4 or 5 | [Open](#raspberry-pi) |
 | 20 | **ESP32 / Arduino Nano ESP32** (pocket server, own Wi-Fi) | Team (local network) | Makers, offline sites | An ESP32 board (4 MB+) | [Open](#esp32-and-arduino) |
 | 21 | **Command line** (no page: the same readers in a terminal) | Alone | Developers, scripts, AI agents | Node.js 18+ | [Open](#command-line) |
+| 22 | **Inside an AI app** (Claude, ChatGPT and other MCP apps: connector, Claude Desktop extension, plugin, skill, `databrief --mcp`) | Alone, or a team with one connector server | People who work in a chat or with an agent | An AI app; Node.js 18+ for agents | [Open](#use-it-from-an-ai-app) |
 
 **What is the difference?** The page always does all the work in the user's browser. The methods only change *where the
 page comes from* and *which defaults it has* (language, mode, locked settings, your team's instructions…). See
@@ -546,7 +548,7 @@ databrief dump.sql --print --no-copy      # print it
   | You use | Install |
   |---|---|
   | **npm** (any system) | `npx databrief FILE`, or `npm install -g databrief` |
-  | **Ubuntu, Debian** | download `databrief_1.5.1_all.deb` from the [release](https://github.com/Arfo-du-blo/DataBrief/releases/latest), then `sudo apt install ./databrief_1.5.0_all.deb` |
+  | **Ubuntu, Debian** | download `databrief_1.6.0_all.deb` from the [release](https://github.com/Arfo-du-blo/DataBrief/releases/latest), then `sudo apt install ./databrief_1.6.0_all.deb` |
   | **macOS, Linux** (Homebrew) | `brew install Arfo-du-blo/databrief/databrief` |
   | **Windows** (Scoop) | `scoop bucket add databrief https://github.com/Arfo-du-blo/scoop-databrief`, then `scoop install databrief` |
   | **Any system** | download `databrief-cli.cjs` from the release and run `node databrief-cli.cjs`; or build it: `node tools/build-cli.cjs` |
@@ -560,9 +562,37 @@ databrief dump.sql --print --no-copy      # print it
   levels, with canary tests on every format.
 - **The catch with agents:** `--no-share` controls what DataBrief outputs, not what an AI agent that can run commands
   can open: it may be able to read the file itself.
+- **As a local MCP server for agents:** `databrief --mcp [--root DIR]` ([guide](docs/agents.md)).
 
 **→ The full guide (every option, the files it writes, `--review`, exit codes, limits): [docs/cli.md](docs/cli.md)**
 · or `databrief --help`, and the `man` page [`man/databrief.1`](man/databrief.1).
+
+[↑ Back to the table](#choose-how-to-use-databrief)
+
+---
+
+### Use it from an AI app
+
+DataBrief also works **inside the chat** of AI apps and from AI agents, through the Model Context Protocol (MCP) and its MCP Apps extension. Every route
+below is built for any app that speaks those standards, not for one product only. **Only two apps were tested: Claude (web and Claude Desktop) and
+ChatGPT (web).** The other routes follow the standards and should work elsewhere, but nobody has tried them there, and each guide says what was
+and was not tested.
+
+| You want | Route | You need | Guide |
+|---|---|---|---|
+| The DataBrief page as a widget in a **Claude or ChatGPT** chat | **Hosted connector**: a small server you run, added as a connector in the app. It serves the page; your files never reach it | A server of your own (Docker Compose, with or without a Cloudflare Tunnel) | [Server](docs/mcp-server.md) · [Run it](docs/mcp-operations.md) |
+| Claude to read a file **by its path**, on your computer, and the page as a widget | **Claude Desktop extension** (`databrief.mcpb`): DataBrief inside, nothing to install first | Claude Desktop (Windows or macOS) | [Extension](docs/extension.md) |
+| Everything above in one install for Claude, plus a `/databrief` command | **Claude plugin** (skill + connector + command) | Claude, and the address of a connector server | [Plugin](docs/plugin.md) |
+| An **agent that can run commands** (Claude Code, Codex, Gemini CLI, Cursor...) to use DataBrief | **Skill**, **paste-in snippet** for `AGENTS.md`/`CLAUDE.md`, or **`databrief --mcp`** (the command-line tool as a local MCP server) | Node.js 18+ | [Agents](docs/agents.md) |
+
+In all of them:
+
+- **The AI asks you one question: may the data be shared?** "No" is [Do not share data](#do-not-share-data): the prompt describes the file and holds no record.
+  The question has no default, so the AI cannot read a file without it.
+- **Your files are read on your computer** (in your browser for the page, by the tool for a path). The hosted server never receives a file; the extension and
+  `databrief --mcp` open no connection. What the AI receives is the prompt, which holds the data only if you said yes.
+- **A tool that reads a path can be asked for any path.** Claude Desktop asks your permission at each use; `--root` (agents) and the extension's *Allowed folder*
+  setting limit the tool to one folder. An agent that can run commands may also open the file itself: DataBrief controls what it outputs, not what the agent can read.
 
 [↑ Back to the table](#choose-how-to-use-databrief)
 
@@ -848,6 +878,11 @@ src/
 cli/                          the command-line tool: databrief.cjs (entry), main.cjs, args.cjs (options: the one source of
                               --help and the man page), clipboard.cjs, outfiles.cjs, editor.cjs, realm.cjs (the page's
                               scripts in a separate Node realm), dom-shim.js (DOMParser for Node: xmldom and parse5)
+cli/mcp.cjs                   databrief --mcp: the MCP server for AI agents (also the Claude Desktop extension's server)
+mcp/                          the hosted MCP server (server.js, Dockerfile, docker-compose.yml, .env.example, uris.json: the widget's addresses)
+widget/                       the layer that turns the page into an MCP Apps widget (widget.js, widget-i18n.js, widget.css; built by tools/build-widget.cjs)
+extension/                    the Claude Desktop extension (manifest.json, server/index.js; built into databrief.mcpb by tools/build-mcpb.cjs)
+agents/                       the skill, the paste-in snippet, mcp.json and the Claude plugin's files (built by tools/build-agents.cjs and tools/build-plugin.cjs)
 man/databrief.1               the manual page (written by tools/build-man.cjs)
 package.json                  the repository's version and fields (private: the npm package is written by tools/build-npm.cjs)
 packaging/                    the npm README, the Homebrew formula and Scoop manifest templates and their repositories' READMEs
@@ -885,8 +920,16 @@ pwsh ./build.ps1                                          # PowerShell 7 (Window
 ### Releasing
 
 ```bash
-git tag v1.5.1 && git push origin v1.5.1
+git tag v1.6.0 && git push origin v1.6.0
 ```
+
+Before tagging: `package.json` holds the version, `node tools/build-man.cjs` rewrites the manual, and because the widget page carries the version, the
+widget's recorded SHA-256 in `mcp/uris.json` and `extension/uris.json` must follow (`node tools/build-widget.cjs --new-address` when the widget was already
+published; the tests say which). The tag must be `v` + `package.json`'s version: the release stops otherwise.
+
+The release also holds the files for AI apps, built by `tools/build-release-assets.cjs`: `databrief-widget.html`, `databrief.mcpb` (Claude Desktop), `databrief-skill.zip`,
+`AGENTS-snippet.md`, `mcp.json`, `databrief-mcp-compose.yml` with `databrief-mcp.env.example` (the connector server, pulled from `ghcr.io/<owner>/databrief-mcp`), and
+`databrief-plugin.zip` **only if** the repository variable `DATABRIEF_MCP_URL` (`https://HOST/mcp`, the address of your connector server) is set: the address is not in the repository.
 
 `.github/workflows/release.yml` creates the GitHub release (with both HTML files, the command-line tool
 `databrief-cli.cjs`, the man page `databrief.1`, the Debian / Ubuntu package and `SHA256SUMS.txt`, their fingerprints),
@@ -932,6 +975,13 @@ powershell -ExecutionPolicy Bypass -File tests\test_powershell.ps1   # PowerShel
   hostile file names, escape sequences, devices and pipes, XML entity bombs, deeply nested HTML; and the tool against the
   page in Chrome, byte for byte. In CI (`cli` job) on Linux, Windows and macOS with Node 18, 22 and 24. One independent
   review by three reviewers (privacy, security, integration), every finding with a regression test.
+- **AI apps** (`test_mcp.cjs`, `test_widget.cjs`, `test_widget_browser.cjs`, `test_mcpb.cjs`, `test_cli_mcp.cjs`, `test_agents.cjs`, `test_plugin.cjs`, `test_release.cjs`,
+  `test_mcp_docker.sh`): the hosted server's conversation, limits and log (method names only); the widget layer's 15 languages and, in Chrome inside fake hosts (Claude,
+  ChatGPT, an unknown app, a silent one), what it sends and when; the extension and `databrief --mcp` run over standard input and output under a guard that blocks every
+  program start, with canary values, `--root` (links, hard links, network paths), and the same prompt as the command line; the skill's commands run from the unzipped skill;
+  the plugin's layout; the release files and the workflows. The `mcp` CI job runs on Linux, Windows and macOS. Three independent reviews (privacy, security, integration);
+  every finding has a test, and each fix was broken on purpose to check that a test fails. **Not tested:** any app other than Claude (web, Desktop) and ChatGPT (web), and the
+  skill, the snippet and `databrief --mcp` inside a real agent.
 - **Export commands** (`test_export_commands.sh`, Docker, on demand): runs the commands shown by "How do I export my
   database?" against real PostgreSQL, MySQL, MariaDB, ClickHouse and SQLite servers and reads their files.
 - **Browser** (`run.sh`): every format (three SPSS compression modes, five Parquet codecs), errors, the 15 languages,

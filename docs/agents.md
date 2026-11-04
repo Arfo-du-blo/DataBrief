@@ -43,8 +43,13 @@ absolute path of a file and `share` (`"yes"` or `"no"`, required, no default), a
 method names and timings, never a path or any content.
 
 **`--root DIR` limits it to one folder:** only files whose real path (links followed) is inside DIR are read, and a file outside gets the same answer as
-a missing one. Without it, the agent can ask for any file you can read. `--root .` is the folder the agent starts the server in (for most agents, the
-project's folder); write an absolute path to be sure.
+a missing one. Without it, the agent can ask for any file you can read. The rules:
+
+- A link inside the folder that points outside is refused, and so is a file with a second name elsewhere (a hard link).
+- Network paths (`\\host\share`, `//host/share`) are never opened, with or without `--root`.
+- `--root` cannot be the root of a disk (`/` or `C:\`): the server stops and says so.
+- `--root .` is the folder the agent starts the server in (for most agents, the project's folder). Some apps start servers in another folder (for example `/` on
+  macOS, which is refused as a disk root); **write an absolute path** to be sure.
 
 Claude Code:
 
@@ -59,6 +64,12 @@ Agents with a JSON configuration (`mcp.json` in the release, for example Gemini 
 { "mcpServers": { "databrief": { "command": "npx", "args": ["-y", "databrief@VERSION", "--mcp", "--root", "."] } } }
 ```
 
+On Windows, `npx` is a script (`npx.cmd`), and an app that starts the command without a shell cannot find it. If the server does not start, run it through `cmd`:
+
+```json
+{ "mcpServers": { "databrief": { "command": "cmd", "args": ["/c", "npx", "-y", "databrief@VERSION", "--mcp", "--root", "."] } } }
+```
+
 Codex (`~/.codex/config.toml`):
 
 ```toml
@@ -66,6 +77,8 @@ Codex (`~/.codex/config.toml`):
 command = "npx"
 args = ["-y", "databrief@VERSION", "--mcp", "--root", "."]
 ```
+
+On Windows, if Codex cannot start `npx`: `command = "cmd"` and `args = ["/c", "npx", "-y", "databrief@VERSION", "--mcp", "--root", "."]`.
 
 Replace VERSION with the release's version. With DataBrief installed (Scoop, Homebrew, the `.deb`, `npm install -g databrief`), the command is simply
 `databrief` with the arguments `--mcp --root .`. Some apps refuse a long tool answer (Claude Code warns above about 25,000 tokens): the tool tells the agent to ask
@@ -83,6 +96,8 @@ such as a minimum or a category name, so the agent uses it only when asked. Ever
   agent not to read the contents of the file by other means when you chose not to share the data; that is an instruction, and your agent's own permissions are what
   enforce it. For a file that must never reach the AI, do not give the agent access to it.
 - The prompt is data. The skill tells the agent not to follow instructions it finds inside a file; a model can still be fooled, as with any text it reads.
+- A tool that reads a file can be asked for any path in the allowed area, also by text hidden in a file or a web page that the agent reads. `--root` is the
+  protection: use it, and give it the folder the agent works in.
 - The commands in the texts are tested (they are run from the unzipped skill on test files), but how an agent follows the instructions depends on the agent, and none has been tested yet. The README lists the applications that were.
 
 ## Build it yourself

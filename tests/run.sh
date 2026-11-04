@@ -47,6 +47,9 @@ echo
 echo "=== databrief --mcp (the command-line tool as an MCP server: --root, Do not share data, no subprocess)"
 node "$HERE/test_cli_mcp.cjs" | grep -v '^ok'
 echo
+echo "=== Release of the AI-app files (build-release-assets, the Compose file that pulls the image, the workflows are valid YAML and use them)"
+node "$HERE/test_release.cjs" | grep -v '^ok'
+echo
 echo "=== Claude plugin (skill + connector + command: layout, manifest, .mcp.json, the bundled tool run from the plugin)"
 node "$HERE/test_plugin.cjs" | grep -v '^ok'
 echo

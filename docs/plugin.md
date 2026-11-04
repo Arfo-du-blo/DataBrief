@@ -41,8 +41,9 @@ The hosted server's address is not in the repository: you give it when you build
 node tools/build-plugin.cjs --url https://YOUR-HOST/mcp        # dist/plugin/databrief-plugin.zip and the folder
 ```
 
-The address must be `https`, end with `/mcp` and hold no login, query or fragment. To run your own server, see [Running the hosted MCP server](mcp-operations.md).
+The address must be `https`, its path must be exactly `/mcp` and it holds no login, query or fragment. To run your own server, see [Running the hosted MCP server](mcp-operations.md).
 The zip has no `bin/` directory (it would stop claude.ai and Cowork from installing the plugin). `claude plugin validate ./databrief-plugin` checks the manifest in Claude Code.
+A release holds `databrief-plugin.zip` only when its publisher set the repository variable `DATABRIEF_MCP_URL` (their server's address); otherwise build it yourself as above.
 `tests/test_plugin.cjs` builds twice (same bytes), checks the layout, the manifest, `.mcp.json`, the texts and the README, and runs the bundled tool from the unzipped plugin.
 
 ## What data it sends
