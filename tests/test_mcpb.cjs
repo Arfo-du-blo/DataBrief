@@ -29,8 +29,8 @@ const GUARD = path.join(os.tmpdir(), 'databrief-mcpb-noprocess-' + process.pid +
 fs.writeFileSync(GUARD, "const cp = require('child_process'); for (const k of ['spawn','spawnSync','fork','exec','execSync','execFile','execFileSync']) cp[k] = function () { throw new Error('GUARD: a subprocess was started (' + k + ')'); };\n");
 
 class Client {
-  constructor(dir, pre) {
-    this.child = spawn(process.execPath, ['--require', GUARD].concat(pre ? ['--require', pre] : [], [path.join(dir, 'server', 'index.js')]), { stdio: ['pipe', 'pipe', 'pipe'] });
+  constructor(dir, pre, env) {
+    this.child = spawn(process.execPath, ['--require', GUARD].concat(pre ? ['--require', pre] : [], [path.join(dir, 'server', 'index.js')]), { stdio: ['pipe', 'pipe', 'pipe'], env: Object.assign({}, process.env, { DATABRIEF_ROOT: '' }, env || {}) });
     this.buf = ''; this.err = ''; this.out = ''; this.waiting = new Map(); this.id = 0; this.badLines = 0;
     this.child.stdout.setEncoding('utf8'); this.child.stderr.setEncoding('utf8');
     this.child.stdout.on('data', (c) => {
@@ -47,6 +47,7 @@ class Client {
       }
     });
     this.child.stderr.on('data', (c) => { this.err += c; });
+    this.exit = new Promise((r) => this.child.on('close', (code) => r(code)));
   }
   call(method, params) { const id = ++this.id; return new Promise((res) => { this.waiting.set(id, res); this.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n'); }); }
   notify(method, params) { this.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method, params }) + '\n'); }
@@ -72,6 +73,8 @@ function cliJson(args) {   // the command-line tool from the source tree (not th
   check('manifest: the command runs node on the entry point', manifest.server.mcp_config.command === 'node' && manifest.server.mcp_config.args[0] === '${__dirname}/' + manifest.server.entry_point);
   check('manifest: icon exists and is a 512x512 PNG', names.includes(manifest.icon) && Buffer.from(files[manifest.icon]).readUInt32BE(16) === 512 && Buffer.from(files[manifest.icon]).readUInt32BE(20) === 512 && Buffer.from(files[manifest.icon]).slice(1, 4).toString() === 'PNG');
   check('manifest: license, author, repository set; GPL', manifest.license === 'GPL-3.0-or-later' && manifest.author && manifest.author.name && manifest.repository && manifest.repository.url);
+  const uc = (manifest.user_config || {}).allowed_folder || {};
+  check('manifest: an OPTIONAL "Allowed folder" setting (type directory, not required), handed to the server as DATABRIEF_ROOT', uc.type === 'directory' && uc.required === false && /optional/i.test(uc.title) && manifest.server.mcp_config.env && manifest.server.mcp_config.env.DATABRIEF_ROOT === '${user_config.allowed_folder}', JSON.stringify(uc));
   check('manifest: Windows and macOS, Node 18', manifest.compatibility.platforms.join() === 'darwin,win32' && /18/.test(manifest.compatibility.runtimes.node));
   const widgetBuilt = require('../tools/build-widget.cjs').build();
   check('the widget in the zip is the widget build, byte for byte', Buffer.compare(Buffer.from(files['server/widget.html']), Buffer.from(widgetBuilt, 'utf8')) === 0);
@@ -205,6 +208,26 @@ function cliJson(args) {   // the command-line tool from the source tree (not th
   const r0 = await c2.call('resources/read', { uri: 'ui://databrief-local/widget-v0.html' });
   check('an address listed in previous still answers with the current page', r0.result && r0.result.contents[0].text === widgetBuilt);
   await c2.close();
+
+  // the "Allowed folder" setting (DATABRIEF_ROOT): only files inside it are read; empty or the unfilled placeholder = no limit; an unusable folder stops the server
+  const inDir = path.join(dir, 'allowed'), outDir = path.join(dir, 'elsewhere');
+  fs.mkdirSync(inDir); fs.mkdirSync(outDir);
+  const okCsv = path.join(inDir, 'a.csv'), noCsv = path.join(outDir, 'b.csv');
+  fs.writeFileSync(okCsv, 'x,y\n1,2\n'); fs.writeFileSync(noCsv, 'x,y\n3,CANARY-Al-9\n');
+  const callRoot = (cl, p) => cl.call('tools/call', { name: 'databrief_analyze', arguments: { path: p, share: 'yes' } });
+  const cr = new Client(dir, null, { DATABRIEF_ROOT: inDir });
+  const rIn = await callRoot(cr, okCsv), rOut = await callRoot(cr, noCsv);
+  await cr.close();
+  check('allowed folder set: a file inside is read, a file outside is refused with nothing of it', !rIn.result.isError && rOut.result.isError === true && !JSON.stringify(rOut).includes('CANARY-Al-9') && /limited to the allowed folder/.test(cr.err), cr.err.slice(0, 200));
+  for (const [label, value] of [['empty', ''], ['the placeholder Claude Desktop leaves when nothing is chosen', '${user_config.allowed_folder}']]) {
+    const cn = new Client(dir, null, { DATABRIEF_ROOT: value });
+    const a = await callRoot(cn, noCsv);
+    await cn.close();
+    check('allowed folder ' + label + ': no limit, any readable file is read', !a.result.isError && !/limited to the allowed folder/.test(cn.err));
+  }
+  const cb = new Client(dir, null, { DATABRIEF_ROOT: path.join(dir, 'does-not-exist') });
+  const bad = await Promise.race([cb.exit, new Promise((r) => setTimeout(() => { cb.child.kill(); r('still running after 5 s'); }, 5000))]);   // a server that went on serving fails here
+  check('an allowed folder that cannot be used stops the server with a message (it does not read everything instead)', bad === 1 && /Allowed folder/.test(cb.err) && !/started/.test(cb.err) && !cb.err.includes(dir), bad + ' ' + cb.err.slice(0, 200));
 
   // an error nobody catches (a reader failing in a timer): the log gets its kind only (the message can quote the file), and the server goes on
   const BOOM = path.join(dir, 'boom.cjs');

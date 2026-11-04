@@ -16,7 +16,16 @@
     "entry_point": "server/index.js",
     "mcp_config": {
       "command": "node",
-      "args": ["${__dirname}/server/index.js"]
+      "args": ["${__dirname}/server/index.js"],
+      "env": { "DATABRIEF_ROOT": "${user_config.allowed_folder}" }
+    }
+  },
+  "user_config": {
+    "allowed_folder": {
+      "type": "directory",
+      "title": "Allowed folder (optional)",
+      "description": "If you choose a folder, Claude can read only the files inside it (subfolders included). Leave it empty and Claude can read any data file you can read; Claude Desktop still asks your permission at each use.",
+      "required": false
     }
   },
   "tools": [

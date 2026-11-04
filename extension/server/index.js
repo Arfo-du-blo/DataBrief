@@ -25,9 +25,24 @@ const crash = (e) => log('unexpected error (' + String((e && e.name) || 'Error')
 process.on('uncaughtException', crash);
 process.on('unhandledRejection', crash);
 
+// The optional "Allowed folder" setting: Claude Desktop passes it in DATABRIEF_ROOT. Empty, absent or not filled in (the placeholder left as it
+// is) means no limit. A folder that is set but cannot be used stops the server with a message: reading everything instead would be the wrong failure.
+const rootSetting = String(process.env.DATABRIEF_ROOT || '').trim();
+const root = rootSetting && !rootSetting.startsWith('${') ? rootSetting : null;
+
 const lib = require(path.join(HERE, 'databrief-cli.cjs'));
-lib.mcp.serveStdio({
-  main: lib, version: MANIFEST.version, input: process.stdin, output: process.stdout, log,
-  widget: { uri: URIS.current, previous: URIS.previous || [], read: () => fs.readFileSync(WIDGET_FILE, 'utf8') },
-}).then(() => { process.exitCode = 0; });   // not process.exit(): the last answer may still be on its way through the pipe
-log('started, version ' + MANIFEST.version + ' (Node ' + process.version + ')');
+let served = null;
+try {
+  served = lib.mcp.serveStdio({
+    main: lib, root, version: MANIFEST.version, input: process.stdin, output: process.stdout, log,
+    widget: { uri: URIS.current, previous: URIS.previous || [], read: () => fs.readFileSync(WIDGET_FILE, 'utf8') },
+  });
+} catch (e) {
+  // the allowed folder cannot be used (it does not exist, or is not a folder, or is the root of a disk): say so and stop, rather than read everything
+  log('the "Allowed folder" setting cannot be used: choose an existing folder (not the root of a disk), or leave it empty');
+  process.exitCode = 1;
+}
+if (served) {
+  served.then(() => { process.exitCode = 0; });   // not process.exit(): the last answer may still be on its way through the pipe
+  log('started, version ' + MANIFEST.version + (root ? ', files limited to the allowed folder' : '') + ' (Node ' + process.version + ')');
+}

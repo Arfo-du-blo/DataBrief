@@ -12,6 +12,7 @@ It adds two tools to the chat:
 
 - [Install](#install)
 - [Use it](#use-it)
+- [Allowed folder](#allowed-folder-optional)
 - [Sharing the data or not](#sharing-the-data-or-not)
 - [Privacy](#privacy)
 - [Build it yourself](#build-it-yourself)
@@ -31,6 +32,18 @@ Tested with Claude Desktop only. Other applications that open `.mcpb` files shou
   command-line tool does (CSV, Excel, Parquet, SQLite, SQL dumps, PostgreSQL archives, JSON, PDF, Word and many more).
 - **From the page:** "Open DataBrief." Pick the file in the widget, then use **Put in the chat**, **Add to context** or **Ask about this data**.
 
+## Allowed folder (optional)
+
+When you install the extension, Claude Desktop shows a setting **Allowed folder (optional)**. It is empty by default.
+
+- **Empty:** Claude can ask for any data file your account can read, anywhere on the computer. Claude Desktop still asks your permission before the tool runs.
+- **A folder:** Claude can read only the files inside that folder and its subfolders. Anything else gets the same answer as a file that does not exist, so the
+  extension does not tell what exists outside. The check follows links to the real file (a link in the folder that points outside is refused), refuses a file that
+  has a second name elsewhere (a hard link), and does not accept network paths.
+- If the folder you chose is later deleted, or is the root of a disk, the extension stops and says so in its log, instead of reading everything.
+
+You can change it later in **Settings**, **Extensions**, DataBrief.
+
 ## Sharing the data or not
 
 The path tool has a required `share` parameter with no default, so Claude cannot read a file without deciding:
@@ -46,8 +59,11 @@ When you have not said which one you want, Claude should **ask you** ("share the
 - The file is read **on your computer**, by the same code as the command-line tool, inside the extension's own process (Claude Desktop's built-in Node cannot start another), and nothing opens a connection. The extension's code has no network call and no write call (tests check it).
 - What the tool returns goes to Claude Desktop, like anything you put in the chat: with `share: "yes"` the data is in the prompt Claude receives. Use "no" when
   the file must stay private.
-- **Claude can ask for any path on your computer.** Claude Desktop asks you before it lets a tool run; read the path in that question before you allow it, and
-  prefer "allow once" over "always allow" if the file is sensitive.
+- **Claude can ask for any path on your computer** unless you set an [allowed folder](#allowed-folder-optional). Claude Desktop asks you before it lets a tool run; read the
+  path in that question before you allow it, and prefer "allow once" over "always allow" if the file is sensitive. Only data formats are read (CSV, Excel, JSON,
+  SQLite, ...): a key or a `.env` file is refused as an unsupported type. Network paths (`\\host\share`) are never opened, so the tool cannot be used to make Windows
+  connect to another computer.
+- If an error is not caught, the log gets only the kind of the error (its message could quote the file).
 - The extension logs method names and timings to Claude Desktop's own log, never a path, a file name or any content.
 
 ## Build it yourself
