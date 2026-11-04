@@ -93,3 +93,5 @@ node tools/build-agents.cjs        # dist/agents/: databrief-skill.zip, databrie
 
 The texts are `agents/skill/SKILL.md`, `agents/AGENTS-snippet.md` and `agents/mcp.json`; the version in them is package.json's. `tests/test_agents.cjs` builds twice (same bytes), checks that
 every option the texts name exists, and runs the documented commands from the unzipped skill on test files in both modes.
+
+The same skill, with the hosted connector and a command, is also packaged as a [Claude plugin](plugin.md).

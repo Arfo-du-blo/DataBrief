@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "databrief": {
+      "type": "http",
+      "url": "{{MCP_URL}}"
+    }
+  }
+}

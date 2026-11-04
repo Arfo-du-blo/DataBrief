@@ -51,4 +51,4 @@ if (require.main === module) {
   fs.writeFileSync(path.join(out, 'mcp.json'), b.mcpConfig);
   console.log('Built ' + path.relative(process.cwd(), out) + ': databrief-skill.zip (' + b.zip.length.toLocaleString('en-US') + ' bytes), databrief-skill/, AGENTS-snippet.md, mcp.json');
 }
-module.exports = { build };
+module.exports = { build, files };

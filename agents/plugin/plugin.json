@@ -1,0 +1,11 @@
+{
+  "name": "databrief",
+  "displayName": "DataBrief",
+  "version": "{{VERSION}}",
+  "description": "Turn a data file (CSV, Excel, Parquet, SQLite, SQL or PostgreSQL dump, JSON, PDF, Word and more) into a prompt that describes it, with or without the data in it. Shows the DataBrief page in the chat, or reads a file with the bundled offline tool.",
+  "author": { "name": "Arfo", "url": "https://github.com/Arfo-du-blo" },
+  "homepage": "https://github.com/Arfo-du-blo/DataBrief",
+  "repository": "https://github.com/Arfo-du-blo/DataBrief",
+  "license": "GPL-3.0-or-later",
+  "keywords": ["data", "csv", "excel", "privacy", "prompt", "offline"]
+}

@@ -99,6 +99,8 @@ jobs:
         run: node tests/test_mcpb.cjs
       - name: databrief --mcp (MCP server, --root, Do not share data, no subprocess)
         run: node tests/test_cli_mcp.cjs
+      - name: Claude plugin (layout, manifest, .mcp.json, the bundled tool run from the plugin)
+        run: node tests/test_plugin.cjs
       - name: Terminal pack (skill and snippet: the documented commands run from the built skill)
         run: node tests/test_agents.cjs
 
