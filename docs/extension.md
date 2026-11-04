@@ -43,7 +43,7 @@ When you have not said which one you want, Claude should **ask you** ("share the
 
 ## Privacy
 
-- The file is read **on your computer**, by a separate process that opens no connection. The extension's code has no network call and no write call (tests check it).
+- The file is read **on your computer**, by the same code as the command-line tool, inside the extension's own process (Claude Desktop's built-in Node cannot start another), and nothing opens a connection. The extension's code has no network call and no write call (tests check it).
 - What the tool returns goes to Claude Desktop, like anything you put in the chat: with `share: "yes"` the data is in the prompt Claude receives. Use "no" when
   the file must stay private.
 - **Claude can ask for any path on your computer.** Claude Desktop asks you before it lets a tool run; read the path in that question before you allow it, and

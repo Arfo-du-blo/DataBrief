@@ -31,7 +31,9 @@ const version = process.env.DATABRIEF_VERSION || JSON.parse(read('package.json')
 if (!/^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/.test(version)) throw new Error('Not a version: ' + version);
 const data = { version, list, sources, wasm };
 
-const entry = read('cli/databrief.cjs').replace(/^#!.*\n/, '');
+// DATABRIEF_LIBRARY=1 builds the same file but, instead of running the command line, it exports the tool's main module ({ run, defaultEnv, ... }):
+// the Claude Desktop extension (tools/build-mcpb.cjs) runs it inside its own process, because Claude Desktop's built-in Node cannot start a subprocess.
+const entry = process.env.DATABRIEF_LIBRARY === '1' ? "module.exports = require('./main.cjs');\n" : read('cli/databrief.cjs').replace(/^#!.*\n/, '');
 const wrap = (name, src) => JSON.stringify(name) + ': function (module, exports, require) {\n' + src + '\n}';
 const parts = MODULES.map((m) => wrap('./' + m + '.cjs', read('cli/' + m + '.cjs')));
 parts.push(wrap('./bundle-data.cjs', 'module.exports = JSON.parse(' + JSON.stringify(JSON.stringify(data)) + ');'));

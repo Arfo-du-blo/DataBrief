@@ -7,7 +7,7 @@
  *   databrief_analyze  reads a file BY ITS PATH, on this computer, with the same code as the command-line tool (databrief-cli.cjs,
  *                      run with --json) and returns the prompt. "share" is a required parameter with no default: the AI has to
  *                      decide, and to ask the user when they have not said whether the data may be shared.
- * Nothing leaves this computer from here: the file is read by a child process that opens no connection, and the answer goes to the
+ * Nothing leaves this computer from here: the file is read inside this process, by the code of the command-line tool, which opens no connection, and the answer goes to the
  * app that started this server. stdout carries the protocol ONLY (one JSON message per line); logs go to stderr and never hold a
  * path, a prompt or any content.
  * GPL-3.0-or-later - https://github.com/Arfo-du-blo/DataBrief
@@ -16,7 +16,6 @@
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
-const { spawn } = require('child_process');
 
 const HERE = __dirname;
 const SUPPORTED = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
@@ -110,19 +109,36 @@ function check(a) {
   return { args, notes };
 }
 
-// Runs the command-line reader (the same code as the databrief command) as a child process: no shell, the arguments are a list,
-// a time limit and a size limit. It opens no connection.
+// Runs the command-line tool's own code (databrief-cli.cjs, built as a library) INSIDE this process. It cannot be a subprocess: Claude
+// Desktop's built-in Node refuses to start one. The tool gets stand-ins for the terminal (its output is captured, nothing is written to
+// our stdout, which carries the protocol), no clipboard and no way to start a program. One file at a time, so memory stays bounded.
+let cliMain = null;
+let chain = Promise.resolve();
 function runReader(args) {
+  const job = chain.then(() => runOnce(args));
+  chain = job.then(() => {}, () => {});
+  return job;
+}
+function runOnce(args) {
   return new Promise((resolve) => {
-    let child;
-    try { child = spawn(process.execPath, [CLI_FILE].concat(args), { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }); } catch (e) { resolve({ code: -1, out: '', err: String(e.message) }); return; }
+    let size = 0, over = false, done = false;
     const out = [], err = [];
-    let size = 0, over = false, timedOut = false;
-    const timer = setTimeout(() => { timedOut = true; child.kill(); }, TIMEOUT_MS);
-    child.stdout.on('data', (c) => { size += c.length; if (size > MAX_OUT) { over = true; child.kill(); } else out.push(c); });
-    child.stderr.on('data', (c) => { if (err.length < 20) err.push(c); });
-    child.on('error', (e) => { clearTimeout(timer); resolve({ code: -1, out: '', err: String(e.message) }); });
-    child.on('close', (code) => { clearTimeout(timer); resolve({ code, out: Buffer.concat(out).toString('utf8'), err: Buffer.concat(err).toString('utf8').slice(-600), over, timedOut }); });
+    const finish = (r) => { if (done) return; done = true; clearTimeout(timer); resolve(r); };
+    const timer = setTimeout(() => finish({ code: -1, out: '', err: '', timedOut: true }), TIMEOUT_MS);
+    try {
+      if (!cliMain) cliMain = require(CLI_FILE);
+      const sink = (list, count) => ({ isTTY: false, write(c) { if (count) { size += Buffer.byteLength(String(c)); if (size > MAX_OUT) { over = true; return true; } } if (list.length < 40 || count) list.push(String(c)); return true; } });
+      const env = Object.assign(cliMain.defaultEnv(), {
+        stdout: sink(out, true), stderr: sink(err, false), stdinIsTTY: false, stdoutIsTTY: false,
+        say() {}, waitEnter: () => Promise.resolve(),
+        spawnSync() { throw new Error('this extension starts no program'); },
+        which() { return null; },
+      });
+      cliMain.run(args, env).then(
+        (code) => finish({ code, out: out.join(''), err: err.join('').slice(-600), over }),
+        (e) => finish({ code: -1, out: '', err: String(e && e.message) })
+      );
+    } catch (e) { finish({ code: -1, out: '', err: String(e && e.message) }); }
   });
 }
 

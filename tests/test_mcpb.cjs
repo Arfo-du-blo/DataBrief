@@ -20,9 +20,14 @@ let failed = 0, total = 0;
 const check = (name, ok, detail) => { total++; if (!ok) { failed++; console.log('FAIL ' + name + (detail ? ' :: ' + detail : '')); } else console.log('ok   ' + name); };
 const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
 
+// Claude Desktop's built-in Node refuses to start any subprocess ("cannot start Claude.exe as a Node.js subprocess"): the server is always run here
+// under a guard that makes every way of starting a program throw, so the test fails if the extension ever needs one again.
+const GUARD = path.join(os.tmpdir(), 'databrief-mcpb-noprocess-' + process.pid + '.cjs');
+fs.writeFileSync(GUARD, "const cp = require('child_process'); for (const k of ['spawn','spawnSync','fork','exec','execSync','execFile','execFileSync']) cp[k] = function () { throw new Error('GUARD: a subprocess was started (' + k + ')'); };\n");
+
 class Client {
   constructor(dir) {
-    this.child = spawn(process.execPath, [path.join(dir, 'server', 'index.js')], { stdio: ['pipe', 'pipe', 'pipe'] });
+    this.child = spawn(process.execPath, ['--require', GUARD, path.join(dir, 'server', 'index.js')], { stdio: ['pipe', 'pipe', 'pipe'] });
     this.buf = ''; this.err = ''; this.out = ''; this.waiting = new Map(); this.id = 0; this.badLines = 0;
     this.child.stdout.setEncoding('utf8'); this.child.stderr.setEncoding('utf8');
     this.child.stdout.on('data', (c) => {
@@ -199,10 +204,13 @@ function cliJson(args) {   // the command-line tool from the source tree (not th
   const src = fs.readFileSync(path.join(ROOT, 'extension', 'server', 'index.js'), 'utf8');
   check('no network module in the extension\'s code', !/require\(['"](https?|net|dgram|tls|http2|dns)['"]\)|\bfetch\(|XMLHttpRequest|WebSocket/.test(src));
   check('no write call in the extension\'s code', !/writeFile|appendFile|createWriteStream|mkdirSync|unlinkSync|rmSync|renameSync|copyFile/.test(src));
-  check('the only child process is the bundled reader, without a shell', (src.match(/spawn\(/g) || []).length === 1 && !/shell\s*:\s*true|exec\(|execSync|execFile/.test(src) && /process\.execPath/.test(src));
+  const code = src.replace(/^\s*\/\/.*$/gm, '').replace(/spawnSync\(\) \{ throw[^}]*\}/, '');
+  check('the extension starts no process (Claude Desktop\'s built-in Node forbids it): no child_process, no execPath, no worker', !/child_process|spawn|fork\(|execSync|execFile|exec\(|process\.execPath|worker_threads/.test(code), (code.match(/child_process|spawn|fork\(|exec\w*\(|process\.execPath|worker_threads/) || [])[0]);
+  check('the tool runs in this process with the terminal replaced (output captured, no clipboard, no program)', /cliMain\.run\(args, env\)/.test(src) && /stdout: sink\(out, true\)/.test(src) && /spawnSync\(\) \{ throw/.test(src));
   check('the reader gets --json --no-copy (the clipboard is never touched) and the path after --', /'--json', '--no-copy'/.test(src) && /args\.push\('--', a\.path\)/.test(src));
   check('stdout is written only by the protocol functions', (src.match(/process\.stdout\.write/g) || []).length === 1 && !/console\.log/.test(src));
 
+  fs.rmSync(GUARD, { force: true });
   fs.rmSync(dir, { recursive: true, force: true });
   fs.rmSync(data, { recursive: true, force: true });
   console.log('\n' + (total - failed) + '/' + total + ' checks passed');

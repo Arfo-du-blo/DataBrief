@@ -105,7 +105,7 @@ function build() {
   let cli;
   try {
     const target = path.join(tmp, 'databrief-cli.cjs');
-    execFileSync(process.execPath, [path.join(__dirname, 'build-cli.cjs'), target], { env: Object.assign({}, process.env, { DATABRIEF_VERSION: pkg.version }), stdio: ['ignore', 'ignore', 'inherit'] });
+    execFileSync(process.execPath, [path.join(__dirname, 'build-cli.cjs'), target], { env: Object.assign({}, process.env, { DATABRIEF_VERSION: pkg.version, DATABRIEF_LIBRARY: '1' }), stdio: ['ignore', 'ignore', 'inherit'] });
     cli = fs.readFileSync(target);
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   const text = (p) => Buffer.from(lf(fs.readFileSync(path.join(ROOT, p), 'utf8')), 'utf8');
