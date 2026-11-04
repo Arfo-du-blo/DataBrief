@@ -20,7 +20,7 @@ It adds two tools to the chat:
 ## Install
 
 1. Download `databrief.mcpb` from the [releases page](https://github.com/Arfo-du-blo/DataBrief/releases).
-x
+2. In Claude Desktop open **Settings**, **Extensions**, **Advanced settings**, **Install Extension…** and choose the file. (Double-clicking the file only works when the system has linked `.mcpb` files to Claude Desktop, which it does not always do; on Windows you may only be asked which app to use. Use the Settings route then.)
 3. Check the details Claude Desktop shows, and click **Install**. Then turn the extension on.
 
 Tested with Claude Desktop only. Other applications that open `.mcpb` files should work, but have not been tested.
