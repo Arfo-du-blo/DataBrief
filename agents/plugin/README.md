@@ -3,6 +3,11 @@
 DataBrief turns a data file (CSV, Excel, Parquet, SQLite, SQL or PostgreSQL dumps, JSON, PDF, Word and many more formats) into a prompt that describes it: the tables,
 columns, types, keys and statistics, and the data itself only when you allow it ("Do not share data" keeps every record out).
 
+## Install
+
+In Claude Code, from the DataBrief marketplace: `/plugin install databrief --marketplace Arfo-du-blo/databrief-marketplace`. In Claude on the web or in Claude Desktop, upload
+`databrief-plugin.zip` from the [releases](https://github.com/Arfo-du-blo/DataBrief/releases) with Customize, Plugins, Add, Upload plugin.
+
 ## Use it
 
 - **In a chat:** ask Claude to open DataBrief. The page appears in the conversation; pick your file in it and use its buttons to put the prompt in the chat, add it to the
