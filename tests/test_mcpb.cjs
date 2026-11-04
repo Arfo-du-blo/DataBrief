@@ -201,14 +201,18 @@ function cliJson(args) {   // the command-line tool from the source tree (not th
   await c2.close();
 
   // ---- the code
-  const src = fs.readFileSync(path.join(ROOT, 'extension', 'server', 'index.js'), 'utf8');
+  // the extension's code is its wrapper and the command-line tool's MCP server (cli/mcp.cjs), which the bundle carries
+  const ext = fs.readFileSync(path.join(ROOT, 'extension', 'server', 'index.js'), 'utf8');
+  const core = fs.readFileSync(path.join(ROOT, 'cli', 'mcp.cjs'), 'utf8');
+  const src = ext + '\n' + core;
+  check('the bundled tool carries cli/mcp.cjs as it is in the source tree', cliText.includes(core.replace(/\r\n/g, '\n').trim().split('\n').slice(-3).join('\n')));
   check('no network module in the extension\'s code', !/require\(['"](https?|net|dgram|tls|http2|dns)['"]\)|\bfetch\(|XMLHttpRequest|WebSocket/.test(src));
   check('no write call in the extension\'s code', !/writeFile|appendFile|createWriteStream|mkdirSync|unlinkSync|rmSync|renameSync|copyFile/.test(src));
-  const code = src.replace(/^\s*\/\/.*$/gm, '').replace(/spawnSync\(\) \{ throw[^}]*\}/, '');
+  const code = src.replace(/^\s*(\/\/|\*|\/\*).*$/gm, '').replace(/spawnSync\(\) \{ throw[^}]*\}/, '');
   check('the extension starts no process (Claude Desktop\'s built-in Node forbids it): no child_process, no execPath, no worker', !/child_process|spawn|fork\(|execSync|execFile|exec\(|process\.execPath|worker_threads/.test(code), (code.match(/child_process|spawn|fork\(|exec\w*\(|process\.execPath|worker_threads/) || [])[0]);
-  check('the tool runs in this process with the terminal replaced (output captured, no clipboard, no program)', /cliMain\.run\(args, env\)/.test(src) && /stdout: sink\(out, true\)/.test(src) && /spawnSync\(\) \{ throw/.test(src));
-  check('the reader gets --json --no-copy (the clipboard is never touched) and the path after --', /'--json', '--no-copy'/.test(src) && /args\.push\('--', a\.path\)/.test(src));
-  check('stdout is written only by the protocol functions', (src.match(/process\.stdout\.write/g) || []).length === 1 && !/console\.log/.test(src));
+  check('the tool runs in this process with the terminal replaced (output captured, no clipboard, no program)', /o\.main\.run\(args, env\)/.test(core) && /stdout: sink\(out, true\)/.test(core) && /spawnSync\(\) \{ throw/.test(core) && /which\(\) \{ return null; \}/.test(core));
+  check('the reader gets --json --no-copy (the clipboard is never touched) and the path after --', /'--json', '--no-copy'/.test(core) && /args\.push\('--', file\)/.test(core));
+  check('stdout is written only by the protocol writer', !/process\.stdout|console\.log/.test(src.replace("output: process.stdout", "")) && (core.match(/o\.output\.write/g) || []).length === 1);
 
   fs.rmSync(GUARD, { force: true });
   fs.rmSync(dir, { recursive: true, force: true });

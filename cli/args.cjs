@@ -27,6 +27,8 @@ const SPEC = {
   '--json': { key: 'json' },
   '--quiet': { key: 'quiet' },
   '-q': { key: 'quiet' },
+  '--mcp': { key: 'mcp' },
+  '--root': { key: 'root', value: 'required' },
   '--help': { key: 'help' },
   '-h': { key: 'help' },
   '--version': { key: 'version' },
@@ -93,6 +95,8 @@ const OPTIONS = [
   { group: 'content', flags: ['--limit'], arg: 'N|auto', text: 'Rows per table in the prompt (inline mode). auto = the page\'s suggestion for a large file.' },
   { group: 'content', flags: ['--layout'], arg: 'auto|table|csv', text: 'How rows are written (default auto: tables for small sections, CSV for large ones).' },
   { group: 'content', flags: ['--no-profile'], text: 'Leave out the data profile (statistics of every column).' },
+  { group: 'other', flags: ['--mcp'], text: 'Run as a local MCP server on standard input and output, for AI agents (Claude Code, Codex, Gemini CLI...): one tool, databrief_analyze, reads a file by its path in Do not share data or not, as the AI asks. No file and no other option but --root.' },
+  { group: 'other', flags: ['--root'], arg: 'DIR', text: 'With --mcp: read only files whose real path (links followed) is inside DIR. Without it, the AI can ask for any file you can read.' },
   { group: 'other', flags: ['--help', '-h'], text: 'This text.' },
   { group: 'other', flags: ['--version', '-v'], text: 'The version.' },
 ];
@@ -118,6 +122,7 @@ const EXAMPLES = [
   ['databrief orders.parquet --csv', 'prompt.md and the data as CSV files in ./databrief/...'],
   ['databrief orders.parquet --mode files --csv', 'a short prompt and the data as CSV files, for AIs that run code'],
   ['databrief report.docx --review=nano', 'edit the prompt before it is copied'],
+  ['databrief --mcp --root .', 'an MCP server for an AI agent, limited to this folder'],
 ];
 
 const flagText = (o) => o.flags.map((f, i) => (i === 0 && o.arg ? (o.equals ? f + o.arg : f + ' ' + o.arg) : f)).join(', ');

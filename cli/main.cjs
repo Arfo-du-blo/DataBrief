@@ -10,6 +10,7 @@ const clipboard = require('./clipboard.cjs');
 const outfiles = require('./outfiles.cjs');
 const editor = require('./editor.cjs');
 const realmLib = require('./realm.cjs');
+const mcp = require('./mcp.cjs');
 
 const EXIT = { OK: 0, FILE: 1, OPTIONS: 2, DELIVERY: 3 };
 
@@ -40,7 +41,7 @@ function defaultEnv() {
   const fs = nodeFs, path = nodePath;
   return {
     fs, path, cwd: process.cwd(), platform: process.platform, vars: process.env,
-    stdout: process.stdout, stderr: process.stderr,
+    stdin: process.stdin, stdout: process.stdout, stderr: process.stderr,
     stdinIsTTY: !!process.stdin.isTTY, stdoutIsTTY: !!process.stdout.isTTY,
     spawnSync: cp.spawnSync, now: () => new Date(), nowMs: () => Date.now(),
     which: (name) => which(name, process.env, process.platform, fs, path),
@@ -72,6 +73,23 @@ async function run(argv, env) {
   const version = env.version || realmLib.version();
   if (opts.help) { env.stdout.write(HELP); return EXIT.OK; }
   if (opts.version) { env.stdout.write('databrief ' + version + '\n'); return EXIT.OK; }
+  // --mcp: a local MCP server on standard input and output; every other option comes from the AI, call by call
+  if (opts.mcp) {
+    const extra = Object.keys(opts).filter((k) => !['file', 'mcp', 'root'].includes(k) && opts[k] !== undefined);
+    if (errors.length || opts.file !== null || extra.length) {
+      for (const e of errors) say('databrief: ' + e);
+      if (opts.file !== null || extra.length) say('databrief: --mcp takes no file and no option but --root: the AI gives the file and the settings in each call');
+      return EXIT.OPTIONS;
+    }
+    const log = (s) => env.stderr.write('[databrief] ' + forTerminal(s, true) + '\n');
+    try {
+      const done = mcp.serveStdio({ main: { run, defaultEnv }, version, root: opts.root, input: env.stdin, output: env.stdout, log });
+      log('MCP server started, version ' + version + (opts.root !== undefined ? ', files limited to the --root folder' : '') + ' (Node ' + process.versions.node + ')');
+      await done;
+    } catch (e) { say('databrief: ' + e.message); return EXIT.OPTIONS; }
+    return EXIT.OK;
+  }
+  if (opts.root !== undefined) { say('databrief: --root only goes with --mcp'); return EXIT.OPTIONS; }
   if (!errors.length && !opts.file) { say('Usage: databrief FILE [options]   (databrief --help lists the options)'); return EXIT.OPTIONS; }
 
   /* options that need no knowledge of the page */

@@ -44,6 +44,9 @@ echo
 echo "=== Claude Desktop extension (.mcpb: reproducible build, contents, the server run over stdio, same prompt as the command-line tool)"
 node "$HERE/test_mcpb.cjs" | grep -v '^ok'
 echo
+echo "=== databrief --mcp (the command-line tool as an MCP server: --root, Do not share data, no subprocess)"
+node "$HERE/test_cli_mcp.cjs" | grep -v '^ok'
+echo
 echo "=== Terminal pack (skill and snippet: reproducible build, every option exists, the documented commands run in both modes)"
 node "$HERE/test_agents.cjs" | grep -v '^ok'
 echo

@@ -97,6 +97,8 @@ jobs:
         run: node tests/test_widget.cjs
       - name: Claude Desktop extension (.mcpb build, the server over stdio, same prompt as the command-line tool)
         run: node tests/test_mcpb.cjs
+      - name: databrief --mcp (MCP server, --root, Do not share data, no subprocess)
+        run: node tests/test_cli_mcp.cjs
       - name: Terminal pack (skill and snippet: the documented commands run from the built skill)
         run: node tests/test_agents.cjs
 

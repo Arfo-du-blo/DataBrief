@@ -13,7 +13,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const ROOT = path.join(__dirname, '..');
-const MODULES = ['args', 'clipboard', 'outfiles', 'editor', 'realm', 'main'];
+const MODULES = ['args', 'clipboard', 'outfiles', 'editor', 'realm', 'mcp', 'main'];
 const lf = (s) => s.replace(/\r\n?/g, '\n');
 const read = (p) => lf(fs.readFileSync(path.join(ROOT, p), 'utf8'));
 
@@ -33,7 +33,7 @@ const data = { version, list, sources, wasm };
 
 // DATABRIEF_LIBRARY=1 builds the same file but, instead of running the command line, it exports the tool's main module ({ run, defaultEnv, ... }):
 // the Claude Desktop extension (tools/build-mcpb.cjs) runs it inside its own process, because Claude Desktop's built-in Node cannot start a subprocess.
-const entry = process.env.DATABRIEF_LIBRARY === '1' ? "module.exports = require('./main.cjs');\n" : read('cli/databrief.cjs').replace(/^#!.*\n/, '');
+const entry = process.env.DATABRIEF_LIBRARY === '1' ? "module.exports = Object.assign({ mcp: require('./mcp.cjs') }, require('./main.cjs'));\n" : read('cli/databrief.cjs').replace(/^#!.*\n/, '');
 const wrap = (name, src) => JSON.stringify(name) + ': function (module, exports, require) {\n' + src + '\n}';
 const parts = MODULES.map((m) => wrap('./' + m + '.cjs', read('cli/' + m + '.cjs')));
 parts.push(wrap('./bundle-data.cjs', 'module.exports = JSON.parse(' + JSON.stringify(JSON.stringify(data)) + ');'));

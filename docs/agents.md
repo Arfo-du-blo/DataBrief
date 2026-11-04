@@ -1,10 +1,17 @@
 # DataBrief for AI agents (skill and snippet)
 
-For an AI agent that can run commands (Claude Code, Codex, Gemini CLI, Claude in the web with code execution, and similar), DataBrief can be taught in two ways. In both,
-the agent runs the [command-line tool](../README.md) itself on your file, asks you only whether the data may be shared, and works from the prompt it gets.
+For an AI agent (Claude Code, Codex, Gemini CLI, Claude in the web with code execution, and similar), DataBrief comes in three forms. In all of them the
+[command-line tool](../README.md) reads your file on your machine, the agent asks you only whether the data may be shared, and works from the prompt it gets.
+
+| Form | For | Needs |
+|---|---|---|
+| The skill | agents that read skills (Claude Code, Claude with code execution) | Node.js 18+, nothing else (the tool is inside) |
+| The text to paste in | any agent that can run commands | Node.js 18+; DataBrief installed, or npx (downloads it once) |
+| The MCP server, `databrief --mcp` | any agent that speaks MCP, even one that cannot run commands | Node.js 18+; DataBrief installed, or npx |
 
 - [The skill](#the-skill)
 - [The text to paste in](#the-text-to-paste-in)
+- [The MCP server](#the-mcp-server)
 - [Sharing the data or not](#sharing-the-data-or-not)
 - [Limits you should know](#limits-you-should-know)
 - [Build it yourself](#build-it-yourself)
@@ -28,6 +35,42 @@ When you cannot install a skill, `AGENTS-snippet.md` is the same instruction in 
 file. It uses `databrief` when it is installed (Scoop, Homebrew, the `.deb`, npm), and otherwise `npx -y databrief@VERSION`, pinned to the version of the release, after
 asking you, because that downloads the tool from npm.
 
+## The MCP server
+
+`databrief --mcp` runs the tool as a local MCP server on standard input and output. It offers one tool, `databrief_analyze`: the agent gives the
+absolute path of a file and `share` (`"yes"` or `"no"`, required, no default), and gets the prompt. It is the same server as in the
+[Claude Desktop extension](extension.md), without the page. It starts no program, opens no connection and writes nothing; its log (on standard error) holds
+method names and timings, never a path or any content.
+
+**`--root DIR` limits it to one folder:** only files whose real path (links followed) is inside DIR are read, and a file outside gets the same answer as
+a missing one. Without it, the agent can ask for any file you can read. `--root .` is the folder the agent starts the server in (for most agents, the
+project's folder); write an absolute path to be sure.
+
+Claude Code:
+
+```bash
+claude mcp add databrief -- npx -y databrief@VERSION --mcp --root .
+# on Windows: claude mcp add databrief -- cmd /c npx -y databrief@VERSION --mcp --root .
+```
+
+Agents with a JSON configuration (`mcp.json` in the release, for example Gemini CLI's `settings.json` or Cursor's `mcp.json`):
+
+```json
+{ "mcpServers": { "databrief": { "command": "npx", "args": ["-y", "databrief@VERSION", "--mcp", "--root", "."] } } }
+```
+
+Codex (`~/.codex/config.toml`):
+
+```toml
+[mcp_servers.databrief]
+command = "npx"
+args = ["-y", "databrief@VERSION", "--mcp", "--root", "."]
+```
+
+Replace VERSION with the release's version. With DataBrief installed (Scoop, Homebrew, the `.deb`, `npm install -g databrief`), the command is simply
+`databrief` with the arguments `--mcp --root .`. Some apps refuse a long tool answer (Claude Code warns above about 25,000 tokens): the tool tells the agent to ask
+again with fewer rows or without the data.
+
 ## Sharing the data or not
 
 The skill and the snippet make the agent ask ONE question, when you have not said: may the data be shared? "No" is **Do not share data**: the prompt has the
@@ -45,8 +88,8 @@ such as a minimum or a category name, so the agent uses it only when asked. Ever
 ## Build it yourself
 
 ```bash
-node tools/build-agents.cjs        # dist/agents/: databrief-skill.zip, databrief-skill/, AGENTS-snippet.md
+node tools/build-agents.cjs        # dist/agents/: databrief-skill.zip, databrief-skill/, AGENTS-snippet.md, mcp.json
 ```
 
-The texts are `agents/skill/SKILL.md` and `agents/AGENTS-snippet.md`; the version in them is package.json's. `tests/test_agents.cjs` builds twice (same bytes), checks that
+The texts are `agents/skill/SKILL.md`, `agents/AGENTS-snippet.md` and `agents/mcp.json`; the version in them is package.json's. `tests/test_agents.cjs` builds twice (same bytes), checks that
 every option the texts name exists, and runs the documented commands from the unzipped skill on test files in both modes.

@@ -61,6 +61,12 @@ How rows are written (default auto: tables for small sections, CSV for large one
 Leave out the data profile (statistics of every column).
 .SS Other
 .TP
+\fB\-\-mcp\fR
+Run as a local MCP server on standard input and output, for AI agents (Claude Code, Codex, Gemini CLI...): one tool, databrief_analyze, reads a file by its path in Do not share data or not, as the AI asks. No file and no other option but \-\-root.
+.TP
+\fB\-\-root\fR \fIDIR\fR
+With \-\-mcp: read only files whose real path (links followed) is inside DIR. Without it, the AI can ask for any file you can read.
+.TP
 \fB\-\-help\fR, \fB\-h\fR
 This text.
 .TP
@@ -130,6 +136,9 @@ A short prompt and the data as CSV files, for AIs that run code.
 .TP
 .B databrief report.docx \-\-review=nano
 Edit the prompt before it is copied.
+.TP
+.B databrief \-\-mcp \-\-root .
+An MCP server for an AI agent, limited to this folder.
 .SH SEE ALSO
 The guides in docs/cli.md and docs/formats/ of the repository, and https://arfo\-du\-blo.github.io/DataBrief/ for the page.
 .SH LICENSE

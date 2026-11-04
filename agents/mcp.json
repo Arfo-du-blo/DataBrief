@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "databrief": {
+      "command": "npx",
+      "args": ["-y", "databrief@{{VERSION}}", "--mcp", "--root", "."]
+    }
+  }
+}

@@ -89,6 +89,19 @@ const sub = fs.readdirSync(outDir);
 const promptFile = sub.length ? path.join(outDir, sub[0], 'prompt.md') : '';
 check('the --out fallback: a new folder in the existing one holds prompt.md equal to the JSON prompt', outRun.status === 0 && !!promptFile && fs.existsSync(promptFile) && fs.readFileSync(promptFile, 'utf8').replace(/\r\n/g, '\n').trim() === yes.j.prompt.replace(/\r\n/g, '\n').trim(), outRun.stderr.toString().slice(0, 200));
 
+// the MCP configuration: valid, pinned, and its arguments start the server (run here with the unzipped script in npx's place)
+let conf = null;
+try { conf = JSON.parse(a.mcpConfig.toString('utf8')); } catch (e) { /* checked below */ }
+const srv = conf && conf.mcpServers && conf.mcpServers.databrief;
+check('mcp.json: valid JSON, one server "databrief" run by npx, pinned to the package version, --mcp --root .', !!srv && srv.command === 'npx' && JSON.stringify(srv.args) === JSON.stringify(['-y', 'databrief@' + pkg.version, '--mcp', '--root', '.']));
+check('mcp.json: same bytes on every build', Buffer.compare(a.mcpConfig, b.mcpConfig) === 0);
+if (srv) {
+  const init = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18' } }) + '\n' + JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list' }) + '\n';
+  const r = spawnSync(process.execPath, [script].concat(srv.args.slice(2)), { input: init, cwd: data, encoding: 'utf8' });
+  const msgs = r.stdout.trim().split('\n').map((l) => { try { return JSON.parse(l); } catch (e) { return null; } });
+  check('mcp.json: those arguments start the MCP server, which lists databrief_analyze and ends with its input', r.status === 0 && msgs.length === 2 && msgs[1] && msgs[1].result.tools[0].name === 'databrief_analyze', r.stderr.slice(0, 200));
+}
+
 fs.rmSync(dir, { recursive: true, force: true });
 console.log('\n' + (total - failed) + '/' + total + ' checks passed');
 process.exit(failed ? 1 : 0);

@@ -9,7 +9,8 @@ if (major < 18) {
 }
 // The last resort: an error nobody caught. Its message can quote the file (a parser's message): in "Do not share data" only
 // its kind is shown, and never a control character.
-const noShare = process.argv.slice(2).some((a) => a === '--no-share' || a.indexOf('--no-share=') === 0);
+// (the MCP server counts as Do not share data here: it cannot know what each call chose)
+const noShare = process.argv.slice(2).some((a) => a === '--no-share' || a.indexOf('--no-share=') === 0 || a === '--mcp');
 const crash = (e) => {
   const text = noShare ? 'unexpected error (' + ((e && e.name) || 'Error') + ')' : 'unexpected error: ' + ((e && e.stack) || e);
   process.stderr.write('databrief: ' + String(text).replace(/[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, '?') + '\n');
