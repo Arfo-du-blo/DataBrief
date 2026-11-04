@@ -1,0 +1,61 @@
+order_id,order_date,customer,region,product,quantity,unit_price,status
+1001,2025-02-22,Northwind Demo,North,Backpack,3,39.90,cancelled
+1002,2025-09-24,Northwind Demo,North,Notebook A5,3,4.50,pending
+1003,2025-06-13,Tailspin Mock,South,Desk lamp,2,24.00,paid
+1004,2025-04-11,Contoso Sample,East,Water bottle,1,12.00,cancelled
+1005,2025-09-04,Adventure Example,North,Backpack,7,39.90,cancelled
+1006,2025-05-09,Adventure Example,West,Backpack,7,39.90,cancelled
+1007,2025-07-13,Fabrikam Test,East,Backpack,7,39.90,paid
+1008,2025-04-14,Tailspin Mock,East,Notebook A5,5,4.50,paid
+1009,2025-02-17,Contoso Sample,West,Notebook A5,7,4.50,cancelled
+1010,2025-02-12,Northwind Demo,South,USB hub,9,18.50,paid
+1011,2025-02-07,Fabrikam Test,West,USB hub,4,18.50,paid
+1012,2025-09-21,Litware Placeholder,East,Desk lamp,7,24.00,cancelled
+1013,2025-08-10,Tailspin Mock,West,Pen set,3,7.90,shipped
+1014,2025-07-28,Contoso Sample,West,Desk lamp,3,24.00,shipped
+1015,2025-03-18,Fabrikam Test,North,Notebook A5,2,4.50,cancelled
+1016,2025-09-25,Litware Placeholder,West,USB hub,3,18.50,pending
+1017,2025-03-04,Adventure Example,South,Notebook A5,5,4.50,pending
+1018,2025-10-07,Northwind Demo,North,Pen set,8,7.90,paid
+1019,2025-08-09,Northwind Demo,South,Pen set,2,7.90,paid
+1020,2025-07-24,Litware Placeholder,West,USB hub,8,18.50,paid
+1021,2025-10-13,Litware Placeholder,South,Desk lamp,6,24.00,paid
+1022,2025-07-21,Northwind Demo,East,Notebook A5,4,4.50,cancelled
+1023,2025-10-03,Litware Placeholder,North,Desk lamp,9,24.00,pending
+1024,2025-09-14,Tailspin Mock,East,Desk lamp,4,24.00,paid
+1025,2025-07-29,Adventure Example,South,Notebook A5,9,4.50,paid
+1026,2025-02-17,Northwind Demo,East,USB hub,7,18.50,paid
+1027,2025-07-01,Northwind Demo,East,Desk lamp,5,24.00,paid
+1028,2025-03-06,Fabrikam Test,East,Desk lamp,2,24.00,cancelled
+1029,2025-08-02,Northwind Demo,North,Desk lamp,2,24.00,cancelled
+1030,2025-08-28,Litware Placeholder,West,Backpack,3,39.90,paid
+1031,2025-10-03,Tailspin Mock,South,Backpack,9,39.90,pending
+1032,2025-09-02,Northwind Demo,East,Water bottle,2,12.00,pending
+1033,2025-07-03,Northwind Demo,North,Pen set,1,7.90,paid
+1034,2025-06-09,Contoso Sample,East,Notebook A5,4,4.50,cancelled
+1035,2025-02-04,Contoso Sample,South,Water bottle,4,12.00,paid
+1036,2025-02-28,Litware Placeholder,West,Notebook A5,4,4.50,shipped
+1037,2025-05-08,Adventure Example,South,Backpack,9,39.90,paid
+1038,2025-08-09,Contoso Sample,East,Pen set,9,7.90,shipped
+1039,2025-01-18,Tailspin Mock,East,Desk lamp,9,24.00,cancelled
+1040,2025-09-21,Contoso Sample,West,Pen set,5,7.90,paid
+1041,2025-02-21,Tailspin Mock,West,Notebook A5,1,4.50,pending
+1042,2025-10-20,Litware Placeholder,East,USB hub,2,18.50,paid
+1043,2025-06-28,Tailspin Mock,South,Backpack,3,39.90,paid
+1044,2025-08-01,Adventure Example,West,Backpack,2,39.90,shipped
+1045,2025-01-03,Adventure Example,East,USB hub,3,18.50,paid
+1046,2025-10-25,Tailspin Mock,East,Water bottle,9,12.00,paid
+1047,2025-03-15,Adventure Example,East,Desk lamp,8,24.00,pending
+1048,2025-05-30,Tailspin Mock,South,USB hub,8,18.50,cancelled
+1049,2025-09-01,Contoso Sample,North,Water bottle,8,12.00,shipped
+1050,2025-02-23,Litware Placeholder,East,Water bottle,3,12.00,paid
+1051,2025-09-20,Fabrikam Test,East,Notebook A5,6,4.50,paid
+1052,2025-05-24,Tailspin Mock,South,USB hub,4,18.50,shipped
+1053,2025-04-15,Litware Placeholder,East,Water bottle,4,12.00,shipped
+1054,2025-06-06,Fabrikam Test,South,Notebook A5,8,4.50,cancelled
+1055,2025-07-05,Contoso Sample,East,Desk lamp,5,24.00,paid
+1056,2025-09-14,Northwind Demo,East,Notebook A5,4,4.50,paid
+1057,2025-10-14,Adventure Example,South,USB hub,6,18.50,paid
+1058,2025-08-28,Tailspin Mock,South,Notebook A5,3,4.50,pending
+1059,2025-01-06,Litware Placeholder,North,USB hub,6,18.50,paid
+1060,2025-10-02,Tailspin Mock,West,Desk lamp,1,24.00,cancelled

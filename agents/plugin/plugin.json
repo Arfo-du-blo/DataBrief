@@ -8,6 +8,6 @@
   "repository": "https://github.com/Arfo-du-blo/DataBrief",
   "license": "GPL-3.0-or-later",
   "icon": "./assets/icon.png",
-  "privacyPolicyUrl": "https://github.com/Arfo-du-blo/DataBrief/blob/main/docs/plugin.md#what-data-it-sends",
+  "privacyPolicyUrl": "https://github.com/Arfo-du-blo/DataBrief/blob/main/docs/privacy.md",
   "keywords": ["data", "csv", "excel", "privacy", "prompt", "offline"]
 }

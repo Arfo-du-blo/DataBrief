@@ -22,7 +22,7 @@ only what you choose to put in the chat. The server serves the page and answers 
 | | |
 |---|---|
 | Protocol | MCP over Streamable HTTP at `/mcp`, stateless: JSON answers, no session, no stream. Versions 2025-11-25, 2025-06-18 and 2025-03-26 |
-| Tool | one: `databrief_open` (title "DataBrief", read-only, takes no argument). Its text answer points terminal users at the command-line tool |
+| Tool | one: `databrief_open` (title "DataBrief", read-only, takes no argument). Its descriptions are facts only (what the tool shows, what happens to the file, what the widget offers), because the directory's review rejects tool texts that tell the AI how to behave |
 | Resource | one: the widget page, served as `text/html;profile=mcp-app` with the clipboard permission and a border |
 | Other addresses | `/healthz` (for health checks), `/` (a short page that says what this is), `/icon.svg` and `/favicon.ico` |
 | Dependencies | none: Node.js 18 or newer, built-in modules only, no `npm install` |

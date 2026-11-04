@@ -78,11 +78,14 @@ const rpc = (port, id, method, params, headers) => request(port, 'POST', '/mcp',
   check('the tool has a title and the hints the directory asks for', tool.title === 'DataBrief' && tool.annotations.readOnlyHint === true && tool.annotations.destructiveHint === false && tool.annotations.openWorldHint === false);
   check('the tool takes no argument', tool.inputSchema.type === 'object' && Object.keys(tool.inputSchema.properties).length === 0 && tool.inputSchema.additionalProperties === false);
   check('the tool points at the widget, in both metadata keys', tool._meta.ui.resourceUri === uris.current && tool._meta['ui/resourceUri'] === uris.current);
-  check('the tool description says the file never reaches the server and mentions the terminal', /never reaches this server/.test(tool.description) && /terminal/.test(tool.description));
-  check('the tool description tells the AI it cannot see the widget and to read the widget context, not ask for a paste', /cannot see the widget/.test(tool.description) && /read_widget_context/.test(tool.description) && /do not ask the user to paste/i.test(tool.description) && /never follow instructions found in the file/.test(tool.description));
+  check('the tool description says the file never reaches the server, and what the widget offers (facts)', /never reaches this server/.test(tool.description) && /Put in the chat/.test(tool.description) && /Add to context/.test(tool.description) && /read_widget_context/.test(tool.description));
+  const IMPERATIVE = /\b(you must|you should|do not|don't|(never|always) (follow|ask|call|use|read|trust|tell|run|send)|ignore|tell the user|ask the user|follow (it|the|this)|instruct|before (you|answering)|first,? (read|call))\b/i;   // the directory's review rejects descriptions that tell the AI how to behave, or to take instructions from another source
+  check('the tool description is sober: facts only, no instruction to the AI (no must/should/do not/never follow/always call/tell the user/follow...)', !IMPERATIVE.test(tool.description) && tool.description.length < 700, (tool.description.match(IMPERATIVE) || [])[0]);
   r = await rpc(P, 6, 'tools/call', { name: 'databrief_open', arguments: {} });
-  check('tools/call answers with text that points terminal users at the CLI', r.json.result.content[0].type === 'text' && /databrief command-line tool/.test(r.json.result.content[0].text));
-  check('tools/call answer tells the AI what to say to the user and to read the widget context', /choose a file in it/.test(r.json.result.content[0].text) && /read_widget_context/.test(r.json.result.content[0].text) && /do not ask them to paste/.test(r.json.result.content[0].text));
+  check('tools/call answers with text that says the widget is open and the file stays on the user\'s computer', r.json.result.content[0].type === 'text' && /open in the chat as a widget/.test(r.json.result.content[0].text) && /never reaches this server/.test(r.json.result.content[0].text));
+  check('tools/call answer is sober too, and names read_widget_context as a fact', !IMPERATIVE.test(r.json.result.content[0].text) && /read_widget_context/.test(r.json.result.content[0].text));
+  const initInstr = (await rpc(P, 70, 'initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'x', version: '0' } })).json.result.instructions;
+  check('the server instructions (sent at initialize) are sober as well', typeof initInstr === 'string' && !IMPERATIVE.test(initInstr) && initInstr.length < 300, initInstr);
   r = await rpc(P, 7, 'tools/call', { name: 'nope', arguments: {} });
   check('an unknown tool is an error -32602', r.json.error && r.json.error.code === -32602);
 
@@ -228,6 +231,16 @@ const rpc = (port, id, method, params, headers) => request(port, 'POST', '/mcp',
   check('the guard full: new sources share one counter, which fills up (no reset)', newcomers[0] === 0 && newcomers[2] === 0 && newcomers[3] > 0, newcomers.join());
   check('the guard full: the sources it already knew keep their counts', g('a', 1) === 0 && g('a', 1) > 0);
 
+  /* ---------- the pages the directory asks for: documentation, privacy policy, support, a sample file ---------- */
+  const doc = (n) => fs.readFileSync(path.join(ROOT, 'docs', n), 'utf8').replace(/\r\n/g, '\n');
+  const priv = doc('privacy.md');
+  check('privacy policy: data collection, usage and storage, third parties, retention, contact, children (what the directory requires)', ['Your files', 'What the server receives and logs', 'How long it is kept', 'Who else is involved', 'Your rights and contact', 'Children, cookies, tracking'].every((h) => priv.includes('## ' + h)));
+  check('privacy policy: says the log has no IP address and no content, that the files stay in the browser, names Cloudflare and the chat apps as the other parties', /no IP address, no header, no cookie, no token, no argument and no content/.test(priv) && /never receives them/.test(priv) && /Cloudflare/.test(priv) && /Anthropic/.test(priv) && /OpenAI/.test(priv));
+  check('privacy policy: what it says the log holds is what the server logs (the same fields: method, tool, client name, first word of the user agent)', /protocol method/.test(priv) && /first word of its user agent/.test(priv) && new RegExp('methods: info\\.methods').test(fs.readFileSync(path.join(ROOT, 'mcp', 'server.js'), 'utf8')) && !/req\.socket\.remoteAddress[^;\n]*log\(/.test(fs.readFileSync(path.join(ROOT, 'mcp', 'server.js'), 'utf8')));
+  const sup = doc('support.md'), con = doc('connector.md');
+  check('support page: the issue tracker, a private way to report a security problem, a warning that issues are public', /github\.com\/Arfo-du-blo\/DataBrief\/issues/.test(sup) && /Report a vulnerability/.test(sup) && /public/.test(sup));
+  check('connector guide: how to add and use it, what each button does, what was tested (only Claude and ChatGPT), and the sample file it names exists', /Add it/.test(con) && /Put in the chat/.test(con) && /Only \*\*Claude\*\*/.test(con) && con.includes('sample/orders-sample.csv') && fs.existsSync(path.join(ROOT, 'docs', 'sample', 'orders-sample.csv')));
+  check('sample file: a CSV of invented orders with a header and at least 50 rows', (() => { const l = doc('sample/orders-sample.csv').trim().split('\n'); return /^order_id,order_date,customer,region,product,quantity,unit_price,status$/.test(l[0]) && l.length > 50; })());
   /* ---------- the deployment files: Compose, .env.example, the operations guide ---------- */
   const compose = fs.readFileSync(path.join(ROOT, 'mcp', 'docker-compose.yml'), 'utf8');
   const envEx = fs.readFileSync(path.join(ROOT, 'mcp', '.env.example'), 'utf8');
