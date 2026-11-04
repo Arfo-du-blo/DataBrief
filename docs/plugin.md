@@ -25,6 +25,20 @@ DataBrief and without the "Do not share data" rule; ask for DataBrief by name ("
 
 Then say, for example: "Open DataBrief", or "Describe `sales.xlsx` with DataBrief".
 
+### Claude Code: from the marketplace
+
+Claude Code can install the plugin from a catalogue, without downloading a zip: [`Arfo-du-blo/databrief-marketplace`](https://github.com/Arfo-du-blo/databrief-marketplace)
+(a marketplace named `databrief-plugins`, with this plugin built for the author's connector server).
+
+```
+/plugin marketplace add Arfo-du-blo/databrief-marketplace
+/plugin install databrief@databrief-plugins
+```
+
+- The plugin there points at **the author's connector server**, whose address is public in that repository. To use your own server, build the plugin yourself ([below](#build-it-yourself)) or make your own marketplace from that repository (`update.cjs` rebuilds the plugin from this repository for your address).
+- A marketplace is only for Claude Code. Claude on the web and Claude Desktop use the zip (**Customize**, **Plugins**, **Add**, **Upload plugin**).
+- A new copy reaches people only when the plugin's version changes (DataBrief's version): `/plugin marketplace update databrief-plugins`, then `claude plugin update databrief@databrief-plugins`. Automatic updates are off until a user turns them on under **Marketplaces** in `/plugin`.
+
 ## What works where
 
 | Where | The page (connector) | Reading a file with the bundled tool |

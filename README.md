@@ -582,7 +582,7 @@ and was not tested.
 |---|---|---|---|
 | The DataBrief page as a widget in a **Claude or ChatGPT** chat | **Hosted connector**: a small server you run, added as a connector in the app. It serves the page; your files never reach it | A server of your own (Docker Compose, with or without a Cloudflare Tunnel) | [Server](docs/mcp-server.md) · [Run it](docs/mcp-operations.md) |
 | Claude to read a file **by its path**, on your computer, and the page as a widget | **Claude Desktop extension** (`databrief.mcpb`): DataBrief inside, nothing to install first | Claude Desktop (Windows or macOS) | [Extension](docs/extension.md) |
-| The connector (for chats) and the skill (for Claude Code and Cowork) in one install | **Claude plugin** (connector + skill + a `/databrief` shortcut) | Claude, and the address of a connector server | [Plugin](docs/plugin.md) |
+| The connector (for chats) and the skill (for Claude Code and Cowork) in one install | **Claude plugin** (connector + skill + a `/databrief` shortcut), as a zip, or from a Claude Code marketplace: `/plugin marketplace add Arfo-du-blo/databrief-marketplace` | Claude, and the address of a connector server | [Plugin](docs/plugin.md#install) |
 | An **agent that can run commands** (Claude Code, Codex, Gemini CLI, Cursor...) to use DataBrief | **Skill**, **paste-in snippet** for `AGENTS.md`/`CLAUDE.md`, or **`databrief --mcp`** (the command-line tool as a local MCP server) | Node.js 18+ | [Agents](docs/agents.md) |
 
 In all of them:
