@@ -1,4 +1,4 @@
-# The hosted MCP server
+﻿# The hosted MCP server
 
 DataBrief can open as an interactive widget inside a chat of **Claude** (web, desktop, mobile) and **ChatGPT**. A small server makes that
 possible: it tells the chat app which tool to offer and hands it the DataBrief page to display. This page is for people who run their own
@@ -46,7 +46,7 @@ The page is the same everywhere, and it adapts to what each app says it supports
 An app that does not support messages or context gets none of those buttons: **Copy** is always there. Before anything is sent, the button
 turns into **Confirm** (amber when the prompt holds your data, green when "Do not share data" is on) and a box says how big it is, whether it
 holds the data, and what will happen. A prompt that is larger than an app is known to accept only gets a warning: you can still try.
-When a button loads a context (Add to context, Ask, and Put in the chat on ChatGPT), Confirm appears at once but stays grey with a spinner for 2.5 seconds before it can be clicked: Claude Desktop refuses a message sent too soon after the first click. A button that sends the whole prompt as the message (Put in the chat on Claude) loads nothing and needs no wait. In both cases a double-click does not send before you could read the box. A button that is armed is cancelled when the page changes under it
+On every button, in every app, Confirm appears at once but stays grey with a spinner for 2 seconds before it can be clicked: Claude Desktop refuses a message sent too soon after the first click (tested: it fails when confirmed at once and works after about 2 seconds, whichever button). It also keeps a double-click from sending before you could read the box. A button that is armed is cancelled when the page changes under it
 (another file, another option, another question), so what is sent is always what the box described. When you switch to "Do not share
 data", change file, or a send fails, a context that held your data is taken back. The widget follows the app's light or dark theme.
 

@@ -101,12 +101,12 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   const exists = (frame, sel) => frame.$(sel).then((e) => !!e);
   const boxText = (frame) => frame.$eval('.dbw-box', (e) => e.textContent).catch(() => '');
   const boxTone = (frame) => frame.$eval('.dbw-box', (e) => e.className).catch(() => '');
-  // The Confirm button is grey and spinning for 2.5 s after the first click and cannot be clicked: a person reads the box first, so the
+  // The Confirm button is grey and spinning for 2 s after the first click and cannot be clicked: a person reads the box first, so the
   // helper waits like one before a second click on the same button. rawClick does not wait (to test that rule).
   const lastClick = new Map();
   const click = async (frame, sel) => {
     const since = Date.now() - (lastClick.get(sel) || 0);
-    if (since < 2700) await sleep(2700 - since);
+    if (since < 2300) await sleep(2300 - since);
     await (await frame.$(sel)).click();
     lastClick.set(sel, Date.now());
     await sleep(120);
@@ -130,6 +130,7 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
 
   await clearPrompt(page);
   await click(frame, '#dbwChat');
+  await sleep(2200);   // the 2 s wait: grey and spinning first, then the real Confirm
   check('first click: the button becomes Confirm, amber because the prompt holds data', (await text(frame, '#dbwChat')) === 'Confirm' && (await frame.$eval('#dbwChat', (e) => e.classList.contains('dbw-armed-warn'))));
   check('first click: nothing is sent yet', (await sent(page, 'ui/message')).length === 0 && (await sent(page, 'ui/update-model-context')).length === 0);
   check('first click: a box says it holds the data, its size, and where the prompt goes', /Contains the data/.test(await boxText(frame)) && /characters/.test(await boxText(frame)) && /message box/.test(await boxText(frame)) && /warn/.test(await boxTone(frame)));
@@ -258,10 +259,10 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   await clearPrompt(page);
   await rawClick(frame, '#dbwChat');
   await sleep(150);
-  check('Put in the chat on Claude loads no context: Confirm at once, amber, clickable, no spinner', (await text(frame, '#dbwChat')) === 'Confirm' && (await frame.$eval('#dbwChat', (e) => e.getAttribute('aria-disabled') === null && e.classList.contains('dbw-armed-warn') && !e.querySelector('.dbw-spin'))));
+  check('Put in the chat on Claude waits too: Confirm at once, grey, with a spinner, not clickable yet', (await text(frame, '#dbwChat')) === 'Confirm' && (await frame.$eval('#dbwChat', (e) => e.getAttribute('aria-disabled') === 'true' && e.classList.contains('dbw-armed-wait') && !!e.querySelector('.dbw-spin'))));
   await rawClick(frame, '#dbwChat'); await sleep(60); await rawClick(frame, '#dbwChat');
   await sleep(200);
-  check('a double-click on it still sends nothing (the second click came within 700 ms)', (await sent(page, 'ui/message')).length === 0);
+  check('a double-click on it sends nothing', (await sent(page, 'ui/message')).length === 0);
   await page.keyboard.press('Escape');
   await sleep(200);
   // a context route: Add to context
@@ -272,8 +273,8 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   await rawClick(frame, '#dbwCtx'); await sleep(100); await rawClick(frame, '#dbwCtx');
   await sleep(300);
   check('clicks during the wait (a double-click) send nothing and do not cancel the button', (await sent(page, 'ui/message')).length === 0 && (await text(frame, '#dbwCtx')) === 'Confirm' && (await frame.$eval('#dbwCtx', (e) => e.getAttribute('aria-disabled') === 'true')));
-  await sleep(2400);
-  check('after 2.5 s the button turns into the real Confirm: amber, no spinner, clickable', await frame.$eval('#dbwCtx', (e) => e.getAttribute('aria-disabled') === null && e.classList.contains('dbw-armed-warn') && !e.classList.contains('dbw-armed-wait') && !e.querySelector('.dbw-spin')));
+  await sleep(2000);
+  check('after 2 s the button turns into the real Confirm: amber, no spinner, clickable', await frame.$eval('#dbwCtx', (e) => e.getAttribute('aria-disabled') === null && e.classList.contains('dbw-armed-warn') && !e.classList.contains('dbw-armed-wait') && !e.querySelector('.dbw-spin')));
   await page.keyboard.press('Escape');
   // a new file dropped while a button is armed: the armed (old) prompt must not be sent
   await click(frame, '#dbwChat');
@@ -344,6 +345,7 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   check('Do not share data: the prompt holds no record, no value, no e-mail', !nsPrompt.includes(CANARY) && !nsPrompt.includes('ceo@acme.example') && !nsPrompt.includes('100.50'));
   await clearPrompt(page);
   await click(frame, '#dbwChat');
+  await sleep(2200);
   check('Do not share data: the Confirm button is green and the box says no records', (await frame.$eval('#dbwChat', (e) => e.classList.contains('dbw-armed-ok'))) && /no records/.test(await boxText(frame)) && /ok/.test(await boxTone(frame)));
   await click(frame, '#dbwChat');
   const nsMsg = await waitFor(page, 'ui/message', 1);
@@ -411,6 +413,28 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   ({ page, frame } = await open(CLAUDE));
   check('Claude in the browser: Add to context is offered', await exists(frame, '#dbwCtx'));
   await closePage(page);
+
+  /* ================= the same 2 s wait on EVERY button of EVERY host (the user saw Ask wait in one Desktop surface and not in the other) ================= */
+  for (const [name, cfg] of [['Claude in the browser', CLAUDE], ['Claude Desktop home chat', DESKTOP_HOME], ['Claude Desktop Code tab', DESKTOP_CODE], ['ChatGPT', CHATGPT], ['an unknown app', ACME]]) {
+    ({ page, frame } = await open(cfg));
+    await frame.type('#dbwQ', 'a question');
+    for (const sel of ['#dbwChat', '#dbwCtx', '#dbwAsk']) {
+      if (!(await exists(frame, sel))) continue;
+      await clearPrompt(page);
+      await rawClick(frame, sel);
+      await sleep(250);
+      const waiting = await frame.$eval(sel, (e) => e.getAttribute('aria-disabled') === 'true' && !!e.querySelector('.dbw-spin') && e.classList.contains('dbw-armed-wait'));
+      await rawClick(frame, sel);   // a click during the wait
+      await sleep(150);
+      const quiet = (await sent(page, 'ui/message')).length === 0 && (await sent(page, 'ui/update-model-context')).length === 0;
+      await sleep(2000);
+      const ready = await frame.$eval(sel, (e) => e.getAttribute('aria-disabled') === null && !e.querySelector('.dbw-spin') && /dbw-armed-(warn|ok)/.test(e.className));
+      check(name + ' / ' + sel.slice(4) + ': grey and spinning first (a click then sends nothing), the real Confirm after 2 s', waiting && quiet && ready, 'waiting=' + waiting + ' quiet=' + quiet + ' ready=' + ready);
+      await page.keyboard.press('Escape');
+      await sleep(150);
+    }
+    await closePage(page);
+  }
 
   /* ================= an unknown host: only what it says it supports, neutral words ================= */
   ({ page, frame } = await open(ACME));
