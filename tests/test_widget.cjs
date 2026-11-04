@@ -24,7 +24,7 @@ const LANGS = ['en', 'fr', 'es', 'de', 'it', 'pt', 'nl', 'pl', 'ru', 'tr', 'zh',
 const pageLangs = [...read('src/i18n.js').matchAll(/code:\s*'([a-z]{2})'/g)].map((m) => m[1]);
 check('the widget has the page\'s 15 languages, and no other', JSON.stringify(Object.keys(I).sort()) === JSON.stringify(LANGS.slice().sort()) && (!pageLangs.length || JSON.stringify([...new Set(pageLangs)].sort()) === JSON.stringify(LANGS.slice().sort())), Object.keys(I).join());
 const keys = Object.keys(I.en);
-check('English has 43 keys', keys.length === 43, String(keys.length));
+check('English has 44 keys', keys.length === 44, String(keys.length));
 const ph = (s) => (s.match(/\{\w+\}/g) || []).sort().join(',');
 for (const code of LANGS) {
   const t = I[code];

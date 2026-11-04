@@ -75,11 +75,13 @@
   });
   // Follow the host's light or dark theme (the page's own switch still works; the host's next change wins again).
   function applyTheme(t) { if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); }
-  // A host may refuse a request with a normal answer that says isError (Claude Desktop does, for a message sent without a fresh press
-  // in the widget, with the reason in _reason): that is a failure, not a success.
+  // A host may answer a request with a normal result that says isError (Claude Desktop does for a message it will not take: "refused",
+  // with the reason in _reason). In the Desktop Code tab the action works although the answer says so (tested 2026-11-04), so such an
+  // answer is NOT a failure we can be sure of: the error carries refused = true, and the callers show a quiet note instead of a red box
+  // and do not take anything back. A JSON-RPC error (a rejected request) is a real failure.
   function call(method, params) {
     return request(method, params).then((r) => {
-      if (r && r.isError) throw new Error((r._reason || (r.content && r.content[0] && r.content[0].text) || 'refused by the app').slice(0, 300));
+      if (r && r.isError) { const err = new Error((r._reason || (r.content && r.content[0] && r.content[0].text) || 'refused by the app').slice(0, 300)); err.refused = true; throw err; }
       return r;
     });
   }
@@ -124,7 +126,7 @@
     if (!text) { box.className = 'dbw-box'; box.textContent = ''; return; }
     box.className = 'dbw-box on ' + (tone || '');
     box.textContent = text;
-    if (tone === 'ok' && !armed) hideTimer = setTimeout(() => show('', '', null), OK_MS);   // an explanation stays while Confirm is live
+    if ((tone === 'ok' || tone === 'info') && !armed) hideTimer = setTimeout(() => show('', '', null), OK_MS);   // an explanation stays while Confirm is live
     reportSize();
   }
 
@@ -194,8 +196,10 @@
     const done = (key) => () => { if (!armed) show(T(key), 'ok', a.anchor); };   // a button armed since then keeps its explanation
     const fail = (key) => (e) => { disarm(); show(T(key, { e: errText(e) }), 'err', a.anchor); };
     const held = () => { ctxHeld = { data: a.data, file: fileKey() }; };
+    // The app says it refused the message but may have taken it: a quiet note, nothing taken back.
+    const unconfirmed = () => { if (!armed) show(T('doneUnconfirmed'), 'info', a.anchor); };
     if (a.whole) {
-      call('ui/message', asText(a.message)).then(done(a.bundle ? 'doneAskFill' : 'doneChatFill'), fail('errChat'));
+      call('ui/message', asText(a.message)).then(done(a.bundle ? 'doneAskFill' : 'doneChatFill'), (e) => (e.refused ? unconfirmed() : fail('errChat')(e)));
       return;
     }
     if (a.hk === 'fill') {
@@ -206,13 +210,13 @@
       const sentCtx = ctxText().then(held);
       sentLine.then(() => sentCtx.then(done(a.kind === 'ask' ? 'doneAskCtx' : 'doneCtx'), fail('errCtx')),
         // the line was refused: the user is told it failed, so the context must not keep the data either
-        (e) => { sentCtx.then(withdraw, () => {}); fail('errChat')(e); });
+        (e) => { if (e.refused) { sentCtx.then(unconfirmed, () => {}); return; } sentCtx.then(withdraw, () => {}); fail('errChat')(e); });
       return;
     }
     // The other hosts: the context first, then the line (ChatGPT sends the line at once, so the context must be there before it).
     ctxText().then(() => { held(); return call('ui/message', asText(a.line)).then(
       done(a.hk === 'send' ? (a.kind === 'ask' ? 'doneAskSent' : 'doneChatSent') : 'doneNeutral'),
-      (e) => { withdraw(); fail(a.kind === 'chat' ? 'errChat' : 'errAsk')(e); }); }, fail(a.kind === 'chat' ? 'errChat' : 'errCtx'));
+      (e) => { if (e.refused) { unconfirmed(); return; } withdraw(); fail(a.kind === 'chat' ? 'errChat' : 'errAsk')(e); }); }, fail(a.kind === 'chat' ? 'errChat' : 'errCtx'));
   }
 
   /* ---------- downloads and links, through the host ---------- */
@@ -239,7 +243,7 @@
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
     e.preventDefault();                                  // new-tab links are blocked in the frame: the host opens them
     if (!has().links) return;
-    call('ui/open-link', { url: url.href }).then(() => {}, (err) => show(T('errLink', { url: url.href, e: errText(err) }), 'err', $('copyBtn').parentNode));
+    call('ui/open-link', { url: url.href }).then(() => {}, (err) => err.refused ? undefined : show(T('errLink', { url: url.href, e: errText(err) }), 'err', $('copyBtn').parentNode));
   }
 
   /* ---------- the buttons ---------- */

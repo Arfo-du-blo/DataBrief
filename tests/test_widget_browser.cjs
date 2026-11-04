@@ -295,11 +295,19 @@ const ACME = { hostInfo: { name: 'acme-chat', version: '2' }, caps: { openLinks:
   check('the explanation box stays visible as long as Confirm is live', (await text(frame, '#dbwChat')) === 'Confirm' && /no records/.test(await boxText(frame)) && /on/.test(await boxTone(frame)));
   await closePage(page);
 
-  // Claude Desktop refuses a message with a NORMAL answer that says isError (and a reason), not with an error: that is a failure.
+  // Claude Desktop answers a message it will not take with a NORMAL result that says isError (and a reason). In the Code tab the action works although it does, so it is NOT shown as a failure: a quiet grey note, and nothing is taken back.
   ({ page, frame } = await open(Object.assign({}, CLAUDE, { results: { 'ui/message': { isError: true, _reason: 'The host takes a message only right after the person presses something inside this view.' } } })));
   await click(frame, '#dbwChat'); await click(frame, '#dbwChat');
   await sleep(300);
-  check('a message the host refuses with isError shows a red error with its reason, not a success', /presses something inside this view/.test(await boxText(frame)) && /err/.test(await boxTone(frame)), await boxText(frame));
+  check('a message the host answers with isError: no red box, a quiet grey note that says to press again if the box stays empty', /message box stays empty/.test(await boxText(frame)) && !/err/.test(await boxTone(frame)) && /info/.test(await boxTone(frame)), await boxText(frame) + ' / ' + await boxTone(frame));
+  await closePage(page);
+  // the same on Claude's short route (line + context): the context is NOT taken back because of such an answer
+  ({ page, frame } = await open(Object.assign({}, CLAUDE, { results: { 'ui/message': { isError: true, _reason: 'no press' } } })));
+  await clearPrompt(page);
+  await click(frame, '#dbwCtx'); await click(frame, '#dbwCtx');
+  await sleep(500);
+  const keep = await sent(page, 'ui/update-model-context');
+  check('a message answered with isError on the short route: the context stays (one update, the prompt), nothing is withdrawn, no red box', keep.length === 1 && keep[0].params.content[0].text.includes(CANARY) && !/err/.test(await boxTone(frame)), keep.length + ' update(s); ' + await boxTone(frame));
   await closePage(page);
 
   /* ================= the host's theme ================= */

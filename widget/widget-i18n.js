@@ -51,7 +51,8 @@
       lineAsk: "Read the DataBrief widget context, then answer: {q}",
       askBundle: "My question about this file: {q}",
       askCtxFill: "The AI gets the data. Your question goes into your message box: {line}",
-      doneAskCtx: "The AI has the data and your question is in your message box: press send."
+      doneAskCtx: "The AI has the data and your question is in your message box: press send.",
+      doneUnconfirmed: "Sent. If your message box stays empty, press the button again."
     },
     fr: {
       chatBtn: "Mettre dans le chat",
@@ -96,7 +97,8 @@
       lineAsk: "Lis le contexte du widget DataBrief, puis réponds : {q}",
       askBundle: "Ma question sur ce fichier : {q}",
       askCtxFill: "L'IA reçoit les données. Votre question est placée dans votre zone de message : {line}",
-      doneAskCtx: "L'IA a les données et votre question est dans votre zone de message : appuyez sur envoyer."
+      doneAskCtx: "L'IA a les données et votre question est dans votre zone de message : appuyez sur envoyer.",
+      doneUnconfirmed: "Envoyé. Si votre zone de message reste vide, appuyez de nouveau sur le bouton."
     },
     es: {
       chatBtn: "Poner en el chat",
@@ -141,7 +143,8 @@
       lineAsk: "Lee el contexto del widget de DataBrief y luego responde: {q}",
       askBundle: "Mi pregunta sobre este archivo: {q}",
       askCtxFill: "La IA recibe los datos. Tu pregunta se coloca en tu cuadro de mensaje: {line}",
-      doneAskCtx: "La IA tiene los datos y tu pregunta está en tu cuadro de mensaje: pulsa enviar."
+      doneAskCtx: "La IA tiene los datos y tu pregunta está en tu cuadro de mensaje: pulsa enviar.",
+      doneUnconfirmed: "Enviado. Si tu cuadro de mensaje sigue vacío, pulsa el botón de nuevo."
     },
     de: {
       chatBtn: "In den Chat legen",
@@ -186,7 +189,8 @@
       lineAsk: "Lies den Kontext des DataBrief-Widgets und beantworte dann: {q}",
       askBundle: "Meine Frage zu dieser Datei: {q}",
       askCtxFill: "Die KI erhält die Daten. Ihre Frage kommt in Ihr Nachrichtenfeld: {line}",
-      doneAskCtx: "Die KI hat die Daten, und Ihre Frage steht in Ihrem Nachrichtenfeld: Drücken Sie auf Senden."
+      doneAskCtx: "Die KI hat die Daten, und Ihre Frage steht in Ihrem Nachrichtenfeld: Drücken Sie auf Senden.",
+      doneUnconfirmed: "Gesendet. Bleibt Ihr Nachrichtenfeld leer, drücken Sie die Taste erneut."
     },
     it: {
       chatBtn: "Metti nella chat",
@@ -231,7 +235,8 @@
       lineAsk: "Leggi il contesto del widget DataBrief, poi rispondi: {q}",
       askBundle: "La mia domanda su questo file: {q}",
       askCtxFill: "L'IA riceve i dati. La tua domanda va nella tua casella dei messaggi: {line}",
-      doneAskCtx: "L'IA ha i dati e la tua domanda è nella tua casella dei messaggi: premi invio."
+      doneAskCtx: "L'IA ha i dati e la tua domanda è nella tua casella dei messaggi: premi invio.",
+      doneUnconfirmed: "Inviato. Se la tua casella dei messaggi resta vuota, premi di nuovo il pulsante."
     },
     pt: {
       chatBtn: "Colocar no chat",
@@ -276,7 +281,8 @@
       lineAsk: "Leia o contexto do widget DataBrief e depois responda: {q}",
       askBundle: "A minha pergunta sobre este arquivo: {q}",
       askCtxFill: "A IA recebe os dados. A sua pergunta vai para a sua caixa de mensagem: {line}",
-      doneAskCtx: "A IA tem os dados e a sua pergunta está na sua caixa de mensagem: pressione enviar."
+      doneAskCtx: "A IA tem os dados e a sua pergunta está na sua caixa de mensagem: pressione enviar.",
+      doneUnconfirmed: "Enviado. Se a sua caixa de mensagem continuar vazia, pressione o botão novamente."
     },
     nl: {
       chatBtn: "In de chat zetten",
@@ -321,7 +327,8 @@
       lineAsk: "Lees de context van de DataBrief-widget en beantwoord dan: {q}",
       askBundle: "Mijn vraag over dit bestand: {q}",
       askCtxFill: "De AI krijgt de gegevens. Je vraag komt in je berichtvak: {line}",
-      doneAskCtx: "De AI heeft de gegevens en je vraag staat in je berichtvak: druk op verzenden."
+      doneAskCtx: "De AI heeft de gegevens en je vraag staat in je berichtvak: druk op verzenden.",
+      doneUnconfirmed: "Verzonden. Blijft je berichtvak leeg, druk dan nogmaals op de knop."
     },
     pl: {
       chatBtn: "Wstaw do czatu",
@@ -366,7 +373,8 @@
       lineAsk: "Odczytaj kontekst widżetu DataBrief, a potem odpowiedz: {q}",
       askBundle: "Moje pytanie o ten plik: {q}",
       askCtxFill: "AI otrzymuje dane. Twoje pytanie trafia do pola wiadomości: {line}",
-      doneAskCtx: "AI ma dane, a Twoje pytanie jest w polu wiadomości: naciśnij wyślij."
+      doneAskCtx: "AI ma dane, a Twoje pytanie jest w polu wiadomości: naciśnij wyślij.",
+      doneUnconfirmed: "Wysłano. Jeśli pole wiadomości pozostanie puste, naciśnij przycisk ponownie."
     },
     ru: {
       chatBtn: "Вставить в чат",
@@ -411,7 +419,8 @@
       lineAsk: "Прочитай контекст виджета DataBrief, затем ответь: {q}",
       askBundle: "Мой вопрос об этом файле: {q}",
       askCtxFill: "ИИ получает данные. Ваш вопрос попадает в поле сообщения: {line}",
-      doneAskCtx: "У ИИ есть данные, а ваш вопрос в поле сообщения: нажмите «Отправить»."
+      doneAskCtx: "У ИИ есть данные, а ваш вопрос в поле сообщения: нажмите «Отправить».",
+      doneUnconfirmed: "Отправлено. Если поле сообщения осталось пустым, нажмите кнопку ещё раз."
     },
     tr: {
       chatBtn: "Sohbete koy",
@@ -456,7 +465,8 @@
       lineAsk: "DataBrief widget bağlamını oku, sonra yanıtla: {q}",
       askBundle: "Bu dosya hakkındaki sorum: {q}",
       askCtxFill: "Yapay zekâ verileri alır. Sorunuz mesaj kutunuza konur: {line}",
-      doneAskCtx: "Yapay zekâda veriler var ve sorunuz mesaj kutunuzda: gönder'e basın."
+      doneAskCtx: "Yapay zekâda veriler var ve sorunuz mesaj kutunuzda: gönder'e basın.",
+      doneUnconfirmed: "Gönderildi. Mesaj kutunuz boş kalırsa düğmeye tekrar basın."
     },
     zh: {
       chatBtn: "放入聊天",
@@ -501,7 +511,8 @@
       lineAsk: "请读取 DataBrief 小组件的上下文，然后回答：{q}",
       askBundle: "我对这个文件的问题：{q}",
       askCtxFill: "AI 会收到数据。您的问题会放入您的消息框：{line}",
-      doneAskCtx: "AI 已收到数据，您的问题已在消息框中：请按发送。"
+      doneAskCtx: "AI 已收到数据，您的问题已在消息框中：请按发送。",
+      doneUnconfirmed: "已发送。如果消息框仍是空的，请再按一次按钮。"
     },
     ja: {
       chatBtn: "チャットに入れる",
@@ -546,7 +557,8 @@
       lineAsk: "DataBrief ウィジェットのコンテキストを読み取ってから、次に答えてください：{q}",
       askBundle: "このファイルについての質問：{q}",
       askCtxFill: "AI がデータを受け取ります。質問がメッセージ欄に入ります：{line}",
-      doneAskCtx: "AI がデータを受け取り、質問がメッセージ欄に入りました。送信を押してください。"
+      doneAskCtx: "AI がデータを受け取り、質問がメッセージ欄に入りました。送信を押してください。",
+      doneUnconfirmed: "送信しました。メッセージ欄が空のままなら、もう一度ボタンを押してください。"
     },
     ko: {
       chatBtn: "채팅에 넣기",
@@ -591,7 +603,8 @@
       lineAsk: "DataBrief 위젯 컨텍스트를 읽은 다음 답해 주세요: {q}",
       askBundle: "이 파일에 대한 내 질문: {q}",
       askCtxFill: "AI가 데이터를 받습니다. 질문이 메시지 입력란에 들어갑니다: {line}",
-      doneAskCtx: "AI가 데이터를 받았고 질문이 메시지 입력란에 있습니다. 전송을 누르세요."
+      doneAskCtx: "AI가 데이터를 받았고 질문이 메시지 입력란에 있습니다. 전송을 누르세요.",
+      doneUnconfirmed: "전송했습니다. 메시지 입력란이 비어 있으면 버튼을 다시 누르세요."
     },
     hi: {
       chatBtn: "चैट में डालें",
@@ -636,7 +649,8 @@
       lineAsk: "DataBrief विजेट का संदर्भ पढ़ें, फिर उत्तर दें: {q}",
       askBundle: "इस फ़ाइल के बारे में मेरा प्रश्न: {q}",
       askCtxFill: "AI को डेटा मिलता है। आपका प्रश्न आपके संदेश बॉक्स में जाता है: {line}",
-      doneAskCtx: "AI के पास डेटा है और आपका प्रश्न आपके संदेश बॉक्स में है: भेजें दबाएँ।"
+      doneAskCtx: "AI के पास डेटा है और आपका प्रश्न आपके संदेश बॉक्स में है: भेजें दबाएँ।",
+      doneUnconfirmed: "भेज दिया गया। यदि आपका संदेश बॉक्स खाली रहे, तो बटन फिर से दबाएँ।"
     },
     ar: {
       chatBtn: "ضعه في الدردشة",
@@ -681,7 +695,8 @@
       lineAsk: "اقرأ سياق أداة DataBrief، ثم أجب: {q}",
       askBundle: "سؤالي عن هذا الملف: {q}",
       askCtxFill: "يتلقى الذكاء الاصطناعي البيانات. يوضع سؤالك في مربع الرسالة: {line}",
-      doneAskCtx: "لدى الذكاء الاصطناعي البيانات وسؤالك في مربع الرسالة: اضغط إرسال."
+      doneAskCtx: "لدى الذكاء الاصطناعي البيانات وسؤالك في مربع الرسالة: اضغط إرسال.",
+      doneUnconfirmed: "تم الإرسال. إذا بقي مربع الرسالة فارغًا، فاضغط الزر مرة أخرى."
     },
   };
 })();
