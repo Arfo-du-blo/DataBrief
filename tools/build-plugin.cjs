@@ -7,12 +7,12 @@
  * OUTPUT_DIR/databrief-plugin.zip   upload it in Claude: Customize, Plugins, Add, Upload plugin; or use it as a Claude Code plugin folder (--plugin-dir)
  * OUTPUT_DIR/databrief-plugin/      the same, unzipped
  * Layout (the folder is the zip's single top-level entry): .claude-plugin/plugin.json, .mcp.json, skills/databrief/{SKILL.md, scripts/databrief.cjs},
- * commands/databrief.md, README.md, LICENSE. NO top-level bin/ (it stops claude.ai and Cowork from installing a plugin).
+ * commands/databrief.md, assets/icon.png, README.md, LICENSE, THIRD-PARTY-NOTICES.md. NO top-level bin/ (it stops claude.ai and Cowork from installing a plugin).
  * Reproducible: same sources and address, same bytes (tests/test_plugin.cjs). */
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const { zip } = require('./build-mcpb.cjs');
+const { zip, icon } = require('./build-mcpb.cjs');
 const { files: agentFiles } = require('./build-agents.cjs');
 
 const ROOT = path.join(__dirname, '..');
@@ -48,6 +48,7 @@ function build(url) {
     { name: P + 'skills/databrief/SKILL.md', data: buf(skill) },
     { name: P + 'skills/databrief/scripts/databrief.cjs', data: script },
     { name: P + 'commands/databrief.md', data: buf(fill(text('agents/plugin/commands/databrief.md'))) },
+    { name: P + 'assets/icon.png', data: icon() },   // the listing icon: a square PNG, 512 px (the same drawing as the extension's)
     { name: P + 'README.md', data: buf(fill(text('agents/plugin/README.md'))) },
     { name: P + 'LICENSE', data: buf(text('LICENSE')) },
     { name: P + 'THIRD-PARTY-NOTICES.md', data: buf(text('THIRD-PARTY-NOTICES.md')) },

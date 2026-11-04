@@ -24,7 +24,7 @@ const a = build(URL_OK), b = build(URL_OK);
 check('the build is reproducible', Buffer.compare(a.zip, b.zip) === 0);
 const files = fflate.unzipSync(new Uint8Array(a.zip));
 const names = Object.keys(files);
-const want = ['databrief/.claude-plugin/plugin.json', 'databrief/.mcp.json', 'databrief/skills/databrief/SKILL.md', 'databrief/skills/databrief/scripts/databrief.cjs', 'databrief/commands/databrief.md', 'databrief/README.md', 'databrief/LICENSE', 'databrief/THIRD-PARTY-NOTICES.md'];
+const want = ['databrief/.claude-plugin/plugin.json', 'databrief/.mcp.json', 'databrief/skills/databrief/SKILL.md', 'databrief/skills/databrief/scripts/databrief.cjs', 'databrief/commands/databrief.md', 'databrief/assets/icon.png', 'databrief/README.md', 'databrief/LICENSE', 'databrief/THIRD-PARTY-NOTICES.md'];
 check('the zip holds exactly the plugin files, all under one top-level folder', names.join() === want.join(), names.join());
 check('no bin/ anywhere (a top-level bin/ stops claude.ai and Cowork from installing the plugin)', !names.some((n) => /(^|\/)bin\//.test(n)));
 check('only the manifest is inside .claude-plugin/', names.filter((n) => n.includes('.claude-plugin/')).join() === 'databrief/.claude-plugin/plugin.json');
@@ -34,6 +34,10 @@ const txt = (n) => Buffer.from(files['databrief/' + n]).toString('utf8');
 let man = {};
 try { man = JSON.parse(txt('.claude-plugin/plugin.json')); } catch (e) { /* checked below */ }
 check('plugin.json: lower-case hyphenated name "databrief", package version, a description, an author, a licence', man.name === 'databrief' && /^[a-z][a-z0-9-]*$/.test(man.name) && man.version === pkg.version && man.description && man.description.length > 40 && man.author && man.author.name && man.license === 'GPL-3.0-or-later');
+// the directory's checks (claude plugin validate): an icon (a square PNG of 512 to 2048 px, under 2 MB, named in plugin.json and inside the plugin) and a privacy policy URL
+const iconBytes = Buffer.from(files['databrief/' + String(man.icon || '').replace(/^\.\//, '')] || []);
+check('plugin.json: icon is a square PNG of 512 to 2048 px, under 2 MB, at a path inside the plugin', /^\.\/assets\/icon\.png$/.test(man.icon || '') && iconBytes.length > 0 && iconBytes.length < 2 * 1024 * 1024 && iconBytes.slice(1, 4).toString() === 'PNG' && iconBytes.readUInt32BE(16) === iconBytes.readUInt32BE(20) && iconBytes.readUInt32BE(16) >= 512 && iconBytes.readUInt32BE(16) <= 2048, String(man.icon));
+check('plugin.json: privacyPolicyUrl is an https page of the project that holds the "What data it sends" statement, and the README links to it too', /^https:\/\/github\.com\/Arfo-du-blo\/DataBrief\/blob\/main\/docs\/plugin\.md#what-data-it-sends$/.test(man.privacyPolicyUrl || '') && Buffer.from(files['databrief/README.md']).toString('utf8').includes(man.privacyPolicyUrl) && /^## What data it sends$/m.test(fs.readFileSync(path.join(ROOT, 'docs', 'plugin.md'), 'utf8').replace(/\r\n/g, '\n')), String(man.privacyPolicyUrl));
 check('plugin.json: no placeholder, no local path, no machine detail', !/\{\{|\}\}/.test(txt('.claude-plugin/plugin.json')) && !txt('.claude-plugin/plugin.json').includes(os.homedir()));
 
 // connector

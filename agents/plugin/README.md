@@ -16,4 +16,6 @@ The connector (`{{MCP_HOST}}`) serves the DataBrief page and nothing else: it ne
 the calling app, never content or IP addresses. The page reads your file in your browser; only what you choose to put in the chat leaves the page. The bundled tool runs on the machine
 where Claude runs code, reads the file there, opens no connection and writes nothing.
 
+Privacy: the same statement is published at https://github.com/Arfo-du-blo/DataBrief/blob/main/docs/plugin.md#what-data-it-sends
+
 Version {{VERSION}}. Free software, GPL-3.0-or-later: https://github.com/Arfo-du-blo/DataBrief
