@@ -44,6 +44,9 @@ echo
 echo "=== Claude Desktop extension (.mcpb: reproducible build, contents, the server run over stdio, same prompt as the command-line tool)"
 node "$HERE/test_mcpb.cjs" | grep -v '^ok'
 echo
+echo "=== Terminal pack (skill and snippet: reproducible build, every option exists, the documented commands run in both modes)"
+node "$HERE/test_agents.cjs" | grep -v '^ok'
+echo
 echo "=== Widget layer in Chrome, inside fake hosts (Claude, ChatGPT, an unknown app, a silent one)"
 node "$HERE/test_widget_browser.cjs" | grep -v '^ok'
 echo

@@ -97,6 +97,8 @@ jobs:
         run: node tests/test_widget.cjs
       - name: Claude Desktop extension (.mcpb build, the server over stdio, same prompt as the command-line tool)
         run: node tests/test_mcpb.cjs
+      - name: Terminal pack (skill and snippet: the documented commands run from the built skill)
+        run: node tests/test_agents.cjs
 
   powershell:
     runs-on: windows-latest
