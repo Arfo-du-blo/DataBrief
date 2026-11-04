@@ -7,7 +7,7 @@ columns, types, keys and statistics, and the data itself only when you allow it 
 
 - **In a chat:** ask Claude to open DataBrief. The page appears in the conversation; pick your file in it and use its buttons to put the prompt in the chat, add it to the
   context, or ask a question about the data. This uses the DataBrief connector, which you add from the plugin's Connectors tab.
-- **With a file Claude can read** (Claude Code, Cowork, or a chat with code execution): `/databrief:databrief path/to/file`, or just say "describe sales.xlsx with DataBrief".
+- **With a file on Claude's disk** (Claude Code, Cowork, or a chat with code execution; a file you attach to a plain chat is already in the conversation, and Claude may read it by itself, so ask for DataBrief by name): `/databrief:databrief path/to/file`, or just say "describe sales.xlsx with DataBrief".
   Claude asks only whether the data may be shared, and runs the tool bundled in the plugin, offline. It needs Node.js 18 or newer.
 
 ## What data it sends

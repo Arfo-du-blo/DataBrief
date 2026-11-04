@@ -5,7 +5,12 @@ The plugin puts DataBrief in Claude in three pieces, so that people add them tog
 - **The connector:** the hosted DataBrief server ([what it is](mcp-server.md)). It shows the DataBrief page inside the chat, as a widget.
 - **The skill:** tells Claude when and how to use DataBrief, with the whole tool bundled (`scripts/databrief.cjs`): Claude asks you only whether the data may be shared,
   and reads a file it has access to, offline ([details](agents.md)).
-- **The command** `/databrief:databrief <path>` (in Claude Code and Cowork; in chat it works as a skill).
+- **The command** `/databrief:databrief <path>` (in Claude Code and Cowork; in chat it works as a skill). It is only a shortcut that asks Claude to use the skill on a file.
+
+**Which piece is for what.** In a chat in the browser or in Claude Desktop, the piece that matters is the **connector**: "Open DataBrief" shows the page, which reads your file
+in your browser, with or without the data. The **skill** is for places where Claude can run code and the file is on its disk (Claude Code, Cowork, a chat with code execution):
+there it runs the bundled tool instead of opening the file itself. In a plain chat, a file you attach is already in the conversation, so Claude may simply read it, without
+DataBrief and without the "Do not share data" rule; ask for DataBrief by name ("use the DataBrief skill", "open DataBrief") to use it, and use the connector when the data must not be shared.
 
 - [Install](#install)
 - [What works where](#what-works-where)
@@ -28,7 +33,8 @@ Then say, for example: "Open DataBrief", or "Describe `sales.xlsx` with DataBrie
 | Claude Code, Cowork | yes (the connector is loaded) | yes, needs Node.js 18 or newer |
 
 A plugin cannot start a local server in chat: for Claude Desktop with a file **on your computer**, the [extension](extension.md) is the route (Claude reads the path itself).
-Skills load everywhere; the tool inside the skill needs a place where Claude can run code.
+Skills load everywhere; the tool inside the skill needs a place where Claude can run code. Claude decides when to use a skill: it is not forced to, and a file attached to a chat
+is already visible to it.
 
 Tested: Claude (web and Desktop) with the hosted connector and the widget, and the extension. The plugin as one package, the skill and the command have **not** been tested in
 every app; see the README for what was.
