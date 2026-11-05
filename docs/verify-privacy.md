@@ -64,7 +64,7 @@ open source and makes no requests at all, so **cheating is easy to spot**. The n
 You'll use your browser's **developer tools**, specifically the **Network** tab, which lists every request a page
 makes.
 
-1. Open DataBrief: the [online version](https://arfo-du-blo.github.io/DataBrief/), or `databrief.html` on your computer.
+1. Open DataBrief: the [online version](https://databrief.boards.digital/app), or `databrief.html` on your computer.
 2. Press **F12** (Mac: **Cmd+Option+I**) to open the developer tools, and click the **Network** tab.
 3. Click the 🚫 button (Clear) to empty the list, so you only see what happens from now on.
 4. Drop any data file on the page and wait for the prompt. Click **Copy**, try **Download .md**, switch modes…

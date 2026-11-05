@@ -64,7 +64,7 @@ function render() {
   section('EXAMPLES');
   for (const [c, t] of A.EXAMPLES) { out('.TP'); out('.B ' + esc(c)); out(esc(t[0].toUpperCase() + t.slice(1) + '.')); }
   section('SEE ALSO');
-  out('The guides in docs/cli.md and docs/formats/ of the repository, and https://arfo\\-du\\-blo.github.io/DataBrief/ for the page.');
+  out('The guides in docs/cli.md and docs/formats/ of the repository, and https://databrief.boards.digital/app for the page.');
   section('LICENSE');
   out('GNU General Public License, version 3 or later.');
   return lines.join('\n') + '\n';

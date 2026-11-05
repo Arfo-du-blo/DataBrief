@@ -26,7 +26,7 @@ This repository is two things at once:
 
 Use it, share it, or learn from it, or all three.
 
-**Try it now:** <https://arfo-du-blo.github.io/DataBrief/> · **Start the tutorial:** [docs/learn.md](docs/learn.md)
+**Try it now:** <https://databrief.boards.digital/app> · **Start the tutorial:** [docs/learn.md](docs/learn.md)
 
 ---
 
@@ -180,12 +180,12 @@ the underlying observations.
 
 ### Online
 
-1. Open <https://arfo-du-blo.github.io/DataBrief/>.
+1. Open <https://databrief.boards.digital/app>.
 2. Drop a data file on the page, or click to browse.
 3. Click **Copy** or **Download .md**, and give it to your AI.
 
 Optional: add settings to the link, for example
-<https://arfo-du-blo.github.io/DataBrief/?lang=fr&mode=files> (see [URL parameters](#url-parameters)).
+<https://databrief.boards.digital/app?lang=fr&mode=files> (see [URL parameters](#url-parameters)).
 
 [↑ Back to the table](#choose-how-to-use-databrief)
 
@@ -202,8 +202,7 @@ Optional: add settings to the link, for example
 
 `databrief_set_default.html` creates a `databrief.html` with **your team's defaults**, without any technical step.
 
-1. Open `databrief_set_default.html` ([latest release](https://github.com/Arfo-du-blo/DataBrief/releases/latest),
-   or [online](https://arfo-du-blo.github.io/DataBrief/databrief_set_default.html)).
+1. Open `databrief_set_default.html` ([latest release](https://github.com/Arfo-du-blo/DataBrief/releases/latest)).
 2. Choose the defaults: interface language, prompt language, data mode, layout, theme, sample rows, warning threshold.
 3. **Lock** what people should not change: a locked setting uses your value and its control is hidden.
    You can also hide the row-limit control, the **Edit** button or the **View formatted** button.
@@ -269,7 +268,7 @@ or one of the servers below), then:
 **SharePoint page (Embed web part)**
 
 1. A SharePoint admin allows the host: **Site settings → HTML Field Security** (or the tenant setting for embedded
-   content) → add your DataBrief domain (e.g. `arfo-du-blo.github.io` or `databrief.yourcompany.com`).
+   content) → add your DataBrief domain (e.g. `databrief.boards.digital` or `databrief.yourcompany.com`).
 2. Edit a SharePoint page → **+ → Embed** → paste the DataBrief address (or `<iframe src="…" width="100%" height="900"></iframe>`).
 3. If you host DataBrief with a server from this repository, allow SharePoint to show it in a frame:
    `DATABRIEF_FRAME_ANCESTORS='self' https://yourcompany.sharepoint.com` (see [Settings](#settings)).

@@ -1,7 +1,7 @@
 # Privacy policy
 
 This policy covers the **DataBrief connector**: the hosted server that shows the DataBrief page inside Claude, ChatGPT and other chat apps ([what it is](connector.md)), and the project's own page at
-<https://arfo-du-blo.github.io/DataBrief/>. It is written for the server run by the author (GitHub: [Arfo-du-blo](https://github.com/Arfo-du-blo)), the controller of what follows. If you run your own copy, you decide what yours does; the code is the
+<https://databrief.boards.digital/>. It is written for the server run by the author (GitHub: [Arfo-du-blo](https://github.com/Arfo-du-blo)), the controller of what follows. If you run your own copy, you decide what yours does; the code is the
 same and it behaves as described here unless you change it.
 
 DataBrief is free software (GPL-3.0-or-later). You can read the code and check each statement below.

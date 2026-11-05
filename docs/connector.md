@@ -46,7 +46,7 @@ To run your own copy of the server, see [Running the hosted MCP server](mcp-oper
 
 You can leave the page at any time: nothing has been sent until you confirm.
 
-**Without a chat:** the same server also offers the tool as a normal web page. Open the server's address in a browser, press **Open the tool**, and use DataBrief like the [online version](https://arfo-du-blo.github.io/DataBrief/). The home page also shows the connector address to copy.
+**Without a chat:** the same server also offers the tool as a normal web page. Open the server's address in a browser, press **Open the tool**, and use DataBrief like the [online version](https://databrief.boards.digital/app). The home page also shows the connector address to copy.
 
 ## What each button does
 
@@ -80,7 +80,7 @@ Only **Claude** (in the browser and in Claude Desktop) and **ChatGPT** (in the b
 
 | What you see | What to do |
 |---|---|
-| The widget does not appear | The app may not display MCP Apps. Open `databrief.html` from the [project page](https://arfo-du-blo.github.io/DataBrief/) in your browser instead: the same page, the same privacy. |
+| The widget does not appear | The app may not display MCP Apps. Open the tool in your browser instead, at [databrief.boards.digital/app](https://databrief.boards.digital/app) or with `databrief.html` from the [releases page](https://github.com/Arfo-du-blo/DataBrief/releases/latest): the same page, the same privacy. |
 | A button does nothing the first time | Wait about two seconds after the first click, then confirm. Claude refuses a message sent too soon after a click. |
 | An old version of the widget shows | Remove the connector and add it again: apps keep a widget for each address. |
 | The connector cannot connect | The server may be down. Try again later, or [ask for help](support.md). |

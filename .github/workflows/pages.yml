@@ -1,4 +1,4 @@
-# Publishes DataBrief to GitHub Pages on every push to main:
+# Publishes DataBrief to GitHub Pages on every push to main (in a fork or a copy; the author's own repository skips it):
 #   https://<owner>.github.io/DataBrief/                          the tool
 #   https://<owner>.github.io/DataBrief/databrief_set_default.html the team settings page
 # One-time setup: repository Settings > Pages > Build and deployment > Source: "GitHub Actions".
@@ -20,6 +20,9 @@ concurrency:
 
 jobs:
   deploy:
+    # The author's own repository no longer publishes a GitHub Pages site (the tool is served by the hosted server).
+    # A fork or a copy still publishes its own site on every push to main, as the README describes.
+    if: github.repository != 'Arfo-du-blo/DataBrief'
     runs-on: ubuntu-24.04
     environment:
       name: github-pages
