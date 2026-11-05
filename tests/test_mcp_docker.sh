@@ -14,7 +14,7 @@ trap cleanup EXIT
 if docker build -q -f mcp/Dockerfile --build-arg WIDGET_SOURCE=fixture -t "$IMG" . >/dev/null; then ok "the image builds from the repository root"; else bad "the image builds"; exit 1; fi
 
 FILES=$(docker run --rm --entrypoint sh "$IMG" -c 'ls /app' | tr '\n' ' ')
-[ "$FILES" = "icon.svg package.json server.js uris.json widget.html " ] && ok "the image holds only the server, its icon, its list of addresses, package.json and the widget" || bad "the image content: $FILES"
+[ "$FILES" = "home-i18n.json icon.svg package.json server.js uris.json widget.html " ] && ok "the image holds only the server, the home page texts, its icon, its list of addresses, package.json and the widget" || bad "the image content: $FILES"
 
 UID_IN=$(docker run --rm --entrypoint id "$IMG" -u)
 [ "$UID_IN" != "0" ] && ok "it runs as a user that is not root" || bad "it runs as root"

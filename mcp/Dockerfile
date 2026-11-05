@@ -24,7 +24,7 @@ FROM widget-${WIDGET_SOURCE} AS widget
 
 FROM node:22-alpine
 WORKDIR /app
-COPY mcp/server.js mcp/uris.json mcp/icon.svg package.json ./
+COPY mcp/server.js mcp/uris.json mcp/home-i18n.json mcp/icon.svg package.json ./
 COPY --from=widget /out/databrief-widget.html /app/widget.html
 
 USER node

@@ -3,6 +3,7 @@
 *
 !mcp/server.js
 !mcp/uris.json
+!mcp/home-i18n.json
 !mcp/icon.svg
 !package.json
 !databrief.html

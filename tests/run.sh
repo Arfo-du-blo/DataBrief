@@ -59,6 +59,9 @@ echo
 echo "=== Widget layer in Chrome, inside fake hosts (Claude, ChatGPT, an unknown app, a silent one)"
 node "$HERE/test_widget_browser.cjs" | grep -v '^ok'
 echo
+echo "=== Hosted server's home page in Chrome, next to the real tool (15 languages, the language and theme shared with the tool, phone-sized screens, Copy)"
+node "$HERE/test_home_browser.cjs" | grep -v '^PASS'
+echo
 echo "=== Documentation: every link and anchor of the README and the docs"
 node "$HERE/test_docs_links.cjs"
 echo

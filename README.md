@@ -976,7 +976,7 @@ powershell -ExecutionPolicy Bypass -File tests\test_powershell.ps1   # PowerShel
   page in Chrome, byte for byte. In CI (`cli` job) on Linux, Windows and macOS with Node 18, 22 and 24. One independent
   review by three reviewers (privacy, security, integration), every finding with a regression test.
 - **AI apps** (`test_mcp.cjs`, `test_widget.cjs`, `test_widget_browser.cjs`, `test_mcpb.cjs`, `test_cli_mcp.cjs`, `test_agents.cjs`, `test_plugin.cjs`, `test_release.cjs`,
-  `test_mcp_docker.sh`): the hosted server's conversation, limits and log (method names only); the widget layer's 15 languages and, in Chrome inside fake hosts (Claude,
+  `test_home_browser.cjs`, `test_mcp_docker.sh`): the hosted server's conversation, limits and log (method names only); the widget layer's 15 languages and, in Chrome inside fake hosts (Claude,
   ChatGPT, an unknown app, a silent one), what it sends and when; the extension and `databrief --mcp` run over standard input and output under a guard that blocks every
   program start, with canary values, `--root` (links, hard links, network paths), and the same prompt as the command line; the skill's commands run from the unzipped skill;
   the plugin's layout; the release files and the workflows. The `mcp` CI job runs on Linux, Windows and macOS. Three independent reviews (privacy, security, integration);
