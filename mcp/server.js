@@ -67,31 +67,63 @@ function loadConfig(env) {
   };
 }
 
-// The home page (/): what DataBrief is, a button to the tool (/app), and how to add the connector to Claude or ChatGPT. It has one inline script, the Copy
-// button, allowed by the hash of its text in the page's own Content-Security-Policy; the page loads nothing from outside.
-const HOME_SCRIPT = "var b=document.getElementById('copy'),a=document.getElementById('addr');b.hidden=false;b.onclick=function(){a.select();var d=function(){b.textContent='Copied'};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(a.value).then(d,function(){document.execCommand('copy');d()})}else{document.execCommand('copy');d()}};";
+// The home page (/): the look of the tool itself (same colours, font, header, buttons, chips and footer; the theme is shared with the tool at /app through the same
+// stored choice), what DataBrief is, a button to the tool, and how to add the connector to Claude or ChatGPT. It has one inline script (the theme button and the Copy
+// button), allowed by the hash of its text in the page's own Content-Security-Policy; the page loads nothing from outside.
+const HOME_SCRIPT = "(function(){var d=document,r=d.documentElement,t=null;try{t=localStorage.getItem('databrief.theme')}catch(e){}if(t==='light'||t==='dark')r.setAttribute('data-theme',t);" +
+  "d.addEventListener('DOMContentLoaded',function(){var tb=d.getElementById('themeBtn');tb.hidden=false;tb.onclick=function(){var c=r.getAttribute('data-theme')||(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'),n=c==='dark'?'light':'dark';r.setAttribute('data-theme',n);try{localStorage.setItem('databrief.theme',n)}catch(e){}};" +
+  "var b=d.getElementById('copy'),a=d.getElementById('addr');b.hidden=false;b.onclick=function(){a.select();var k=function(){b.classList.add('done');b.lastChild.textContent='Copied';setTimeout(function(){b.classList.remove('done');b.lastChild.textContent='Copy'},1800)};" +
+  "if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(a.value).then(k,function(){try{d.execCommand('copy')}catch(e){}k()})}else{try{d.execCommand('copy')}catch(e){}k()}}});})();";
 const escapeHtml = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const GUIDE = 'https://github.com/Arfo-du-blo/DataBrief/blob/main/docs/';
+// The styles are the tool's own (src/styles.css): the same variables in the light and dark themes, the same hero, buttons, chips, cards and footer.
+const HOME_CSS = ':root{--bg:#f6f6f7;--surface:#ffffff;--surface-2:#f1f1f3;--text:#18181b;--text-2:#52525b;--muted:#71717a;--border:#e4e4e7;--border-strong:#d4d4d8;--accent:#4f5bd5;--accent-hover:#4350c4;--accent-soft:#eef0fc;--accent-text:#ffffff;--ok:#1f7a4d;' +
+  '--shadow:0 1px 2px rgba(16,16,24,.04),0 4px 16px rgba(16,16,24,.05);--radius:14px;--font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans","Helvetica Neue",Arial,sans-serif;--mono:ui-monospace,"Cascadia Code","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;color-scheme:light}' +
+  '@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e0f11;--surface:#16171a;--surface-2:#1d1e22;--text:#ececee;--text-2:#b4b4bb;--muted:#8b8b94;--border:#2a2b30;--border-strong:#3a3b42;--accent:#8c96f2;--accent-hover:#a2abf6;--accent-soft:#23253a;--accent-text:#0e0f11;--ok:#6fd3a0;--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);color-scheme:dark}}' +
+  ':root[data-theme="dark"]{--bg:#0e0f11;--surface:#16171a;--surface-2:#1d1e22;--text:#ececee;--text-2:#b4b4bb;--muted:#8b8b94;--border:#2a2b30;--border-strong:#3a3b42;--accent:#8c96f2;--accent-hover:#a2abf6;--accent-soft:#23253a;--accent-text:#0e0f11;--ok:#6fd3a0;--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);color-scheme:dark}' +
+  '*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}' +
+  'button,input{font:inherit;color:inherit}:focus-visible{outline:2px solid var(--accent);outline-offset:2px}a{color:var(--accent)}' +
+  '.topbar{display:flex;justify-content:flex-end;gap:8px;padding:14px 16px 0}.control{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;width:34px;padding:0;background:var(--surface);border:1px solid var(--border);border-radius:9px;color:var(--text-2);cursor:pointer}' +
+  '.control svg{width:16px;height:16px}.control:hover{border-color:var(--border-strong);color:var(--text)}[hidden]{display:none!important}' +
+  'main{width:100%;max-width:780px;margin:0 auto;padding:8px 16px 32px;flex:1}.hero{text-align:center;padding:28px 0 18px}' +
+  '.brand{display:inline-flex;align-items:center;gap:10px;margin:0;font-size:30px;font-weight:700;letter-spacing:-.02em}.brand-mark{width:34px;height:34px;border-radius:10px;background:var(--accent);color:var(--accent-text);display:grid;place-items:center}.brand-mark svg{width:20px;height:20px}' +
+  '.tagline{margin:10px 0 6px;font-size:18px;font-weight:500}.purpose{margin:0 auto;max-width:600px;color:var(--text-2)}' +
+  '.privacy{display:inline-flex;align-items:center;gap:6px;margin-top:14px;padding:4px 12px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:13px;font-weight:500}.privacy svg{width:14px;height:14px}' +
+  '.cta{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:22px 0 6px}' +
+  '.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:10px;border:1px solid transparent;cursor:pointer;font-weight:500;font-size:14px;text-decoration:none;transition:background .15s,border-color .15s}.btn svg{width:16px;height:16px}' +
+  '.btn-lg{height:46px;padding:0 24px;font-size:15px}.btn-primary{background:var(--accent);color:var(--accent-text)}.btn-primary:hover{background:var(--accent-hover)}.btn-outline{background:var(--surface);border-color:var(--border-strong);color:var(--text)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}.btn.done{background:var(--ok);border-color:var(--ok);color:#fff}' +
+  '.formats{text-align:center;margin:18px 0 6px}.formats-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}' +
+  '.chip{font-family:var(--mono);font-size:12px;padding:2px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text-2)}' +
+  '.card{margin-top:22px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}.card-body{padding:22px 24px}.card h2{margin:0 0 6px;font-size:20px;text-align:center}.card .lead{margin:0 auto 16px;max-width:560px;text-align:center;color:var(--text-2)}' +
+  '.addr{display:flex;gap:8px;max-width:560px;margin:0 auto}.addr input{flex:1;min-width:0;height:40px;padding:0 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-2);font-family:var(--mono);font-size:13px}' +
+  '.steps{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}.step{background:var(--surface-2);border-radius:12px;padding:14px 16px}.step h3{margin:0 0 6px;font-size:15px}.step ol{margin:0;padding-left:18px;color:var(--text-2);font-size:14px}.step li{margin:3px 0}.step em{font-style:normal;color:var(--text);font-weight:500}' +
+  '.links{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:18px}.links a{font-size:14px;text-decoration:none;padding:6px 12px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text-2)}.links a:hover{border-color:var(--accent);color:var(--accent)}.links a::after{content:" \\2197";opacity:.7}' +
+  '.verify{margin:20px auto 0;max-width:600px;text-align:center;font-size:13px;color:var(--muted)}.verify summary{cursor:pointer;display:inline-block}.verify p{margin:8px 0 0}.verify code{font-family:var(--mono);font-size:12px;word-break:break-all;background:var(--surface-2);padding:2px 6px;border-radius:6px}' +
+  'footer{text-align:center;color:var(--muted);font-size:13px;padding:20px 16px 28px}footer a{color:inherit}footer .sep{margin:0 6px;opacity:.6}footer .powered{font-weight:600;color:var(--text-2)}' +
+  '@media(max-width:560px){.steps{grid-template-columns:1fr}.card-body{padding:18px 16px}.addr{flex-direction:column}.addr .btn{width:100%}.cta .btn{flex:1 1 100%}}';
+const ICON_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+const ICON_COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>';
+const ICON_DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg>';
 function homePage(o) {   // o: { publicUrl, version, sha }
   const address = (o.publicUrl || 'https://YOUR-SERVER') + '/mcp';
-  const html = '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
-    '<title>DataBrief</title><link rel="icon" href="/icon.svg" type="image/svg+xml">' +
-    '<style>body{font:16px/1.55 system-ui,sans-serif;max-width:42rem;margin:3rem auto;padding:0 1rem;color:#1d2433}h1{margin-bottom:.2rem}h2{margin-top:2rem}' +
-    'code,input{font:14px ui-monospace,monospace}code{background:#8882;padding:.1em .3em;border-radius:4px;word-break:break-all}' +
-    '.btn{display:inline-block;background:#4f5bd5;color:#fff;text-decoration:none;padding:.7rem 1.4rem;border-radius:.6rem;font-weight:600}' +
-    'input{width:min(100%,26rem);padding:.45rem}button{padding:.45rem .9rem}.small{color:#667;font-size:.85rem;margin-top:2rem}@media(prefers-color-scheme:dark){body{background:#12151f;color:#e6e9f2}input{background:#1d2233;color:#e6e9f2;border:1px solid #445}}</style>' +
-    '<h1>DataBrief</h1>' +
-    '<p>Give an AI the context of your data file: the tables, columns, types, keys and statistics, and the data itself only when you choose. With <b>Do not share data</b>, the prompt describes the file without a single record.</p>' +
-    '<p><b>100% in your browser:</b> the tool reads your file on your computer. This server <b>never receives your files</b>.</p>' +
-    '<p><a class="btn" href="/app">Open the tool</a></p>' +
-    '<h2>Use it in Claude or ChatGPT</h2>' +
-    '<p>This server is also a connector that shows DataBrief inside the chat. Add this address as a custom connector (no sign-in):</p>' +
-    '<p><input id="addr" readonly value="' + escapeHtml(address) + '" aria-label="Connector address"> <button id="copy" type="button" hidden>Copy</button></p>' +
-    '<ol><li><b>Claude</b> (claude.ai or Claude Desktop): Settings, Connectors, Add custom connector, paste the address, Add. Then ask: <i>Open DataBrief</i>.</li>' +
-    '<li><b>ChatGPT</b>: turn on developer mode in the settings, then add the address as a connector. Then ask: <i>Open DataBrief</i>.</li></ol>' +
-    '<p><a href="' + GUIDE + 'connector.md">Step-by-step guide</a> · <a href="' + GUIDE + 'privacy.md">Privacy</a> · <a href="' + GUIDE + 'support.md">Support</a> · <a href="https://github.com/Arfo-du-blo/DataBrief">Source code on GitHub</a> (GPL-3.0-or-later)</p>' +
-    '<p class="small">Version ' + escapeHtml(o.version) + '. The tool at /app is the DataBrief page with the layer that lets it work inside a chat (it does nothing outside one); its SHA-256 is <code>' + escapeHtml(o.sha) + '</code>.</p>' +
-    '<script>' + HOME_SCRIPT + '</script>';
+  const FORMATS = ['CSV', 'Excel', 'Parquet', 'SQLite', 'SQL dumps', 'JSON', 'PDF', 'Word', 'Access', 'Avro', 'Notebooks', '+ many more'];
+  const html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer">' +
+    '<title>DataBrief</title><link rel="icon" href="/icon.svg" type="image/svg+xml"><style>' + HOME_CSS + '</style><script>' + HOME_SCRIPT + '</script></head><body>' +
+    '<div class="topbar"><button class="control" id="themeBtn" type="button" hidden aria-label="Switch between light and dark theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></div>' +
+    '<main><header class="hero"><h1 class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 7h12M6 12h12M6 17h7"/></svg></span>DataBrief</h1>' +
+    '<p class="tagline">Turn any data file into an AI-ready prompt.</p>' +
+    '<p class="purpose">Drop a data file to get a Markdown prompt for any AI assistant. DataBrief reads your file in your browser and writes an introduction that tells the AI what it holds and how to help you. Include your data, or only its structure to keep confidential files private.</p>' +
+    '<div class="privacy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>100% offline · your file never leaves this browser</span></div>' +
+    '<div class="cta"><a class="btn btn-primary btn-lg" href="/app">Open the tool' + ICON_ARROW + '</a><a class="btn btn-outline btn-lg" href="#connector">Use it in Claude or ChatGPT' + ICON_DOWN + '</a></div></header>' +
+    '<section class="formats" aria-label="Formats"><div class="formats-title">Reads</div><div class="chips">' + FORMATS.map((f) => '<span class="chip">' + escapeHtml(f) + '</span>').join('') + '</div></section>' +
+    '<section class="card" id="connector"><div class="card-body"><h2>Use it in Claude or ChatGPT</h2>' +
+    '<p class="lead">This server is also a connector: it shows DataBrief inside the chat. It never receives your files, which are read in your browser. Add this address as a custom connector (no sign-in).</p>' +
+    '<div class="addr"><input id="addr" readonly value="' + escapeHtml(address) + '" aria-label="Connector address"><button class="btn btn-primary" id="copy" type="button" hidden>' + ICON_COPY + '<span>Copy</span></button></div>' +
+    '<div class="steps"><div class="step"><h3>Claude</h3><ol><li>Open <em>Settings</em>, then <em>Connectors</em>.</li><li>Choose <em>Add custom connector</em>.</li><li>Paste the address and add it.</li><li>Ask: <em>Open DataBrief</em>.</li></ol></div>' +
+    '<div class="step"><h3>ChatGPT</h3><ol><li>Turn on <em>developer mode</em> in the settings.</li><li>Add the address as a connector.</li><li>Ask: <em>Open DataBrief</em>.</li></ol></div></div>' +
+    '<div class="links"><a href="' + GUIDE + 'connector.md" target="_blank" rel="noopener noreferrer">Step-by-step guide</a><a href="' + GUIDE + 'privacy.md" target="_blank" rel="noopener noreferrer">Privacy</a><a href="' + GUIDE + 'support.md" target="_blank" rel="noopener noreferrer">Support</a><a href="https://github.com/Arfo-du-blo/DataBrief" target="_blank" rel="noopener noreferrer">Source code on GitHub</a></div></div></section>' +
+    '<details class="verify"><summary>Check this page</summary><p>Version ' + escapeHtml(o.version) + '. The tool at <code>/app</code> is the DataBrief page with the layer that lets it work inside a chat (it does nothing outside one). Its SHA-256:</p><p><code>' + escapeHtml(o.sha) + '</code></p></details>' +
+    '</main><footer><span class="powered">Powered by <a href="https://github.com/Arfo-du-blo/DataBrief" target="_blank" rel="noopener noreferrer">L\'Arfo</a></span><span class="sep">·</span><span>Works entirely in your browser, without any internet connection</span><span class="sep">·</span><span>Free software · GNU GPL v3</span></footer></body></html>';
   const csp = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src 'sha256-" + crypto.createHash('sha256').update(HOME_SCRIPT).digest('base64') + "'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
   return { html, csp };
 }
