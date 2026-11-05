@@ -18,6 +18,7 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
+const zlib = require('zlib');
 
 const HERE = __dirname;
 const SUPPORTED = ['2025-11-25', '2025-06-18', '2025-03-26'];   // MCP versions spoken, newest first
@@ -66,13 +67,34 @@ function loadConfig(env) {
   };
 }
 
-const INFO_PAGE = (url) => '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
-  '<title>DataBrief connector</title><link rel="icon" href="/icon.svg" type="image/svg+xml">' +
-  '<style>body{font:16px/1.5 system-ui,sans-serif;max-width:40rem;margin:3rem auto;padding:0 1rem}code{background:#8882;padding:.1em .3em;border-radius:4px}</style>' +
-  '<h1>DataBrief connector</h1>' +
-  '<p>This is the MCP server behind the DataBrief connector for Claude and ChatGPT. Add <code>' + (url || 'https://this-server') + '/mcp</code> as a connector.</p>' +
-  '<p>This server <b>never receives your files</b>. The DataBrief page runs in your browser, inside the chat, and reads the file there. The server only serves that page and answers the chat app\'s requests. It stores nothing, and its logs hold no file content and no IP address.</p>' +
-  '<p><a href="https://github.com/Arfo-du-blo/DataBrief">DataBrief on GitHub</a> (GPL-3.0-or-later)</p>';
+// The home page (/): what DataBrief is, a button to the tool (/app), and how to add the connector to Claude or ChatGPT. It has one inline script, the Copy
+// button, allowed by the hash of its text in the page's own Content-Security-Policy; the page loads nothing from outside.
+const HOME_SCRIPT = "var b=document.getElementById('copy'),a=document.getElementById('addr');b.hidden=false;b.onclick=function(){a.select();var d=function(){b.textContent='Copied'};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(a.value).then(d,function(){document.execCommand('copy');d()})}else{document.execCommand('copy');d()}};";
+const escapeHtml = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const GUIDE = 'https://github.com/Arfo-du-blo/DataBrief/blob/main/docs/';
+function homePage(o) {   // o: { publicUrl, version, sha }
+  const address = (o.publicUrl || 'https://YOUR-SERVER') + '/mcp';
+  const html = '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<title>DataBrief</title><link rel="icon" href="/icon.svg" type="image/svg+xml">' +
+    '<style>body{font:16px/1.55 system-ui,sans-serif;max-width:42rem;margin:3rem auto;padding:0 1rem;color:#1d2433}h1{margin-bottom:.2rem}h2{margin-top:2rem}' +
+    'code,input{font:14px ui-monospace,monospace}code{background:#8882;padding:.1em .3em;border-radius:4px;word-break:break-all}' +
+    '.btn{display:inline-block;background:#4f5bd5;color:#fff;text-decoration:none;padding:.7rem 1.4rem;border-radius:.6rem;font-weight:600}' +
+    'input{width:min(100%,26rem);padding:.45rem}button{padding:.45rem .9rem}.small{color:#667;font-size:.85rem;margin-top:2rem}@media(prefers-color-scheme:dark){body{background:#12151f;color:#e6e9f2}input{background:#1d2233;color:#e6e9f2;border:1px solid #445}}</style>' +
+    '<h1>DataBrief</h1>' +
+    '<p>Give an AI the context of your data file: the tables, columns, types, keys and statistics, and the data itself only when you choose. With <b>Do not share data</b>, the prompt describes the file without a single record.</p>' +
+    '<p><b>100% in your browser:</b> the tool reads your file on your computer. This server <b>never receives your files</b>.</p>' +
+    '<p><a class="btn" href="/app">Open the tool</a></p>' +
+    '<h2>Use it in Claude or ChatGPT</h2>' +
+    '<p>This server is also a connector that shows DataBrief inside the chat. Add this address as a custom connector (no sign-in):</p>' +
+    '<p><input id="addr" readonly value="' + escapeHtml(address) + '" aria-label="Connector address"> <button id="copy" type="button" hidden>Copy</button></p>' +
+    '<ol><li><b>Claude</b> (claude.ai or Claude Desktop): Settings, Connectors, Add custom connector, paste the address, Add. Then ask: <i>Open DataBrief</i>.</li>' +
+    '<li><b>ChatGPT</b>: turn on developer mode in the settings, then add the address as a connector. Then ask: <i>Open DataBrief</i>.</li></ol>' +
+    '<p><a href="' + GUIDE + 'connector.md">Step-by-step guide</a> · <a href="' + GUIDE + 'privacy.md">Privacy</a> · <a href="' + GUIDE + 'support.md">Support</a> · <a href="https://github.com/Arfo-du-blo/DataBrief">Source code on GitHub</a> (GPL-3.0-or-later)</p>' +
+    '<p class="small">Version ' + escapeHtml(o.version) + '. The tool at /app is the DataBrief page with the layer that lets it work inside a chat (it does nothing outside one); its SHA-256 is <code>' + escapeHtml(o.sha) + '</code>.</p>' +
+    '<script>' + HOME_SCRIPT + '</script>';
+  const csp = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src 'sha256-" + crypto.createHash('sha256').update(HOME_SCRIPT).digest('base64') + "'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+  return { html, csp };
+}
 
 function makeLimiter(perMin, maxKeys) {
   maxKeys = maxKeys || MAX_KEYS;
@@ -125,6 +147,9 @@ function createServer(config, logger) {
   }
   const widget = fs.readFileSync(config.widgetFile, 'utf8');
   const widgetSha = crypto.createHash('sha256').update(widget).digest('hex');
+  const widgetBuf = Buffer.from(widget, 'utf8');
+  const widgetGz = zlib.gzipSync(widgetBuf, { level: 9 });   // /app: compressed once at start (about a quarter of the size)
+  const home = homePage({ publicUrl: config.publicUrl, version: config.version, sha: widgetSha });
   const uris = JSON.parse(fs.readFileSync(config.urisFile, 'utf8'));
   const allUris = [uris.current].concat(uris.previous || []);
   const iconSvg = fs.readFileSync(config.iconFile, 'utf8');
@@ -207,8 +232,25 @@ function createServer(config, logger) {
       return res.end(req.method === 'HEAD' ? undefined : iconSvg);
     }
     if (route === '/') {
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache', 'Content-Security-Policy': "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'" });
-      return res.end(req.method === 'HEAD' ? undefined : INFO_PAGE(config.publicUrl));
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache', 'Content-Security-Policy': home.csp });
+      return res.end(req.method === 'HEAD' ? undefined : home.html);
+    }
+    // /app: the DataBrief page itself (the same file the chat apps get as the widget; outside a chat its layer does nothing). It is large, so it counts five requests for
+    // the flood guard (one when the browser's copy is current: 304), carries the hash as its ETag and is sent compressed when the browser accepts it.
+    if (route === '/app') {
+      if (req.method !== 'GET' && req.method !== 'HEAD') return send(405, 'Method not allowed: GET only\n', { Allow: 'GET, HEAD' });
+      const etag = '"' + widgetSha + '"';
+      const current = String(req.headers['if-none-match'] || '').split(',').map((t) => t.trim()).includes(etag);
+      const waitApp = limiter(sourceKey(req, config.trustProxyHeader), current ? 1 : 5);
+      if (waitApp) return send(429, 'Too many requests\n', { 'Retry-After': String(waitApp) });
+      const headers = { 'Content-Type': 'text/html; charset=utf-8', ETag: etag, 'Cache-Control': 'no-cache', 'Content-Security-Policy': "frame-ancestors 'none'", Vary: 'Accept-Encoding' };
+      if (current) { res.writeHead(304, headers); return res.end(); }
+      const gz = /\bgzip\b/.test(String(req.headers['accept-encoding'] || ''));
+      if (gz) headers['Content-Encoding'] = 'gzip';
+      const body = gz ? widgetGz : widgetBuf;
+      headers['Content-Length'] = body.length;
+      res.writeHead(200, headers);
+      return res.end(req.method === 'HEAD' ? undefined : body);
     }
     if (route !== '/mcp') return send(404, 'Not found\n');
 

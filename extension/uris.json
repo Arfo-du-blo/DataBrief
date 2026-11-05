@@ -1,8 +1,9 @@
 {
   "//": "The extension's widget address, with the same rule as mcp/uris.json: a changed widget gets a NEW address (current) and every address ever published stays in previous, still answering with the current page. node tools/build-widget.cjs --new-address moves both files together. The prefix differs from the hosted server's so that an app never takes one server's cached widget for the other's.",
-  "current": "ui://databrief-local/widget-v13.html",
+  "current": "ui://databrief-local/widget-v14.html",
   "previous": [
+    "ui://databrief-local/widget-v13.html",
     "ui://databrief-local/widget-v12.html"
   ],
-  "widgetSha256": "9678490e2ad818fbfd57873ce66e95802205a41a271cd9e512c845d571000485"
+  "widgetSha256": "1c3038db5da5f909a32faf92fda4fe7cd70736421762f605318b81212c6db8d5"
 }

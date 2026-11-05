@@ -1,6 +1,6 @@
 {
   "name": "databrief",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Turns a data file into a prompt for an AI, offline, with a \"Do not share data\" mode: the command-line tool of DataBrief",
   "license": "GPL-3.0-or-later",
   "author": "Arfo <75902371+Arfo-du-blo@users.noreply.github.com> (https://github.com/Arfo-du-blo)",

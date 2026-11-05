@@ -33,6 +33,8 @@ To run your own copy of the server, see [Running the hosted MCP server](mcp-oper
 
 You can leave the page at any time: nothing has been sent until you confirm.
 
+**Without a chat:** the same server also offers the tool as a normal web page. Open the server's address in a browser, press **Open the tool**, and use DataBrief like the [online version](https://arfo-du-blo.github.io/DataBrief/). The home page also shows the connector address to copy.
+
 ## What each button does
 
 | Button | What happens |

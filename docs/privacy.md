@@ -32,6 +32,8 @@ conversation and no file, and writes request names and timings to a log without 
 
 The server receives the requests the chat app makes: its handshake, the list of tools, a call of the tool `databrief_open` (which takes no argument), and the request for the page itself. These carry no file and no prompt.
 
+It also receives the requests of a browser that opens its home page (`/`) or the tool (`/app`) directly. Those are plain page requests: the server does **not** log them, and it still never receives your file, which the page reads in your browser.
+
 For each request the server writes one log line with:
 
 - the date and time, the route, the HTTP status and the duration;

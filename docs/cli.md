@@ -13,7 +13,7 @@ Nothing else, except a clipboard tool on Linux (below).
 | You use | Install | Node.js |
 |---|---|---|
 | **npm**, any system | `npx databrief FILE` (nothing installed), or `npm install -g databrief` | you have it |
-| **Ubuntu, Debian** | `sudo apt install ./databrief_1.6.0_all.deb`, the file from the [release](https://github.com/Arfo-du-blo/DataBrief/releases/latest) | `apt` installs `nodejs` (recommended by the package); on a system whose Node is older than 18 (Ubuntu 22.04 has Node 12), install a newer one (NodeSource, nvm...): see [Troubleshooting](#troubleshooting) |
+| **Ubuntu, Debian** | `sudo apt install ./databrief_1.6.1_all.deb`, the file from the [release](https://github.com/Arfo-du-blo/DataBrief/releases/latest) | `apt` installs `nodejs` (recommended by the package); on a system whose Node is older than 18 (Ubuntu 22.04 has Node 12), install a newer one (NodeSource, nvm...): see [Troubleshooting](#troubleshooting) |
 | **Homebrew**, macOS or Linux | `brew install Arfo-du-blo/databrief/databrief` | Homebrew installs it |
 | **Scoop**, Windows | `scoop bucket add databrief https://github.com/Arfo-du-blo/scoop-databrief`, then `scoop install databrief` | Scoop installs `nodejs-lts` |
 | **One file**, any system | download `databrief-cli.cjs` from the release, then `node databrief-cli.cjs FILE` | you have it |

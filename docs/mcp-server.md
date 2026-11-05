@@ -24,7 +24,7 @@ only what you choose to put in the chat. The server serves the page and answers 
 | Protocol | MCP over Streamable HTTP at `/mcp`, stateless: JSON answers, no session, no stream. Versions 2025-11-25, 2025-06-18 and 2025-03-26 |
 | Tool | one: `databrief_open` (title "DataBrief", read-only, takes no argument). Its descriptions are facts only (what the tool shows, what happens to the file, what the widget offers), because the directory's review rejects tool texts that tell the AI how to behave |
 | Resource | one: the widget page, served as `text/html;profile=mcp-app` with the clipboard permission and a border |
-| Other addresses | `/healthz` (for health checks), `/` (a short page that says what this is), `/icon.svg` and `/favicon.ico` |
+| Other addresses | `/healthz` (for health checks), `/` (the home page: what DataBrief is, a button to the tool, the connector address with a Copy button and the guide), `/app` (the DataBrief page itself, to use in a browser without a chat), `/icon.svg` and `/favicon.ico` |
 | Dependencies | none: Node.js 18 or newer, built-in modules only, no `npm install` |
 
 ## The widget page
@@ -117,9 +117,15 @@ once (a batch with several page reads gets the page once and an error for the ot
 Requests that carry an `Origin` header (a web page calling the server) are refused unless the origin is in the list; an allowed origin
 gets the CORS answers a browser needs, the preflight included. The chat apps call server to server and send none.
 
+## The home page and the tool in a browser
+
+`/` is a small page for people who open the server's address in a browser: it says what DataBrief is, has a button **Open the tool** and shows the connector address (`DATABRIEF_PUBLIC_URL` + `/mcp`) with a Copy button, the steps for Claude and ChatGPT, and links to the guide, the privacy policy and the support page on GitHub. It has one inline script (the Copy button), allowed by its hash in the page's own Content-Security-Policy; it loads nothing from outside.
+
+`/app` serves the same page the chat apps get as the widget: DataBrief with the widget layer, which does nothing outside a chat. It is the same bytes as `resources/read` (the home page states their SHA-256). It is large, so it is sent compressed when the browser accepts it, carries its hash as an ETag (a browser that has the current page gets a 304 with no body), and counts five requests for the flood guard (one for a 304). It accepts GET and HEAD only. The start line of the log gives the same hash.
+
 ## What it logs and what it keeps
 
-It keeps **nothing**: no file, no conversation, no session, no database, and its code has no call that writes to disk (a test checks that).
+It keeps **nothing**: no file, no conversation, no session, no database, and its code has no call that writes to disk (a test checks that). Requests for `/`, `/app`, the icon and the other pages are not logged at all; only `/mcp` and `/healthz` are.
 
 The log has one line per request: the time, the route, the HTTP status, the duration, the **method names** it knows (`tools/call`, `resources/read`; any other is logged as `other`, never with the client's text), the
 tool name, the name the chat app gives itself, and the first word of its user agent. It has no tool argument, no header, no cookie, no token

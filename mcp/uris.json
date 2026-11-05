@@ -1,7 +1,8 @@
 {
   "//": "Claude and ChatGPT keep a widget per address and keep an old tool list until it is refreshed. Rule: a new widget version gets a NEW address (current), and EVERY address ever published stays in previous, still answering with the current page (tests/test_mcp.cjs checks it).",
-  "current": "ui://databrief/widget-v13.html",
+  "current": "ui://databrief/widget-v14.html",
   "previous": [
+    "ui://databrief/widget-v13.html",
     "ui://databrief/widget-v12.html",
     "ui://databrief/widget-v11.html",
     "ui://databrief/widget-v10.html",
@@ -16,5 +17,5 @@
     "ui://databrief/widget-debug1.html",
     "ui://databrief/widget-v1.html"
   ],
-  "widgetSha256": "9678490e2ad818fbfd57873ce66e95802205a41a271cd9e512c845d571000485"
+  "widgetSha256": "1c3038db5da5f909a32faf92fda4fe7cd70736421762f605318b81212c6db8d5"
 }

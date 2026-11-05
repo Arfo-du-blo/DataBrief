@@ -38,7 +38,7 @@ function request(port, method, urlPath, body, headers) {
     const req = http.request({ host: '127.0.0.1', port, method, path: urlPath, headers: h }, (res) => {
       const chunks = [];
       res.on('data', (c) => chunks.push(c));
-      res.on('end', () => { const text = Buffer.concat(chunks).toString('utf8'); let json; try { json = JSON.parse(text); } catch (e) { /* not JSON */ } resolve({ status: res.statusCode, headers: res.headers, text, json }); });
+      res.on('end', () => { const text = Buffer.concat(chunks).toString('utf8'); let json; try { json = JSON.parse(text); } catch (e) { /* not JSON */ } resolve({ buffer: Buffer.concat(chunks), status: res.statusCode, headers: res.headers, text, json }); });
     });
     req.on('error', reject);
     if (data !== null) req.write(data);
@@ -174,7 +174,19 @@ const rpc = (port, id, method, params, headers) => request(port, 'POST', '/mcp',
   r = await request(P, 'GET', '/favicon.ico');
   check('/favicon.ico answers', r.status === 200);
   r = await request(P, 'GET', '/');
-  check('the home page says the file never reaches the server, loads nothing from outside', r.status === 200 && /never receives your files/.test(r.text) && !/https?:\/\/(?!github\.com\/Arfo-du-blo)[^"' ]+\.(js|css)/.test(r.text) && /default-src 'none'/.test(r.headers['content-security-policy']));
+  const inlineScript = (/<script>([\s\S]*?)<\/script>/.exec(r.text) || [])[1] || '';
+  check('the home page says the file never reaches the server, has the button to the tool and the connector address with a Copy button and the guide on GitHub', r.status === 200 && /never receives your files/.test(r.text) && /href="\/app"[^>]*>Open the tool/.test(r.text) && /id="addr" readonly value="[^"]*\/mcp"/.test(r.text) && /id="copy"/.test(r.text) && /github\.com\/Arfo-du-blo\/DataBrief\/blob\/main\/docs\/connector\.md/.test(r.text));
+  check('the home page loads nothing from outside and its CSP allows only its own inline script (by hash)', !/(src|href)="https?:\/\/[^"]*\.(js|css|png|jpg|svg)/.test(r.text) && /default-src 'none'/.test(r.headers['content-security-policy']) && /frame-ancestors 'none'/.test(r.headers['content-security-policy']) && inlineScript.length > 20 && r.headers['content-security-policy'].includes("script-src 'sha256-" + crypto.createHash('sha256').update(inlineScript).digest('base64') + "'") && (r.text.match(/<script/g) || []).length === 1);
+  check('the home page states the version and the SHA-256 of the page it serves at /app', r.text.includes(JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version) && r.text.includes(require('crypto').createHash('sha256').update(fs.readFileSync(FIXTURE)).digest('hex')));
+  const appPlain = await request(P, 'GET', '/app', undefined, { Accept: 'text/html' });
+  check('/app serves the page itself, byte for byte (the file the chat apps get as the widget)', appPlain.status === 200 && /text\/html/.test(appPlain.headers['content-type']) && appPlain.buffer.equals(fs.readFileSync(FIXTURE)) && /frame-ancestors 'none'/.test(appPlain.headers['content-security-policy']));
+  const appGz = await request(P, 'GET', '/app', undefined, { 'Accept-Encoding': 'gzip' });
+  check('/app is sent compressed when the browser accepts it, and decompresses to the same bytes', appGz.headers['content-encoding'] === 'gzip' && require('zlib').gunzipSync(appGz.buffer).equals(fs.readFileSync(FIXTURE)) && /Accept-Encoding/i.test(appGz.headers.vary || ''));
+  const app304 = await request(P, 'GET', '/app', undefined, { 'If-None-Match': appPlain.headers.etag });
+  check('/app has the page hash as its ETag and answers 304 with no body when the browser copy is current', app304.status === 304 && app304.buffer.length === 0 && appPlain.headers.etag === '"' + crypto.createHash('sha256').update(fs.readFileSync(FIXTURE)).digest('hex') + '"');
+  const appHead = await request(P, 'HEAD', '/app');
+  const appPost = await request(P, 'POST', '/app', {});
+  check('/app: HEAD has no body, POST is refused (405)', appHead.status === 200 && appHead.buffer.length === 0 && appPost.status === 405);
   r = await request(P, 'GET', '/nothing');
   check('anything else is 404', r.status === 404);
   check('nosniff on every answer', r.headers['x-content-type-options'] === 'nosniff');
@@ -208,6 +220,16 @@ const rpc = (port, id, method, params, headers) => request(port, 'POST', '/mcp',
   for (; reads < 10 && last === 200; reads++) last = (await rpc(lim2.port, reads, 'resources/read', { uri: uris.current })).status;
   check('the heavy page read counts five', reads === 2, 'reads=' + reads);
   await lim2.close();
+  const lim3 = await start(baseConfig({ ratePerMin: 8 }), () => {});
+  let apps = 0; let lastApp = 200;
+  for (; apps < 10 && lastApp === 200; apps++) lastApp = (await request(lim3.port, 'GET', '/app')).status;
+  check('/app counts five requests, like the page read over MCP', apps === 2 && lastApp === 429, 'apps=' + apps + ' last=' + lastApp);
+  await lim3.close();
+  const lim4 = await start(baseConfig({ ratePerMin: 8 }), () => {});
+  const etagNow = '"' + crypto.createHash('sha256').update(fs.readFileSync(FIXTURE)).digest('hex') + '"';
+  let okCurrent = 0; for (let i = 0; i < 6; i++) if ((await request(lim4.port, 'GET', '/app', undefined, { 'If-None-Match': etagNow })).status === 304) okCurrent++;
+  check('/app answered 304 counts one, so a browser that already has the page is not blocked', okCurrent >= 6, 'ok=' + okCurrent);
+  await lim4.close();
   const off = await start(baseConfig({ ratePerMin: 0 }), () => {});
   let allOk = true;
   for (let i = 0; i < 40; i++) if ((await rpc(off.port, i, 'ping')).status !== 200) allOk = false;
@@ -241,6 +263,9 @@ const rpc = (port, id, method, params, headers) => request(port, 'POST', '/mcp',
   check('support page: the issue tracker, a private way to report a security problem, a warning that issues are public', /github\.com\/Arfo-du-blo\/DataBrief\/issues/.test(sup) && /Report a vulnerability/.test(sup) && /public/.test(sup));
   check('connector guide: how to add and use it, what each button does, what was tested (only Claude and ChatGPT), and the sample file it names exists', /Add it/.test(con) && /Put in the chat/.test(con) && /Only \*\*Claude\*\*/.test(con) && con.includes('sample/orders-sample.csv') && fs.existsSync(path.join(ROOT, 'docs', 'sample', 'orders-sample.csv')));
   check('sample file: a CSV of invented orders with a header and at least 50 rows', (() => { const l = doc('sample/orders-sample.csv').trim().split('\n'); return /^order_id,order_date,customer,region,product,quantity,unit_price,status$/.test(l[0]) && l.length > 50; })());
+  const mdServer = doc('mcp-server.md');
+  check('the docs describe / and /app (the privacy policy says plain page requests are not logged and that the file is still read in the browser)', mdServer.includes('`/app`') && /Open the tool/.test(mdServer) && priv.includes('/app') && priv.includes('does **not** log them') && /never receives your file/.test(priv) && /Without a chat/.test(con));
+
   /* ---------- the deployment files: Compose, .env.example, the operations guide ---------- */
   const compose = fs.readFileSync(path.join(ROOT, 'mcp', 'docker-compose.yml'), 'utf8');
   const envEx = fs.readFileSync(path.join(ROOT, 'mcp', '.env.example'), 'utf8');
