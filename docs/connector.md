@@ -17,10 +17,23 @@ The connector shows the DataBrief page **inside the chat**, as a widget. You pic
 
 ## Add it
 
-In **Claude** (claude.ai, Claude Desktop): open **Settings**, **Connectors**, **Add custom connector**, paste the address of the connector's server (it ends in `/mcp`), and add it. It asks for no sign-in.
-When the connector is listed in the directory, you can add it from there instead.
+In **Claude** (claude.ai, Claude Desktop):
 
-In **ChatGPT**: turn on developer mode in the settings, then add the address as a connector (an app with the address of the server, no authentication).
+1. Open **Settings**, then **Connectors**.
+2. Click **Add custom connector** (top right).
+3. In **Name**, type `DataBrief`. In **MCP server URL**, paste the address of the connector's server (it ends in `/mcp`), then click **Continue**.
+4. The options appear: set the connection to **No connection**. You do not need the other options.
+5. Click **Add**. Then, in a chat, ask: "Open DataBrief."
+
+In **ChatGPT**:
+
+1. Open **Plugins**, click **Add** (top right), then **Add custom MCP server**.
+2. In **Name**, type `DataBrief`.
+3. Under **Connection**, keep **Server URL** (not **Tunnel**), and paste the address.
+4. Set **Authentication** to **No authentication**, then tick **I understand and wish to continue**.
+5. Click **Create as plugin**. Then, in a chat, ask: "Open DataBrief."
+
+The connector asks for no sign-in. When it is listed in the directory of Claude, you can add it from there instead.
 
 To run your own copy of the server, see [Running the hosted MCP server](mcp-operations.md). In Claude Desktop you can also install the [extension](extension.md), which has DataBrief inside and needs no server.
 

@@ -66,7 +66,7 @@ const CODES = home.langs.map((l) => l.code);
   check('the language list shows the tool\'s 15 languages, by their own names', (await page.$$eval('#uiLang option', (o) => o.map((x) => x.value + ':' + x.textContent).join('|'))) === tool.langs.map((l) => l.code + ':' + l.name).join('|'));
   await close(page);
   page = await open({ noJs: true });
-  check('with JavaScript off the English page is whole (title, button, address, steps, footer) and the language and theme buttons are not shown', (await text(page, '.tagline')) === tool.ui.en.tagline && (await page.$eval('#toolLink', (a) => a.getAttribute('href'))) === '/app' && (await page.$eval('#addr', (i) => i.value)) === 'https://databrief.example.org/mcp' && (await page.$$eval('.step li', (l) => l.length)) === 7 && (await page.$eval('#uiLangWrap', (e) => e.hidden)) && (await page.$eval('#themeBtn', (e) => e.hidden)) && (await text(page, 'footer')).includes('GNU GPL v3'));
+  check('with JavaScript off the English page is whole (title, button, address, steps, footer) and the language and theme buttons are not shown', (await text(page, '.tagline')) === tool.ui.en.tagline && (await page.$eval('#toolLink', (a) => a.getAttribute('href'))) === '/app' && (await page.$eval('#addr', (i) => i.value)) === 'https://databrief.example.org/mcp' && (await page.$$eval('.step li', (l) => l.length)) === 10 && (await page.$eval('#uiLangWrap', (e) => e.hidden)) && (await page.$eval('#themeBtn', (e) => e.hidden)) && (await text(page, 'footer')).includes('GNU GPL v3'));
   await close(page);
 
   // ---- choose French on the home page: the tool opens in French
